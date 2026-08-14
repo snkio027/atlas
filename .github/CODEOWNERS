@@ -1,0 +1,19 @@
+# Default ownership
+* @snkio027
+
+# Normative architecture and decisions
+/AGENTS.md @snkio027
+/CONTRIBUTING.md @snkio027
+/docs/architecture/** @snkio027
+/docs/standards/** @snkio027
+/docs/adr/** @snkio027
+
+# Tier-0 trust boundary
+/gitops/root/** @snkio027
+/bootstrap/argocd/root-app.yaml.tpl @snkio027
+/bootstrap/argocd/atlas-bootstrap-project.yaml @snkio027
+
+# Supply chain and repository governance
+/versions.lock @snkio027
+/vendor/** @snkio027
+/.github/** @snkio027
