@@ -36,14 +36,14 @@ source "${ATLAS_ROOT_DIR}/bootstrap/argocd/handoff.sh"
 # shellcheck source=bootstrap/argocd/status.sh
 source "${ATLAS_ROOT_DIR}/bootstrap/argocd/status.sh"
 
-usage() {
+cli::usage() {
   cat << 'EOF'
 Usage: bootstrap/atlas <command> [options]
 
 Commands:
   doctor              Run read-only host and immutable-input checks
   render              Render Argo CD Seed and External Root into .state/
-  apply               Reconcile Bootstrap and perform the GitOps handoff
+  apply               Ensure the substrate and perform the GitOps handoff
   status              Read the current Bootstrap and handoff state
 
 Options:
@@ -54,13 +54,13 @@ Options:
 EOF
 }
 
-version() {
+cli::version() {
   printf 'atlas-bootstrap %s\n' "$ATLAS_CLI_VERSION"
 }
 
 command_name=${1:-}
 [[ -n $command_name ]] || {
-  usage >&2
+  cli::usage >&2
   exit 2
 }
 shift
@@ -68,17 +68,17 @@ shift
 case "$command_name" in
   -h | --help | help)
     (($# == 0)) || runtime::die "help does not accept options"
-    usage
+    cli::usage
     exit 0
     ;;
   -V | --version | version)
     (($# == 0)) || runtime::die "version does not accept options"
-    version
+    cli::version
     exit 0
     ;;
   doctor | render | apply | status) ;;
   *)
-    usage >&2
+    cli::usage >&2
     runtime::die "unknown command: ${command_name}"
     ;;
 esac
@@ -97,11 +97,11 @@ while (($# > 0)); do
       shift
       ;;
     -h | --help)
-      usage
+      cli::usage
       exit 0
       ;;
     -V | --version)
-      version
+      cli::version
       exit 0
       ;;
     *) runtime::die "unknown option: $1" ;;

@@ -41,15 +41,15 @@ argocd::_validate_rendered_seed() {
 
 argocd::render() {
   runtime::phase render
-  local chart expected actual output_dir
+  local chart expected_sha actual_sha output_dir
   chart="${ATLAS_ROOT_DIR}/$(config::version ARGOCD_CHART_FILE)"
-  expected=$(config::version ARGOCD_CHART_SHA256)
+  expected_sha=$(config::version ARGOCD_CHART_SHA256)
   [[ -s $chart && ! -L $chart ]] || {
     runtime::die "locked Argo CD chart is missing: ${chart}"
     return 1
   }
-  actual=$(runtime::sha256 "$chart")
-  [[ $actual == "$expected" ]] || {
+  actual_sha=$(runtime::sha256 "$chart")
+  [[ $actual_sha == "$expected_sha" ]] || {
     runtime::die "Argo CD chart checksum mismatch"
     return 1
   }
