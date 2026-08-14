@@ -114,6 +114,7 @@ argocd::wait_for_adoption() {
 argocd::handoff() {
   local tier0_approved=$1
   runtime::phase argocd-handoff
+  # Keep the human gate at the mutating trust boundary as well as in the CLI.
   [[ $tier0_approved == true ]] || {
     runtime::die "Tier-0 approval is required: pass --approve-tier0"
     return 1

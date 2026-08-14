@@ -245,6 +245,8 @@ config::_validate_git_contract() {
     gitops/platform/applications/base/argocd-self-app.yaml
   )
 
+  # Configuration loading stays dependency-free, so checked-in Git sources are
+  # validated with the strict scalar forms used by these controlled manifests.
   for file in "${project_files[@]}"; do
     config::_validate_repo_path "$root" "$file" file "Git contract" || return 1
     config::_manifest_repo_matches "${root}/${file}" "$repo" || return 1
@@ -256,12 +258,10 @@ config::_validate_git_contract() {
   done
 }
 
-config::_validate() {
-  local root=$1 environment=$2 image_key
+config::_validate_profile() {
+  local environment=$1
   local name_pattern='^[a-z0-9][a-z0-9-]*$'
-  local digest_pattern='@sha256:[0-9a-f]{64}$'
 
-  config::_equals SCHEMA_VERSION "${ATLAS_VERSIONS[SCHEMA_VERSION]}" 1 || return 1
   config::_equals ATLAS_ENVIRONMENT "${ATLAS_CONFIG[ATLAS_ENVIRONMENT]}" "$environment" || return 1
   config::_matches ATLAS_ENVIRONMENT "${ATLAS_CONFIG[ATLAS_ENVIRONMENT]}" "$name_pattern" || return 1
   config::_matches ATLAS_CLUSTER_NAME "${ATLAS_CONFIG[ATLAS_CLUSTER_NAME]}" "$name_pattern" || return 1
@@ -280,6 +280,11 @@ config::_validate() {
   config::_integer_in_range ATLAS_REGISTRY_PORT "${ATLAS_CONFIG[ATLAS_REGISTRY_PORT]}" 1024 65535 || return 1
   config::_timeout_in_range ATLAS_KUBECTL_TIMEOUT "${ATLAS_CONFIG[ATLAS_KUBECTL_TIMEOUT]}" 300 || return 1
   config::_timeout_in_range ATLAS_READY_TIMEOUT "${ATLAS_CONFIG[ATLAS_READY_TIMEOUT]}" 1800 || return 1
+}
+
+config::_validate_versions() {
+  local image_key
+  local digest_pattern='@sha256:[0-9a-f]{64}$'
 
   config::_matches BASH_VERSION "${ATLAS_VERSIONS[BASH_VERSION]}" '^5\.[0-9]+\.[0-9]+$' || return 1
   for image_key in KIND_NODE_IMAGE REGISTRY_IMAGE ARGOCD_IMAGE REDIS_IMAGE; do
@@ -291,12 +296,23 @@ config::_validate() {
   config::_contains KIND_NODE_IMAGE "${ATLAS_VERSIONS[KIND_NODE_IMAGE]}" ":v${ATLAS_VERSIONS[KUBERNETES_VERSION]}@" || return 1
   config::_contains REGISTRY_IMAGE "${ATLAS_VERSIONS[REGISTRY_IMAGE]}" ":${ATLAS_VERSIONS[REGISTRY_VERSION]}@" || return 1
   config::_contains ARGOCD_IMAGE "${ATLAS_VERSIONS[ARGOCD_IMAGE]}" ":v${ATLAS_VERSIONS[ARGOCD_VERSION]}@" || return 1
+}
 
+config::_validate_paths() {
+  local root=$1
   config::_validate_repo_path "$root" "${ATLAS_CONFIG[ATLAS_KIND_CONFIG]}" file ATLAS_KIND_CONFIG || return 1
   config::_validate_repo_path "$root" "${ATLAS_CONFIG[ATLAS_ROOT_PATH]}" directory ATLAS_ROOT_PATH || return 1
   config::_validate_repo_path "$root" "${ATLAS_VERSIONS[ARGOCD_CHART_FILE]}" file ARGOCD_CHART_FILE || return 1
   config::_validate_repo_path "$root" "${ATLAS_VERSIONS[ARGOCD_CHART_PATH]}" directory ARGOCD_CHART_PATH || return 1
   config::_validate_repo_path "$root" gitops/platform/management/argocd-self/values.yaml file argocd-self-values || return 1
+}
+
+config::_validate() {
+  local root=$1 environment=$2
+  config::_equals SCHEMA_VERSION "${ATLAS_VERSIONS[SCHEMA_VERSION]}" 1 || return 1
+  config::_validate_profile "$environment" || return 1
+  config::_validate_versions || return 1
+  config::_validate_paths "$root" || return 1
   config::_validate_git_contract "$root" "${ATLAS_CONFIG[ATLAS_GIT_REPO_URL]}" "${ATLAS_CONFIG[ATLAS_GIT_REVISION]}" || return 1
 }
 

@@ -3,15 +3,6 @@
 [[ -n ${_ATLAS_HOST_LOADED:-} ]] && return 0
 readonly _ATLAS_HOST_LOADED=1
 
-host::_pass() {
-  runtime::ok "$1"
-}
-
-host::_fail() {
-  runtime::error "$1"
-  return 1
-}
-
 host::_tool_version() {
   local tool=$1 expected=$2 actual=
   case "$tool" in
@@ -30,37 +21,37 @@ host::_tool_version() {
 
 host::_file() {
   local file=$1
-  [[ -f $file && ! -L $file && -s $file ]] || host::_fail "required file is missing, empty, or unsafe: ${file}"
+  [[ -f $file && ! -L $file && -s $file ]] || runtime::die "required file is missing, empty, or unsafe: ${file}"
 }
 
 host::_image() {
   local image=$1
-  runtime::docker_image_present "$image" || host::_fail "locked image is not available locally: ${image}"
+  runtime::docker_image_present "$image" || runtime::die "locked image is not available locally: ${image}"
 }
 
 host::doctor() {
   runtime::phase doctor
-  local failures=0 tool root chart chart_path expected_sha actual_sha relative
+  local failures=0 tool image_key root chart chart_path expected_sha actual_sha relative
   root=$ATLAS_ROOT_DIR
 
   if [[ $(uname -s) == Darwin ]]; then
-    host::_pass "host operating system: Darwin"
+    runtime::ok "host operating system: Darwin"
   else
-    host::_fail "unsupported host operating system: $(uname -s)" || true
+    runtime::die "unsupported host operating system: $(uname -s)" || true
     ((failures += 1))
   fi
   if [[ $(uname -m) == arm64 ]]; then
-    host::_pass "host architecture: arm64"
+    runtime::ok "host architecture: arm64"
   else
-    host::_fail "unsupported host architecture: $(uname -m)" || true
+    runtime::die "unsupported host architecture: $(uname -m)" || true
     ((failures += 1))
   fi
 
   for tool in bash docker kind kubectl helm git shasum awk sed grep mktemp curl; do
     if runtime::command_exists "$tool"; then
-      host::_pass "command available: ${tool}"
+      runtime::ok "command available: ${tool}"
     else
-      host::_fail "required command is missing: ${tool}" || true
+      runtime::die "required command is missing: ${tool}" || true
       ((failures += 1))
     fi
   done
@@ -73,9 +64,9 @@ host::doctor() {
   fi
 
   if docker info > /dev/null 2>&1; then
-    host::_pass "Docker daemon is available"
+    runtime::ok "Docker daemon is available"
   else
-    host::_fail "Docker daemon is unavailable" || true
+    runtime::die "Docker daemon is unavailable" || true
     ((failures += 1))
   fi
 
@@ -95,7 +86,7 @@ host::doctor() {
     expected_sha=$(config::version ARGOCD_CHART_SHA256)
     actual_sha=$(runtime::sha256 "$chart")
     [[ $actual_sha == "$expected_sha" ]] || {
-      host::_fail "Argo CD chart checksum mismatch: ${chart}" || true
+      runtime::die "Argo CD chart checksum mismatch: ${chart}" || true
       ((failures += 1))
     }
   else
@@ -105,19 +96,19 @@ host::doctor() {
   chart_path="${root}/$(config::version ARGOCD_CHART_PATH)"
   if host::_file "${chart_path}/Chart.yaml"; then
     grep -Fxq "version: $(config::version ARGOCD_CHART_VERSION)" "${chart_path}/Chart.yaml" || {
-      host::_fail "vendored Argo CD chart version mismatch: ${chart_path}" || true
+      runtime::die "vendored Argo CD chart version mismatch: ${chart_path}" || true
       ((failures += 1))
     }
     grep -Fxq "appVersion: v$(config::version ARGOCD_VERSION)" "${chart_path}/Chart.yaml" || {
-      host::_fail "vendored Argo CD application version mismatch: ${chart_path}" || true
+      runtime::die "vendored Argo CD application version mismatch: ${chart_path}" || true
       ((failures += 1))
     }
   else
     ((failures += 1))
   fi
 
-  for tool in KIND_NODE_IMAGE REGISTRY_IMAGE ARGOCD_IMAGE REDIS_IMAGE; do
-    host::_image "$(config::version "$tool")" || ((failures += 1))
+  for image_key in KIND_NODE_IMAGE REGISTRY_IMAGE ARGOCD_IMAGE REDIS_IMAGE; do
+    host::_image "$(config::version "$image_key")" || ((failures += 1))
   done
 
   if ((failures > 0)); then

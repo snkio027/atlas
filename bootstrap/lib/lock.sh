@@ -55,6 +55,7 @@ lock::release() {
   [[ -d $ATLAS_LOCK_DIR && ! -L $ATLAS_LOCK_DIR ]] || return 0
   local owner_pid=
   read -r owner_pid < "${ATLAS_LOCK_DIR}/pid" 2> /dev/null || return 0
+  # Never clean up a lock owned by another process, even during an EXIT trap.
   [[ $owner_pid == "$$" ]] || return 0
   rm -f "${ATLAS_LOCK_DIR}/pid"
   rmdir "$ATLAS_LOCK_DIR"

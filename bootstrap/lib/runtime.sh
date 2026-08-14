@@ -51,19 +51,6 @@ runtime::version_triplet() {
   return 1
 }
 
-runtime::version_at_least() {
-  local actual=$1 required=$2
-  local -a left right
-  IFS=. read -r -a left <<< "$actual"
-  IFS=. read -r -a right <<< "$required"
-  local index
-  for index in 0 1 2; do
-    ((10#${left[$index]:-0} > 10#${right[$index]:-0})) && return 0
-    ((10#${left[$index]:-0} < 10#${right[$index]:-0})) && return 1
-  done
-  return 0
-}
-
 runtime::require_exact_version() {
   local tool=$1 actual=$2 expected=$3
   [[ $actual == "$expected" ]] || {

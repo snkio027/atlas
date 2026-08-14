@@ -74,24 +74,26 @@ registry::_node_has_image() {
 }
 
 registry::_load_node_image() {
-  local node=$1 image=$2 platform digest sources source
+  local node=$1 image=$2 platform digest source_refs source_ref
   registry::_node_has_image "$node" "$image" && return 0
 
   platform=$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")
   digest=${image##*@}
+  # Import offline, then restore the exact digest-pinned reference expected by
+  # the workloads; Kind's convenience loader is not part of this supply chain.
   docker image save "$image" | docker exec --privileged --interactive "$node" \
     ctr --namespace k8s.io images import \
     --platform "$platform" \
     --digests \
     --snapshotter overlayfs - > /dev/null
 
-  sources=$(docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
-  source=${sources%%$'\n'*}
-  [[ -n $source ]] || {
+  source_refs=$(docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
+  source_ref=${source_refs%%$'\n'*}
+  [[ -n $source_ref ]] || {
     runtime::die "imported image digest is absent on node: node=${node} image=${image}"
     return 1
   }
-  docker exec "$node" ctr --namespace k8s.io images tag "$source" "$image" > /dev/null
+  docker exec "$node" ctr --namespace k8s.io images tag "$source_ref" "$image" > /dev/null
   registry::_node_has_image "$node" "$image" || {
     runtime::die "locked image reference is absent after import: node=${node} image=${image}"
     return 1
