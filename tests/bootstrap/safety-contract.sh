@@ -8,41 +8,57 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 cd "$ATLAS_TEST_ROOT"
 
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-safety-test.XXXXXX")
-lock_dir=.state/bootstrap.lock
+state_dir="${test_workspace}/state"
+lock_dir="${state_dir}/bootstrap.lock"
 cleanup() {
-  rm -f "${lock_dir}/pid"
-  rmdir "$lock_dir" 2> /dev/null || true
   rm -rf "$test_workspace"
 }
 trap cleanup EXIT
 
-if approval_output=$(./bootstrap/atlas apply 2>&1); then
+cli_root="${test_workspace}/cli"
+mkdir -p "$cli_root"
+cp -R bootstrap "${cli_root}/bootstrap"
+mkdir -p "$lock_dir"
+printf '%s\n' 99999999 > "${lock_dir}/pid"
+
+if approval_output=$("${cli_root}/bootstrap/atlas" apply 2>&1); then
   test::fail "apply succeeded without Tier-0 approval"
 fi
 grep -Fq 'Tier-0 approval is required' <<< "$approval_output" || test::fail "apply did not fail at the Tier-0 gate"
-test::pass "Tier-0 approval precedes configuration and mutation"
-
-mkdir -p .state
-mkdir -m 0700 "$lock_dir"
-printf '%s\n' 99999999 > "${lock_dir}/pid"
-if recovery_output=$(./bootstrap/atlas apply 2>&1); then
-  test::fail "interrupted recovery bypassed Tier-0 approval"
-fi
-grep -Fq 'Tier-0 approval is required' <<< "$recovery_output" || test::fail "interrupted recovery did not stop at the Tier-0 gate"
-[[ -f ${lock_dir}/pid ]] || test::fail "unapproved apply mutated the stale lifecycle lock"
+[[ $(< "${lock_dir}/pid") == 99999999 ]] || test::fail "unapproved apply mutated the isolated lifecycle lock"
 rm -f "${lock_dir}/pid"
 rmdir "$lock_dir"
-test::pass "interrupted recovery cannot bypass Tier-0 approval"
+test::pass "Tier-0 approval precedes configuration and lock recovery"
+
+lock_cycle() {
+  local isolated_state=$1
+  bash -Eeuo pipefail -c '
+    source bootstrap/lib/runtime.sh
+    source bootstrap/lib/lock.sh
+    lock::acquire "$1"
+    lock::release
+  ' _ "$isolated_state"
+}
 
 mkdir -m 0700 "$lock_dir"
 printf '%s\n' "$$" > "${lock_dir}/pid"
-if lock_output=$(./bootstrap/atlas render 2>&1); then
-  test::fail "render ignored a live lifecycle lock"
+if lock_output=$(lock_cycle "$state_dir" 2>&1); then
+  test::fail "lock::acquire ignored a live lifecycle lock"
 fi
 grep -Fq 'another bootstrap process is running' <<< "$lock_output" || test::fail "concurrent execution did not fail closed"
+[[ $(< "${lock_dir}/pid") == "$$" ]] || test::fail "failed acquisition modified a foreign lock"
 rm -f "${lock_dir}/pid"
 rmdir "$lock_dir"
-test::pass "concurrent Bootstrap execution fails closed"
+test::pass "lock::acquire preserves a live foreign lock"
+
+stale_pid=99999999
+kill -0 "$stale_pid" 2> /dev/null && test::fail "chosen stale PID is unexpectedly live"
+mkdir -m 0700 "$lock_dir"
+printf '%s\n' "$stale_pid" > "${lock_dir}/pid"
+stale_output=$(lock_cycle "$state_dir" 2>&1)
+grep -Fq "recovering stale bootstrap lock: pid=${stale_pid}" <<< "$stale_output" || test::fail "stale lock recovery was not reported"
+[[ ! -e $lock_dir ]] || test::fail "lock::release left the isolated recovered lock behind"
+test::pass "lock::acquire and lock::release recover only isolated stale state"
 
 seed_decision() {
   local state=$1
