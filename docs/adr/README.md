@@ -9,6 +9,7 @@ identify and update the higher authority through its review process.
 | ADR | Status | Decision |
 | --- | --- | --- |
 | [0001](0001-retain-shell-bootstrap.md) | Accepted | Retain Shell as the Bootstrap Stage-1 implementation |
+| [0002](0002-monotonic-bootstrap-adoption-proof.md) | Proposed | Establish a monotonic Bootstrap adoption proof |
 
 ## Lifecycle
 
