@@ -68,15 +68,53 @@ registry::_health() {
     "http://$(config::get ATLAS_REGISTRY_HOST):$(config::get ATLAS_REGISTRY_PORT)/v2/" > /dev/null
 }
 
+registry::_node_has_image() {
+  local node=$1 image=$2
+  docker exec "$node" ctr --namespace k8s.io images list --quiet "name==${image}" | grep -Fxq "$image"
+}
+
+registry::_load_node_image() {
+  local node=$1 image=$2 platform digest sources source
+  registry::_node_has_image "$node" "$image" && return 0
+
+  platform=$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")
+  digest=${image##*@}
+  docker image save "$image" | docker exec --privileged --interactive "$node" \
+    ctr --namespace k8s.io images import \
+    --platform "$platform" \
+    --digests \
+    --snapshotter overlayfs - > /dev/null
+
+  sources=$(docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
+  source=${sources%%$'\n'*}
+  [[ -n $source ]] || {
+    core::die "imported image digest is absent on node: node=${node} image=${image}"
+    return 1
+  }
+  docker exec "$node" ctr --namespace k8s.io images tag "$source" "$image" > /dev/null
+  registry::_node_has_image "$node" "$image" || {
+    core::die "locked image reference is absent after import: node=${node} image=${image}"
+    return 1
+  }
+}
+
 registry::_preload_seed_images() {
-  local cluster image
-  cluster=$(config::get ATLAS_CLUSTER_NAME)
+  local node image
+  local -a nodes=()
+  mapfile -t nodes < <(kind get nodes --name "$(config::get ATLAS_CLUSTER_NAME)")
+  ((${#nodes[@]} > 0)) || {
+    core::die "Kind returned no nodes while preloading images"
+    return 1
+  }
+
   for image in "$(config::version ARGOCD_IMAGE)" "$(config::version REDIS_IMAGE)"; do
     core::docker_image_present "$image" || {
       core::die "Bootstrap image is not available locally: ${image}"
       return 1
     }
-    kind load docker-image --name "$cluster" "$image"
+    for node in "${nodes[@]}"; do
+      registry::_load_node_image "$node" "$image"
+    done
   done
 }
 

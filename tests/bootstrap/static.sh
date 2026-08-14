@@ -37,6 +37,7 @@ shfmt -d -i 2 -ci -sr "${shell_files[@]}"
 pass "Shell syntax, ShellCheck, and shfmt"
 
 assert_not_found 'helm[[:space:]]+(install|upgrade)' bootstrap
+assert_not_found 'kind[[:space:]]+load[[:space:]]+docker-image' bootstrap
 assert_not_found 'kubectl[^\n]*(apply|create)[^\n]*https?://' bootstrap
 assert_not_found '^kind:[[:space:]]+ApplicationSet$' bootstrap gitops/root gitops/platform/applications
 assert_not_found 'resources-finalizer\.argocd\.argoproj\.io' bootstrap/argocd gitops/root
