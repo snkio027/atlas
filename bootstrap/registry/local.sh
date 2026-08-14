@@ -16,27 +16,27 @@ registry::_validate_container() {
 
   actual=$(docker inspect --format '{{.Config.Image}}' "$name")
   [[ $actual == "$image" ]] || {
-    core::die "Registry image drift: expected=${image} actual=${actual}"
+    runtime::die "Registry image drift: expected=${image} actual=${actual}"
     return 1
   }
   actual=$(docker inspect --format '{{index .Config.Labels "io.atlas.managed"}}' "$name")
   [[ $actual == true ]] || {
-    core::die "Registry ownership label is missing: ${name}"
+    runtime::die "Registry ownership label is missing: ${name}"
     return 1
   }
   actual=$(docker inspect --format '{{index .Config.Labels "io.atlas.cluster"}}' "$name")
   [[ $actual == "$expected_cluster" ]] || {
-    core::die "Registry cluster label drift: ${name}"
+    runtime::die "Registry cluster label drift: ${name}"
     return 1
   }
   actual=$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$name")
   [[ $actual == kind ]] || {
-    core::die "Registry is not attached to the Kind network: ${name}"
+    runtime::die "Registry is not attached to the Kind network: ${name}"
     return 1
   }
   actual=$(docker inspect --format '{{with (index .HostConfig.PortBindings "5000/tcp")}}{{(index . 0).HostIp}}:{{(index . 0).HostPort}}{{end}}' "$name")
   [[ $actual == "$expected_binding" ]] || {
-    core::die "Registry port binding drift: expected=${expected_binding} actual=${actual:-none}"
+    runtime::die "Registry port binding drift: expected=${expected_binding} actual=${actual:-none}"
     return 1
   }
 }
@@ -88,12 +88,12 @@ registry::_load_node_image() {
   sources=$(docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
   source=${sources%%$'\n'*}
   [[ -n $source ]] || {
-    core::die "imported image digest is absent on node: node=${node} image=${image}"
+    runtime::die "imported image digest is absent on node: node=${node} image=${image}"
     return 1
   }
   docker exec "$node" ctr --namespace k8s.io images tag "$source" "$image" > /dev/null
   registry::_node_has_image "$node" "$image" || {
-    core::die "locked image reference is absent after import: node=${node} image=${image}"
+    runtime::die "locked image reference is absent after import: node=${node} image=${image}"
     return 1
   }
 }
@@ -103,13 +103,13 @@ registry::_preload_seed_images() {
   local -a nodes=()
   mapfile -t nodes < <(kind get nodes --name "$(config::get ATLAS_CLUSTER_NAME)")
   ((${#nodes[@]} > 0)) || {
-    core::die "Kind returned no nodes while preloading images"
+    runtime::die "Kind returned no nodes while preloading images"
     return 1
   }
 
   for image in "$(config::version ARGOCD_IMAGE)" "$(config::version REDIS_IMAGE)"; do
-    core::docker_image_present "$image" || {
-      core::die "Bootstrap image is not available locally: ${image}"
+    runtime::docker_image_present "$image" || {
+      runtime::die "Bootstrap image is not available locally: ${image}"
       return 1
     }
     for node in "${nodes[@]}"; do
@@ -118,8 +118,8 @@ registry::_preload_seed_images() {
   done
 }
 
-registry::reconcile() {
-  core::phase registry
+registry::ensure_local() {
+  runtime::phase registry
   local name image port cluster node
   local -a nodes=()
   name=$(config::get ATLAS_REGISTRY_NAME)
@@ -127,12 +127,12 @@ registry::reconcile() {
   port=$(config::get ATLAS_REGISTRY_PORT)
   cluster=$(config::get ATLAS_CLUSTER_NAME)
 
-  core::docker_image_present "$image" || {
-    core::die "Registry image is not available locally: ${image}"
+  runtime::docker_image_present "$image" || {
+    runtime::die "Registry image is not available locally: ${image}"
     return 1
   }
   docker network inspect kind > /dev/null 2>&1 || {
-    core::die "Kind network is absent; reconcile the cluster first"
+    runtime::die "Kind network is absent; ensure the cluster first"
     return 1
   }
 
@@ -158,18 +158,18 @@ registry::reconcile() {
 
   mapfile -t nodes < <(kind get nodes --name "$cluster")
   ((${#nodes[@]} > 0)) || {
-    core::die "Kind returned no nodes for ${cluster}"
+    runtime::die "Kind returned no nodes for ${cluster}"
     return 1
   }
   for node in "${nodes[@]}"; do
     registry::_configure_node "$node"
   done
-  core::wait_for 30 1 "local Registry" registry::_health
+  runtime::wait_for 30 1 "local Registry" registry::_health
   registry::_preload_seed_images
-  core::ok "local Registry and seed image cache are ready"
+  runtime::ok "local Registry and seed image cache are ready"
 }
 
-registry::status() {
+registry::inspect_status() {
   local name
   name=$(config::get ATLAS_REGISTRY_NAME)
   if ! docker info > /dev/null 2>&1; then

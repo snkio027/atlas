@@ -4,18 +4,18 @@
 readonly _ATLAS_HOST_LOADED=1
 
 host::_pass() {
-  core::ok "$1"
+  runtime::ok "$1"
 }
 
 host::_fail() {
-  core::error "$1"
+  runtime::error "$1"
   return 1
 }
 
 host::_tool_version() {
   local tool=$1 expected=$2 actual=
   case "$tool" in
-    bash) actual=$(core::version_triplet "$BASH_VERSION") ;;
+    bash) actual=$(runtime::version_triplet "$BASH_VERSION") ;;
     kind) actual=$(kind version 2> /dev/null | awk '{print $2}' | sed 's/^v//') ;;
     kubectl) actual=$(kubectl version --client 2> /dev/null | awk '/Client Version:/ {sub(/^v/, "", $3); print $3; exit}') ;;
     helm)
@@ -25,7 +25,7 @@ host::_tool_version() {
       ;;
     *) return 2 ;;
   esac
-  core::require_exact_version "$tool" "$actual" "$expected"
+  runtime::require_exact_version "$tool" "$actual" "$expected"
 }
 
 host::_file() {
@@ -35,11 +35,11 @@ host::_file() {
 
 host::_image() {
   local image=$1
-  core::docker_image_present "$image" || host::_fail "locked image is not available locally: ${image}"
+  runtime::docker_image_present "$image" || host::_fail "locked image is not available locally: ${image}"
 }
 
 host::doctor() {
-  core::phase doctor
+  runtime::phase doctor
   local failures=0 tool root chart chart_path expected_sha actual_sha relative
   root=$ATLAS_ROOT_DIR
 
@@ -57,7 +57,7 @@ host::doctor() {
   fi
 
   for tool in bash docker kind kubectl helm git shasum awk sed grep mktemp curl; do
-    if core::command_exists "$tool"; then
+    if runtime::command_exists "$tool"; then
       host::_pass "command available: ${tool}"
     else
       host::_fail "required command is missing: ${tool}" || true
@@ -93,7 +93,7 @@ host::doctor() {
   chart="${root}/$(config::version ARGOCD_CHART_FILE)"
   if host::_file "$chart"; then
     expected_sha=$(config::version ARGOCD_CHART_SHA256)
-    actual_sha=$(core::sha256 "$chart")
+    actual_sha=$(runtime::sha256 "$chart")
     [[ $actual_sha == "$expected_sha" ]] || {
       host::_fail "Argo CD chart checksum mismatch: ${chart}" || true
       ((failures += 1))
@@ -121,8 +121,8 @@ host::doctor() {
   done
 
   if ((failures > 0)); then
-    core::error "doctor failed: ${failures} check(s) require attention"
+    runtime::error "doctor failed: ${failures} check(s) require attention"
     return 1
   fi
-  core::ok "doctor passed"
+  runtime::ok "doctor passed"
 }

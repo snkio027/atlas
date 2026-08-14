@@ -21,7 +21,34 @@ tasks:
     cmds:
       - ./bootstrap/atlas status
 
-  test:
-    desc: Run static Bootstrap tests
+  quality:
+    desc: Run every mandatory local quality gate
     cmds:
-      - ./tests/bootstrap/static.sh
+      - task: format
+      - task: test
+      - task: conformance
+
+  format:
+    desc: Check Shell syntax, ShellCheck, and shfmt
+    cmds:
+      - ./tests/shell/lint.sh
+
+  test:
+    desc: Run Bootstrap safety and configuration tests
+    cmds:
+      - ./tests/shell/config.sh
+      - ./tests/bootstrap/safety-contract.sh
+      - ./tests/bootstrap/status-contract.sh
+
+  conformance:
+    desc: Run render, architecture, and supply-chain contracts
+    cmds:
+      - ./tests/bootstrap/render-contract.sh
+      - ./tests/gitops/conformance.sh
+
+  integration:
+    desc: Run the explicit mutating Kind Bootstrap test
+    env:
+      ATLAS_INTEGRATION: "1"
+    cmds:
+      - ./tests/integration/kind-bootstrap.sh

@@ -14,3 +14,16 @@ task bootstrap:apply
 ```
 
 See `bootstrap/README.md` for its safety, supply-chain, and Tier-0 contracts.
+
+Repository governance starts with `AGENTS.md` and `CONTRIBUTING.md`. Run every
+mandatory local gate with:
+
+```bash
+task quality
+```
+
+The mutating Kind verification is intentionally explicit:
+
+```bash
+task integration
+```

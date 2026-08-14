@@ -13,19 +13,28 @@ ATLAS_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 readonly ATLAS_ROOT_DIR
 ATLAS_STATE_DIR="${ATLAS_ROOT_DIR}/.state"
 readonly ATLAS_STATE_DIR
+readonly ATLAS_CLI_VERSION=0.1.0
 
-# shellcheck source=bootstrap/lib/core.sh
-source "${ATLAS_ROOT_DIR}/bootstrap/lib/core.sh"
+# shellcheck source=bootstrap/lib/runtime.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/lib/runtime.sh"
+# shellcheck source=bootstrap/lib/lock.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/lib/lock.sh"
 # shellcheck source=bootstrap/lib/config.sh
 source "${ATLAS_ROOT_DIR}/bootstrap/lib/config.sh"
 # shellcheck source=bootstrap/host/doctor.sh
 source "${ATLAS_ROOT_DIR}/bootstrap/host/doctor.sh"
-# shellcheck source=bootstrap/cluster/reconcile.sh
-source "${ATLAS_ROOT_DIR}/bootstrap/cluster/reconcile.sh"
-# shellcheck source=bootstrap/registry/reconcile.sh
-source "${ATLAS_ROOT_DIR}/bootstrap/registry/reconcile.sh"
-# shellcheck source=bootstrap/argocd/reconcile.sh
-source "${ATLAS_ROOT_DIR}/bootstrap/argocd/reconcile.sh"
+# shellcheck source=bootstrap/cluster/kind.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/cluster/kind.sh"
+# shellcheck source=bootstrap/registry/local.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/registry/local.sh"
+# shellcheck source=bootstrap/argocd/render.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/argocd/render.sh"
+# shellcheck source=bootstrap/argocd/seed.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/argocd/seed.sh"
+# shellcheck source=bootstrap/argocd/handoff.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/argocd/handoff.sh"
+# shellcheck source=bootstrap/argocd/status.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/argocd/status.sh"
 
 usage() {
   cat << 'EOF'
@@ -40,8 +49,13 @@ Commands:
 Options:
   --env <name>         Environment profile (default: local-orbstack)
   --approve-tier0      Explicitly authorize initial Tier-0 instantiation
+  -V, --version        Show the Bootstrap CLI version
   -h, --help           Show this help
 EOF
+}
+
+version() {
+  printf 'atlas-bootstrap %s\n' "$ATLAS_CLI_VERSION"
 }
 
 command_name=${1:-}
@@ -51,12 +65,30 @@ command_name=${1:-}
 }
 shift
 
+case "$command_name" in
+  -h | --help | help)
+    (($# == 0)) || runtime::die "help does not accept options"
+    usage
+    exit 0
+    ;;
+  -V | --version | version)
+    (($# == 0)) || runtime::die "version does not accept options"
+    version
+    exit 0
+    ;;
+  doctor | render | apply | status) ;;
+  *)
+    usage >&2
+    runtime::die "unknown command: ${command_name}"
+    ;;
+esac
+
 environment=local-orbstack
 tier0_approved=false
 while (($# > 0)); do
   case "$1" in
     --env)
-      (($# >= 2)) || core::die "--env requires a value"
+      (($# >= 2)) || runtime::die "--env requires a value"
       environment=$2
       shift 2
       ;;
@@ -68,41 +100,46 @@ while (($# > 0)); do
       usage
       exit 0
       ;;
-    *) core::die "unknown option: $1" ;;
+    -V | --version)
+      version
+      exit 0
+      ;;
+    *) runtime::die "unknown option: $1" ;;
   esac
 done
 
-[[ $environment =~ ^[a-z0-9][a-z0-9-]*$ ]] || core::die "invalid environment name: ${environment}"
+[[ $environment =~ ^[a-z0-9][a-z0-9-]*$ ]] || runtime::die "invalid environment name: ${environment}"
+if [[ $command_name == apply ]]; then
+  [[ $tier0_approved == true ]] || runtime::die "Tier-0 approval is required: pass --approve-tier0"
+else
+  [[ $tier0_approved == false ]] || runtime::die "--approve-tier0 is valid only with apply"
+fi
 config::load "$ATLAS_ROOT_DIR" "$environment"
 
-trap 'status=$?; core::on_exit "$status"; exit "$status"' EXIT
+trap 'status=$?; runtime::on_exit "$status"; exit "$status"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
 case "$command_name" in
   doctor)
-    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
     host::doctor
     ;;
   render)
-    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
-    core::acquire_lock "$ATLAS_STATE_DIR"
+    lock::acquire "$ATLAS_STATE_DIR"
     argocd::render
     ;;
   apply)
-    [[ $tier0_approved == true ]] || core::die "Tier-0 approval is required: pass --approve-tier0"
-    core::acquire_lock "$ATLAS_STATE_DIR"
+    lock::acquire "$ATLAS_STATE_DIR"
     host::doctor
-    cluster::reconcile
-    registry::reconcile
-    argocd::reconcile "$tier0_approved"
+    cluster::ensure_kind
+    registry::ensure_local
+    argocd::handoff "$tier0_approved"
     ;;
   status)
-    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
-    cluster::status || true
-    registry::status || true
-    if core::kind_cluster_exists "$(config::get ATLAS_CLUSTER_NAME)"; then
-      argocd::status || true
+    cluster::inspect_status || true
+    registry::inspect_status || true
+    if runtime::kind_cluster_exists "$(config::get ATLAS_CLUSTER_NAME)"; then
+      argocd::inspect_status || true
     else
       cluster_query_status=$?
       if ((cluster_query_status == 1)); then
@@ -115,12 +152,5 @@ case "$command_name" in
         printf 'adoption\tUNAVAILABLE\tcluster status unavailable\n'
       fi
     fi
-    ;;
-  help)
-    usage
-    ;;
-  *)
-    usage >&2
-    core::die "unknown command: ${command_name}"
     ;;
 esac
