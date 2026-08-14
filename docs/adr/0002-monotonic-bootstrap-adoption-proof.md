@@ -1,6 +1,6 @@
 # ADR-0002: Establish a monotonic Bootstrap adoption proof
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-15
 - Deciders: repository owner and required CODEOWNERS
 - Supersedes: none
