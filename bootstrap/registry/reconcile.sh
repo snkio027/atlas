@@ -149,7 +149,7 @@ registry::reconcile() {
       --publish "127.0.0.1:${port}:5000" \
       --volume "${name}-data:/var/lib/registry" \
       "$image" > /dev/null; then
-      if registry::_container_exists; then
+      if registry::_container_exists && registry::_validate_container; then
         docker rm "$name" > /dev/null || true
       fi
       return 1
