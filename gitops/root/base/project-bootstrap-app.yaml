@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: project-bootstrap
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-110"
+    argocd.argoproj.io/sync-options: Prune=confirm
+spec:
+  project: atlas-bootstrap
+  source:
+    repoURL: https://github.com/snkio027/atlas.git
+    targetRevision: main
+    path: gitops/platform/management/projects
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true

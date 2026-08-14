@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-self
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+    argocd.argoproj.io/sync-options: Prune=confirm
+spec:
+  project: platform-project
+  sources:
+    - repoURL: https://github.com/snkio027/atlas.git
+      targetRevision: main
+      path: vendor/charts/argo-cd-10.3.3
+      helm:
+        releaseName: atlas-argocd
+        valueFiles:
+          - $values/gitops/platform/management/argocd-self/values.yaml
+    - repoURL: https://github.com/snkio027/atlas.git
+      targetRevision: main
+      path: gitops/platform/management/argocd-self/base
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true

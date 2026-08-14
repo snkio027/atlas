@@ -1,0 +1,3 @@
+.DS_Store
+.state/
+env/private.env

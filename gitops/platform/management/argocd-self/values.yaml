@@ -1,0 +1,59 @@
+global:
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: v3.5.1@sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8
+    imagePullPolicy: IfNotPresent
+
+configs:
+  cm:
+    create: false
+  params:
+    server.insecure: true
+
+applicationSet:
+  replicas: 0
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+controller:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+server:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  image:
+    repository: ecr-public.aws.com/docker/library/redis
+    tag: 8.6.4-alpine@sha256:2cc044fc5a07c9b701f8f1255a309ae9ad7856e694ac03513bf3648c01e40763
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi

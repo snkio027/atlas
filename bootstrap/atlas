@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+if ((BASH_VERSINFO[0] < 5)); then
+  printf 'Atlas Bootstrap requires Bash 5.x; found %s\n' "$BASH_VERSION" >&2
+  exit 2
+fi
+
+ATLAS_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+readonly ATLAS_ROOT_DIR
+ATLAS_STATE_DIR="${ATLAS_ROOT_DIR}/.state"
+readonly ATLAS_STATE_DIR
+
+# shellcheck source=bootstrap/lib/core.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/lib/core.sh"
+# shellcheck source=bootstrap/lib/config.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/lib/config.sh"
+# shellcheck source=bootstrap/host/doctor.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/host/doctor.sh"
+# shellcheck source=bootstrap/cluster/reconcile.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/cluster/reconcile.sh"
+# shellcheck source=bootstrap/registry/reconcile.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/registry/reconcile.sh"
+# shellcheck source=bootstrap/argocd/reconcile.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/argocd/reconcile.sh"
+
+usage() {
+  cat << 'EOF'
+Usage: bootstrap/atlas <command> [options]
+
+Commands:
+  doctor              Run read-only host and immutable-input checks
+  render              Render Argo CD Seed and External Root into .state/
+  apply               Reconcile Bootstrap and perform the GitOps handoff
+  status              Read the current Bootstrap and handoff state
+
+Options:
+  --env <name>         Environment profile (default: local-orbstack)
+  --approve-tier0      Explicitly authorize initial Tier-0 instantiation
+  -h, --help           Show this help
+EOF
+}
+
+command_name=${1:-}
+[[ -n $command_name ]] || {
+  usage >&2
+  exit 2
+}
+shift
+
+environment=local-orbstack
+tier0_approved=false
+while (($# > 0)); do
+  case "$1" in
+    --env)
+      (($# >= 2)) || core::die "--env requires a value"
+      environment=$2
+      shift 2
+      ;;
+    --approve-tier0)
+      tier0_approved=true
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *) core::die "unknown option: $1" ;;
+  esac
+done
+
+[[ $environment =~ ^[a-z0-9][a-z0-9-]*$ ]] || core::die "invalid environment name: ${environment}"
+config::load "$ATLAS_ROOT_DIR" "$environment"
+
+trap 'status=$?; core::on_exit "$status"; exit "$status"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+case "$command_name" in
+  doctor)
+    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
+    host::doctor
+    ;;
+  render)
+    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
+    core::acquire_lock "$ATLAS_STATE_DIR"
+    argocd::render
+    ;;
+  apply)
+    [[ $tier0_approved == true ]] || core::die "Tier-0 approval is required: pass --approve-tier0"
+    core::acquire_lock "$ATLAS_STATE_DIR"
+    host::doctor
+    cluster::reconcile
+    registry::reconcile
+    argocd::reconcile "$tier0_approved"
+    ;;
+  status)
+    [[ $tier0_approved == false ]] || core::die "--approve-tier0 is valid only with apply"
+    cluster::status || true
+    registry::status || true
+    if core::kind_cluster_exists "$(config::get ATLAS_CLUSTER_NAME)"; then
+      argocd::status || true
+    else
+      cluster_query_status=$?
+      if ((cluster_query_status == 1)); then
+        printf 'argocd\tABSENT\tcluster absent\n'
+        printf 'root\tABSENT\tcluster absent\n'
+        printf 'adoption\tABSENT\tcluster absent\n'
+      else
+        printf 'argocd\tUNAVAILABLE\tcluster status unavailable\n'
+        printf 'root\tUNAVAILABLE\tcluster status unavailable\n'
+        printf 'adoption\tUNAVAILABLE\tcluster status unavailable\n'
+      fi
+    fi
+    ;;
+  help)
+    usage
+    ;;
+  *)
+    usage >&2
+    core::die "unknown command: ${command_name}"
+    ;;
+esac

@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: atlas-bootstrap
+  namespace: argocd
+spec:
+  description: Minimal trust sandbox for the External Root Anchor and Project Bootstrap
+  sourceRepos:
+    - https://github.com/snkio027/atlas.git
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: AppProject

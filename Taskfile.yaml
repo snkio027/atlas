@@ -1,0 +1,27 @@
+version: "3"
+
+tasks:
+  bootstrap:doctor:
+    desc: Run read-only Bootstrap preflight checks
+    cmds:
+      - ./bootstrap/atlas doctor
+
+  bootstrap:render:
+    desc: Render the Argo CD Seed and External Root locally
+    cmds:
+      - ./bootstrap/atlas render
+
+  bootstrap:apply:
+    desc: Reconcile Bootstrap and perform the explicitly approved Tier-0 handoff
+    cmds:
+      - ./bootstrap/atlas apply --approve-tier0
+
+  bootstrap:status:
+    desc: Read Bootstrap and GitOps handoff status
+    cmds:
+      - ./bootstrap/atlas status
+
+  test:
+    desc: Run static Bootstrap tests
+    cmds:
+      - ./tests/bootstrap/static.sh

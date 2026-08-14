@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workload-project
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=confirm
+spec:
+  description: Restricted Tier-2 developer workload boundary
+  sourceRepos:
+    - https://github.com/snkio027/atlas.git
+  destinations:
+    - namespace: workload-*
+      server: https://kubernetes.default.svc
+  clusterResourceBlacklist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: ServiceAccount
+    - group: ''
+      kind: PersistentVolumeClaim
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: batch
+      kind: Job
+    - group: batch
+      kind: CronJob
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: flink.apache.org
+      kind: FlinkDeployment
+    - group: flink.apache.org
+      kind: FlinkSessionJob
