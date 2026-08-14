@@ -8,10 +8,11 @@ registry::_container_exists() {
 }
 
 registry::_validate_container() {
-  local name image expected_cluster actual
+  local name image expected_cluster expected_binding actual
   name=$(config::get ATLAS_REGISTRY_NAME)
   image=$(config::version REGISTRY_IMAGE)
   expected_cluster=$(config::get ATLAS_CLUSTER_NAME)
+  expected_binding="127.0.0.1:$(config::get ATLAS_REGISTRY_PORT)"
 
   actual=$(docker inspect --format '{{.Config.Image}}' "$name")
   [[ $actual == "$image" ]] || {
@@ -33,6 +34,15 @@ registry::_validate_container() {
     core::die "Registry is not attached to the Kind network: ${name}"
     return 1
   }
+  actual=$(docker inspect --format '{{with (index .HostConfig.PortBindings "5000/tcp")}}{{(index . 0).HostIp}}:{{(index . 0).HostPort}}{{end}}' "$name")
+  [[ $actual == "$expected_binding" ]] || {
+    core::die "Registry port binding drift: expected=${expected_binding} actual=${actual:-none}"
+    return 1
+  }
+}
+
+registry::_running() {
+  [[ $(docker inspect --format '{{.State.Running}}' "$(config::get ATLAS_REGISTRY_NAME)") == true ]]
 }
 
 registry::_configure_node() {
@@ -90,9 +100,9 @@ registry::reconcile() {
 
   if registry::_container_exists; then
     registry::_validate_container
-    [[ $(docker inspect --format '{{.State.Running}}' "$name") == true ]] || docker start "$name" > /dev/null
+    registry::_running || docker start "$name" > /dev/null
   else
-    docker run --detach \
+    if ! docker run --detach \
       --name "$name" \
       --network kind \
       --restart unless-stopped \
@@ -100,7 +110,12 @@ registry::reconcile() {
       --label "io.atlas.cluster=${cluster}" \
       --publish "127.0.0.1:${port}:5000" \
       --volume "${name}-data:/var/lib/registry" \
-      "$image" > /dev/null
+      "$image" > /dev/null; then
+      if registry::_container_exists; then
+        docker rm "$name" > /dev/null || true
+      fi
+      return 1
+    fi
   fi
 
   mapfile -t nodes < <(kind get nodes --name "$cluster")
@@ -127,7 +142,7 @@ registry::status() {
     printf 'registry\tABSENT\t%s\n' "$name"
     return 0
   fi
-  if registry::_validate_container && registry::_health; then
+  if registry::_validate_container && registry::_running && registry::_health; then
     printf 'registry\tREADY\t%s\n' "$name"
     return 0
   fi
