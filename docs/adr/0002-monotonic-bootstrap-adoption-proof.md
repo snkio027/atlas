@@ -23,98 +23,369 @@ machine. Recovery Seed remains a break-glass operation under GitOps Standard
 sections 18.2 and 21.4; ordinary `apply` must not infer recovery authority from
 missing control-plane objects.
 
+Two additional failure modes constrain the design:
+
+1. A GitOps signal that disappears before a durable receipt is committed must
+   not allow the state machine to move backward to Seed authority.
+2. A receipt-aware cluster must reject a receipt-unaware Bootstrap binary. An
+   operator checking out an older Atlas revision must not be able to bypass the
+   receipt by using the previous Application-presence heuristic.
+
 This decision affects Recovery Authority and therefore requires an accepted
 ADR before implementation. While this ADR remains Proposed, it does not
-authorize changes to Bootstrap control semantics or GitOps manifests.
+authorize changes to Bootstrap control semantics, AppProject permissions,
+admission policy, or GitOps manifests.
 
 ## Decision
 
-Atlas will use three related records to make adoption monotonic within the
-normal control path:
+Atlas will use three protected, independently verifiable Kubernetes records:
 
-1. The existing Bootstrap cluster identity in `kube-system` will carry a
-   lifecycle schema. A cluster created by the proof-aware Bootstrap is
-   explicitly Seed-eligible; the absence of that schema on a legacy cluster is
-   never interpreted as a fresh cluster.
-2. `argocd-self` will create a GitOps-only adoption signal. The Seed path must
-   not render or apply this object. Its presence proves that GitOps has begun
-   reconciling the self-managed control-plane definition.
-3. After observing the valid GitOps signal and both External Root and
-   `argocd-self` as Synced/Healthy, Bootstrap will create an immutable Adoption
-   Receipt in `kube-system`. The receipt will bind to the cluster identity,
-   repository, and observed Application identities. Normal Bootstrap will
-   neither update nor delete it.
+1. a Bootstrap-owned cluster identity v2;
+2. a GitOps-only adoption signal;
+3. a Bootstrap-created, create-once adoption receipt.
 
-The effective state machine is:
+The successful Kubernetes API creation of the Adoption Receipt is the
+linearization point for the control transfer. Application health is a separate
+readiness concern and is not a precondition for committing the receipt.
+
+### Resource contract
+
+#### Cluster Identity v2
+
+The identity remains a ConfigMap named `atlas-bootstrap-identity` in
+`kube-system`, but its v2 data schema is deliberately incompatible with the v1
+validator.
+
+Required v2 data fields are:
 
 ```text
-NEVER_INITIALIZED
-        |
-        v
-   SEED_ACTIVE
-        |
-        v
-ADOPTION_OBSERVED
-        |
-        v
-     ADOPTED
-
-ADOPTED -/-> SEED_ACTIVE
+schema=atlas.io/bootstrap-identity/v2
+repositoryURL=<canonical repository URL>
+kindConfigSHA256=<canonical Kind configuration SHA-256>
+clusterName=<selected Atlas cluster name>
 ```
 
-Seed authority is permitted only when all of the following are true:
+The v2 object:
 
-- the cluster identity is owned by the selected Atlas configuration;
-- the lifecycle schema explicitly identifies a proof-aware fresh cluster;
-- no valid GitOps adoption signal exists;
-- no valid Adoption Receipt exists.
+- is created before any Seed mutation on a newly created cluster;
+- has `immutable: true`;
+- is never updated or deleted by normal Bootstrap;
+- binds all later evidence through its Kubernetes object UID;
+- intentionally omits the v1 keys `repo` and `kindConfigSHA`.
 
-The GitOps signal moves the normal path to `ADOPTION_OBSERVED` and immediately
-terminates Seed authority, even if `argocd-self` has not yet become Healthy. A
-valid Adoption Receipt moves it to `ADOPTED`. Once the receipt exists, missing
-or unhealthy Argo CD Applications and workloads cannot restore Seed authority.
-Normal `apply` may continue non-Seed convergence that remains inside its
-existing authority, but it must report the damaged handoff and fail if GitOps
-cannot recover.
+Omitting the v1 keys is a required downgrade fence. The receipt-unaware
+Bootstrap at `783e858` reads exactly those two keys and therefore rejects a v2
+cluster during cluster identity validation, before Registry, Seed, AppProject,
+or External Root mutation.
 
-Any missing, malformed, foreign, or contradictory identity/proof combination
-is `AMBIGUOUS`, not `NEVER_INITIALIZED`, and fails closed. Restoring Seed after
-`ADOPTION_OBSERVED` or `ADOPTED` requires a separately designed, explicitly
-approved break-glass command and runbook. This ADR does not authorize that
-recovery operation.
+For an existing cluster, a missing, foreign, malformed, or unsupported identity
+is never treated as fresh. A cluster that does not yet exist is a separate
+`NO_CLUSTER` condition: Bootstrap may create it and must install Identity v2
+before continuing.
 
-### Rollout
+#### GitOps Adoption Signal
 
-Implementation must use two independently verifiable phases:
+The signal is an immutable ConfigMap with the canonical identity:
 
-1. Add the GitOps-only signal and verify that every supported existing cluster
-   has reconciled it. Bootstrap behavior remains unchanged during this phase.
-2. Add lifecycle-schema initialization, immutable receipt creation, and
-   proof-aware Seed gating. A legacy cluster without a valid signal or receipt
-   fails closed rather than being migrated by inference.
+```text
+kind: ConfigMap
+namespace: argocd
+name: atlas-bootstrap-adoption-signal
+schema: atlas.io/bootstrap-adoption-signal/v1
+```
 
-No receipt-aware Bootstrap may be released until phase-one evidence exists for
-the supported existing environments. Newly created clusters receive the
-lifecycle schema before any Seed mutation.
+Its data binds at least:
+
+```text
+repositoryURL=<canonical repository URL>
+rootName=<canonical External Root name>
+```
+
+The signal:
+
+- exists only in the Git-managed `argocd-self` desired state;
+- is absent from every Bootstrap Seed render;
+- is created in `argocd`, which is already an allowed `platform-project`
+  destination, and therefore does not expand Tier-1 into `kube-system`;
+- has `immutable: true`;
+- carries Argo CD resource-tracking metadata for `argocd-self`;
+- carries `Prune=confirm` and `Delete=false` protection annotations;
+- is protected, together with the `argocd` namespace, by enforced admission
+  policy before Bootstrap may classify it as valid.
+
+Bootstrap accepts the signal only when all of the following match:
+
+- Group, Kind, namespace, and name;
+- schema and expected data;
+- repository and Root identity selected by the resolved Profile;
+- non-empty Kubernetes object UID;
+- Argo CD tracking and `argocd-self` resource inventory;
+- the required admission policy and binding are active and fail closed.
+
+The receipt records the observed Signal UID. A manually created look-alike,
+wrong UID, missing protection control, or contradictory payload is invalid.
+Malicious fabrication by a cluster administrator who can also remove admission
+policy is outside the normal-path threat model.
+
+#### Adoption Receipt
+
+The receipt is an immutable ConfigMap with the canonical identity:
+
+```text
+kind: ConfigMap
+namespace: kube-system
+name: atlas-bootstrap-adoption-receipt
+schema: atlas.io/bootstrap-adoption-receipt/v1
+```
+
+It records at least:
+
+```text
+identityUID=<observed Identity v2 UID>
+signalUID=<observed Signal UID>
+repositoryURL=<canonical repository URL>
+rootName=<canonical External Root name>
+rootUID=<observed External Root UID>
+argocdSelfUID=<observed argocd-self UID>
+```
+
+Receipt creation requires valid Identity v2 and Signal records plus the
+existence, but not the health, of the External Root and `argocd-self`
+Applications. Bootstrap uses a create-only API operation:
+
+- it never applies, patches, replaces, updates, or deletes a receipt;
+- a successful create is the adoption linearization point;
+- an `AlreadyExists` response requires an immediate re-read and exact
+  validation;
+- any other create or validation failure is fail-closed;
+- Kubernetes `metadata.creationTimestamp` is the authoritative commit time.
+
+### State model and readiness
+
+The effective normal-path state machine is:
+
+```text
+NO_CLUSTER
+    |
+    v
+ FRESH_V2
+    |
+    v
+SEED_ACTIVE
+    |
+    | valid, protected Signal observed
+    v
+RECEIPT_COMMITTING
+    |
+    | create-only Receipt succeeds
+    v
+   ADOPTED
+    |
+    +-- Root and argocd-self ready --> ADOPTED_HEALTHY
+    `-- otherwise -----------------> ADOPTED_DEGRADED
+```
+
+The rules are:
+
+- Seed authority exists only in `FRESH_V2` / `SEED_ACTIVE`.
+- A valid Signal immediately denies further Seed mutation in the current and
+  every later process. Its admission protection persists the
+  `RECEIPT_COMMITTING` latch until the receipt can be committed.
+- Receipt creation occurs immediately after Signal validation. Bootstrap does
+  not wait for Root or `argocd-self` health before the create.
+- Once a valid Receipt exists, neither health degradation nor missing GitOps or
+  Tier-0 objects can restore normal Seed authority.
+- `ADOPTED_HEALTHY` and `ADOPTED_DEGRADED` describe readiness only. They do not
+  change ownership.
+- Any invalid or contradictory evidence is `AMBIGUOUS` and denies all normal
+  mutation.
+
+### Evidence state truth table
+
+The tables apply to an existing cluster. `Valid Receipt` means its schema and
+contents are internally valid and bind to the selected Profile and Identity;
+cross-record contradictions are still classified by the table.
+
+#### Valid Identity v2
+
+| Signal | Receipt absent | Receipt valid | Receipt invalid |
+| --- | --- | --- | --- |
+| Absent | `FRESH_V2`: Seed permitted | `AMBIGUOUS`: receipt references missing Signal; deny | `AMBIGUOUS`: deny |
+| Valid | `RECEIPT_COMMITTING`: Seed denied; create Receipt | `ADOPTED_*`: Seed denied; health selects readiness | `AMBIGUOUS`: deny |
+| Invalid | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny |
+
+#### Identity v1
+
+| Signal | Receipt absent | Receipt valid | Receipt invalid |
+| --- | --- | --- | --- |
+| Absent | `MIGRATION_REQUIRED`: deny | `AMBIGUOUS`: v1 cannot own a valid Receipt; deny | `AMBIGUOUS`: deny |
+| Valid | `MIGRATION_REQUIRED`: deny | `AMBIGUOUS`: Receipt requires Identity v2; deny | `AMBIGUOUS`: deny |
+| Invalid | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny |
+
+#### Missing, foreign, or malformed Identity
+
+Each of `MISSING`, `FOREIGN`, and `MALFORMED` uses the following complete
+matrix; none is equivalent to a new cluster.
+
+| Signal | Receipt absent | Receipt valid | Receipt invalid |
+| --- | --- | --- | --- |
+| Absent | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny |
+| Valid | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny |
+| Invalid | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny | `AMBIGUOUS`: deny |
+
+These three tables cover Identity `v1`, `v2`, `missing`, `foreign`, and
+`malformed` against Signal `absent`, `valid`, and `invalid` and Receipt
+`absent`, `valid`, and `invalid`. Every state other than the single
+`v2/absent/absent` cell denies Seed.
+
+### Post-adoption normal authority matrix
+
+After a valid Signal is observed, ordinary `apply` has no write authority over
+GitOps control-plane or Tier-0 objects. The phrase "non-Seed convergence" is
+limited to the following matrix.
+
+| Resource or operation | Before Signal | Signal observed, Receipt absent | Receipt valid |
+| --- | --- | --- | --- |
+| Host, configuration, artifact checks | Read | Read | Read |
+| Existing Kind node and identity validation | Read | Read | Read |
+| Local Registry health, restart, node configuration, image cache | Ensure | Ensure | Ensure |
+| Identity v2 | Create on a newly created cluster; otherwise read | Read only | Read only |
+| Seed namespace, CRDs, ConfigMap, Deployments, StatefulSets | Create/ensure | No writes | No writes |
+| GitOps Signal | No Bootstrap writes | Read only | Read only |
+| Adoption Receipt | Must be absent | Create once, then validate | Read only |
+| `atlas-bootstrap` AppProject | Initial create/ensure | Read-only exact validation | Read-only exact validation |
+| External Root | Initial create; existing object exact validation | Read-only exact validation | Read-only exact validation |
+| Root children and `argocd-self` | Read readiness | Read readiness | Read readiness |
+
+After Signal observation, a missing or drifted AppProject, External Root, Argo
+CD workload, or Application causes ordinary `apply` to report the damaged
+handoff and fail. It does not recreate, annotate, apply, or repair the object.
+Recovery belongs exclusively to an approved break-glass command.
+
+### Downgrade fence
+
+Identity v2 schema incompatibility is mandatory, not an implementation detail.
+Adding a new field while preserving the v1 `repo` and `kindConfigSHA` values is
+non-conformant because the old Bootstrap would ignore the new field.
+
+The release test must run a receipt-unaware Bootstrap, including the exact
+`783e858` implementation, against an adopted v2 test cluster. The test deletes
+or hides `argocd-self` only inside the controlled recovery fixture and proves
+that old Bootstrap fails at Identity validation before any Registry, Argo CD,
+AppProject, or External Root mutation. Resource versions, UIDs, and audit
+evidence must remain unchanged.
+
+Admission protection is a second fence against evidence deletion, not a
+substitute for schema incompatibility.
+
+### Evidence protection and threat boundary
+
+`immutable: true` prevents ConfigMap data updates but does not prevent deletion
+and recreation. Kubernetes explicitly permits deleting and recreating an
+immutable ConfigMap. Therefore immutability alone is not an adoption proof
+protection mechanism.
+
+Before a Signal can be valid, Atlas must install and verify fail-closed
+`ValidatingAdmissionPolicy` and `ValidatingAdmissionPolicyBinding` controls.
+Kubernetes provides Validating Admission Policy as a stable, in-process CEL
+admission mechanism. The Atlas controls must deny unauthorized update or delete
+operations against:
+
+- Identity v2;
+- GitOps Signal;
+- Adoption Receipt;
+- their protection policy and binding;
+- the `argocd` and `kube-system` namespaces where deletion would remove the
+  protected records.
+
+The policy uses `failurePolicy: Fail` and a binding enforcement action of
+`Deny`. Normal Bootstrap, Argo CD, controllers, and human operators receive no
+delete or rewrite permission for committed evidence. A separately identified
+break-glass principal and procedure is the only policy exception.
+
+The implementation must reference and test the upstream Kubernetes semantics:
+
+- [Immutable ConfigMaps remain deletable](https://kubernetes.io/docs/concepts/configuration/configmap/)
+- [Validating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/)
+
+An actively malicious cluster administrator can remove admission policy and
+all evidence, or modify the API server itself. That actor is outside this
+normal-path threat model. Accidental deletion, Git prune, use of an old
+Bootstrap, ordinary operator error, and non-break-glass automation are inside
+the threat model and must fail closed.
+
+### Break-glass release dependency
+
+Receipt-aware enforcement must not be released merely because this ADR becomes
+Accepted. A separate break-glass recovery ADR must first be Accepted and its
+implementation must provide:
+
+- an explicit recovery command separate from normal `apply`;
+- strong human authorization and exact target confirmation;
+- snapshot and audit evidence before mutation;
+- controlled suspension and restoration of evidence protection;
+- known-good Git revision selection;
+- adoption-compatible Seed restoration;
+- inside-out health verification;
+- an exercised failure and rollback runbook on the target environment.
+
+The break-glass implementation, audit path, admission exception, runbook, and
+recovery drill are release prerequisites for receipt-aware enforcement. Until
+they exist, the receipt-aware code path must not be enabled in a release used
+for recovery-sensitive clusters.
+
+### Rollout and migration
+
+Rollout uses independently reviewable phases:
+
+1. **Protection foundation.** Add the admission protection resources and the
+   GitOps-only Signal. Protection resources synchronize before the Signal. The
+   Seed remains unchanged, and every supported existing cluster must show a
+   valid, protected Signal.
+2. **Break-glass readiness.** Accept and implement the separate recovery ADR,
+   command, audit controls, and runbook; complete a recovery drill.
+3. **Legacy migration.** A human-gated migration workflow validates Identity
+   v1, the protected Signal, current Root, and `argocd-self`; replaces Identity
+   v1 with incompatible Identity v2; and commits the Receipt. Normal `apply`
+   never performs this migration. Interruption after removing v1 but before
+   creating v2 produces `MISSING/AMBIGUOUS`; interruption after v2 but before
+   Receipt produces `RECEIPT_COMMITTING` because the protected Signal persists.
+4. **Receipt-aware Bootstrap.** Enable Identity v2 creation for new clusters,
+   create-once Receipt commitment, the authority matrix, and downgrade-fence
+   tests. A supported legacy cluster not explicitly migrated fails closed.
+
+No receipt-aware Bootstrap may be released until every supported environment
+has phase-one evidence and protection, phase-two recovery capability, and an
+explicit phase-three migration disposition.
 
 ## Consequences
 
-- Deleting `argocd-self` after adoption no longer re-enables ordinary Seed
-  installation.
-- Fresh-cluster initialization and damaged adopted-cluster recovery become
-  distinguishable without relying on host-local state.
-- Bootstrap performs one final, bounded receipt write as part of handoff; this
+- Receipt creation, rather than transient Application health, becomes the
+  single durable control-transfer point.
+- Health can move between Healthy and Degraded without changing authority.
+- Deleting `argocd-self`, the External Root, or Argo CD workloads after receipt
+  commitment cannot restore ordinary Seed authority.
+- A valid protected Signal makes interruption before Receipt creation
+  resumable without a backward transition.
+- Identity v2 prevents receipt-unaware Bootstrap versions from reaching any
+  mutating handoff phase.
+- Fresh-cluster initialization, legacy migration, adopted-cluster degradation,
+  ambiguous evidence, and break-glass recovery become distinct operations.
+- Bootstrap performs one final bounded Receipt create as part of handoff; this
   does not grant steady-state reconciliation authority.
-- The signal is Tier-1 GitOps state. The receipt and lifecycle schema are
-  Bootstrap-owned substrate records. Neither changes the Tier-0 Root graph.
-- RBAC, audit, and future admission policy must protect lifecycle records from
-  unauthorized deletion. Absolute protection from cluster-admin deletion is
-  outside the normal-path invariant.
-- Rollback after a receipt has been issued cannot restore the previous
-  Application-existence heuristic. A defect must be corrected forward or
-  handled through an approved break-glass process.
+- `platform-project` must gain only the explicit admission resource kinds
+  required for the protection foundation. This is a Tier-1 permission change
+  and requires conformance review.
+- Rollback after Identity v2 or Receipt creation cannot restore the previous
+  heuristic. Defects are corrected forward or handled through approved
+  break-glass recovery.
 
 ## Alternatives considered
+
+### Wait for Healthy before creating the Receipt
+
+Rejected because Signal loss during the health wait reopens Seed authority.
+Health is readiness, not the ownership linearization point.
 
 ### Continue using live `argocd-self` presence
 
@@ -125,17 +396,27 @@ Rejected because deletion makes authority regress from adopted to Seed-active.
 Rejected because it is host-local, disposable, and unsuitable for recovery
 from another operator workstation.
 
+### Add lifecycle fields while retaining the v1 identity keys
+
+Rejected because receipt-unaware Bootstrap versions ignore unknown fields and
+would still pass their identity check.
+
 ### Use only a GitOps-managed marker
 
 Rejected as the sole proof because namespace loss or accidental deletion would
-again make prior adoption ambiguous. The persistent substrate receipt preserves
-the observation after control-plane damage.
+again make prior adoption ambiguous. The protected Signal latches the
+pre-commit transition; the substrate Receipt preserves the completed transfer.
 
 ### Use a mutable lifecycle phase only
 
-Rejected as the final proof because an in-place phase field is easier to regress
-accidentally. The final receipt is create-once and immutable; state before that
-point remains explicitly non-adopted or ambiguous.
+Rejected as the final proof because an in-place phase field is easier to
+regress accidentally. The final Receipt is create-once and separately
+protected.
+
+### Rely only on `immutable: true`
+
+Rejected because Kubernetes permits deletion and recreation of immutable
+ConfigMaps.
 
 ### Introduce an external state database
 
@@ -146,21 +427,51 @@ recovery failure domain before the Kubernetes substrate exists.
 
 Implementation is conformant only when it proves all of the following:
 
-- a fresh proof-aware cluster can install Seed and complete handoff;
-- the Seed render never contains the GitOps adoption signal;
-- `argocd-self` creates the signal through its Git-managed desired state;
-- a valid signal terminates Seed authority before Application health;
-- a valid receipt permanently denies Seed in the normal path, including after
-  deleting `argocd-self`, the External Root, or Argo CD workloads;
-- missing or malformed proof on a legacy cluster fails closed;
-- interruption before receipt creation resumes without a backward transition;
-- interruption after receipt creation never reapplies Seed;
-- two normal applies after adoption preserve the receipt and control-plane
-  resource identities;
-- no normal command can delete or rewrite the receipt;
-- `task quality` and an explicitly approved `task integration` pass on the
+- a new cluster creates Identity v2 before any Seed mutation;
+- Identity v2 is rejected by the exact receipt-unaware Bootstrap at `783e858`
+  before any Argo CD or Tier-0 mutation;
+- the Seed render never contains the GitOps Signal;
+- `argocd-self` creates the exact Signal through Git-managed desired state;
+- admission protection is active before the Signal is accepted;
+- deleting or updating Identity, Signal, Receipt, or their protection controls
+  is denied to every normal principal;
+- a valid Signal immediately denies Seed and triggers Receipt creation without
+  waiting for health;
+- interruption before Receipt creation resumes from the protected Signal;
+- Receipt create is atomic, create-only, and handles `AlreadyExists` by exact
+  validation;
+- Root and `argocd-self` health changes only
+  `ADOPTED_HEALTHY/ADOPTED_DEGRADED`, never Seed authority;
+- every cell in the evidence truth tables has a contract test;
+- a legacy Identity v1 always produces `MIGRATION_REQUIRED` or `AMBIGUOUS` in
+  normal `apply`;
+- after Signal observation, ordinary `apply` performs no writes to Seed,
+  AppProject, External Root, or GitOps Application objects;
+- two normal applies after adoption preserve Receipt and control-plane resource
+  identities;
+- the separate break-glass command can restore an adoption-compatible Seed
+  under explicit authorization and re-establish evidence protection;
+- `task quality` and explicitly approved clean-cluster, interruption,
+  downgrade, evidence-deletion, and break-glass integration tests pass on the
   target macOS and OrbStack environment.
 
-The implementation change must update the Bootstrap runbook with proof
-inspection and failure semantics. Break-glass Seed restoration requires its own
-accepted design, tests, and runbook.
+The Bootstrap runbook must document proof inspection, truth-table outcomes,
+read-only post-adoption behavior, downgrade rejection, and failure semantics.
+The separate recovery runbook must document every break-glass mutation and
+audit artifact.
+
+## Acceptance gates
+
+This ADR remains `Proposed` until reviewers confirm all of the following:
+
+- Receipt creation is the unambiguous control-transfer linearization point;
+- the Signal is durable for the entire pre-Receipt interval;
+- Identity v2 reliably fences all supported receipt-unaware Bootstrap versions;
+- the truth tables and authority matrix are complete;
+- exact Signal, Receipt, admission, threat-model, and migration contracts are
+  acceptable;
+- the dependency on an accepted and implemented break-glass design is explicit.
+
+Acceptance of this ADR will authorize phased implementation of this design. It
+will not itself authorize a break-glass execution, Tier-0 apply, legacy-cluster
+migration, or production rollout.
