@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+if ((BASH_VERSINFO[0] < 5)); then
+  printf 'Atlas Kind Drill requires Bash 5.x; found %s\n' "$BASH_VERSION" >&2
+  exit 2
+fi
+
+ATLAS_DRILL_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+readonly ATLAS_DRILL_ROOT_DIR
+readonly ATLAS_DRILL_CLI_VERSION=0.1.0
+
+# shellcheck source=bootstrap/drill/contract.sh
+source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/contract.sh"
+# shellcheck source=bootstrap/drill/lifecycle.sh
+source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/lifecycle.sh"
+
+drill::usage() {
+  cat << 'EOF'
+Usage: bootstrap/drill/atlas-kind-drill <command> [options]
+
+Commands:
+  create  Create and verify one disposable audited Kind drill cluster
+
+Required create options:
+  --cluster-name <name>  Unique atlas-recovery-drill-* cluster name
+  --context <name>       Exact context; must equal kind-<cluster-name>
+  --kubeconfig <path>    New absolute kubeconfig path outside the repository
+  --audit-dir <path>     Existing empty audit directory named after the cluster
+
+Global options:
+  -V, --version          Show the drill CLI version
+  -h, --help             Show this help
+
+Creation requires an interactive, action-specific Human Judgment challenge.
+There is no approval flag, reuse path, delete command, or default-context path.
+EOF
+}
+
+drill::version() {
+  printf 'atlas-kind-drill %s\n' "$ATLAS_DRILL_CLI_VERSION"
+}
+
+drill::die() {
+  printf 'atlas-kind-drill: %s\n' "$*" >&2
+  return 1
+}
+
+drill::main() {
+  local command_name=${1:-}
+  [[ -n $command_name ]] || {
+    drill::usage >&2
+    return 2
+  }
+  shift
+
+  case "$command_name" in
+    -h | --help | help)
+      (($# == 0)) || {
+        drill::die "help does not accept options"
+        return 2
+      }
+      drill::usage
+      return 0
+      ;;
+    -V | --version | version)
+      (($# == 0)) || {
+        drill::die "version does not accept options"
+        return 2
+      }
+      drill::version
+      return 0
+      ;;
+    create) ;;
+    *)
+      drill::usage >&2
+      drill::die "unknown command: ${command_name}"
+      return 2
+      ;;
+  esac
+
+  local cluster_name='' context='' kubeconfig='' audit_directory=''
+  while (($# > 0)); do
+    case "$1" in
+      --cluster-name | --context | --kubeconfig | --audit-dir)
+        (($# >= 2)) || {
+          drill::die "$1 requires a value"
+          return 2
+        }
+        case "$1" in
+          --cluster-name)
+            [[ -z $cluster_name ]] || {
+              drill::die "$1 may be specified only once"
+              return 2
+            }
+            cluster_name=$2
+            ;;
+          --context)
+            [[ -z $context ]] || {
+              drill::die "$1 may be specified only once"
+              return 2
+            }
+            context=$2
+            ;;
+          --kubeconfig)
+            [[ -z $kubeconfig ]] || {
+              drill::die "$1 may be specified only once"
+              return 2
+            }
+            kubeconfig=$2
+            ;;
+          --audit-dir)
+            [[ -z $audit_directory ]] || {
+              drill::die "$1 may be specified only once"
+              return 2
+            }
+            audit_directory=$2
+            ;;
+        esac
+        shift 2
+        ;;
+      -h | --help)
+        drill::usage
+        return 0
+        ;;
+      *)
+        drill::die "unknown option: $1"
+        return 2
+        ;;
+    esac
+  done
+
+  [[ -n $cluster_name ]] || {
+    drill::die "create requires --cluster-name"
+    return 2
+  }
+  [[ -n $context ]] || {
+    drill::die "create requires --context"
+    return 2
+  }
+  [[ -n $kubeconfig ]] || {
+    drill::die "create requires --kubeconfig"
+    return 2
+  }
+  [[ -n $audit_directory ]] || {
+    drill::die "create requires --audit-dir"
+    return 2
+  }
+
+  drill::create_cluster "$cluster_name" "$context" "$kubeconfig" "$audit_directory"
+}
+
+drill::main "$@"
