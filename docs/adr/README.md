@@ -10,6 +10,7 @@ identify and update the higher authority through its review process.
 | --- | --- | --- |
 | [0001](0001-retain-shell-bootstrap.md) | Accepted | Retain Shell as the Bootstrap Stage-1 implementation |
 | [0002](0002-monotonic-bootstrap-adoption-proof.md) | Accepted | Establish a monotonic Bootstrap adoption proof |
+| [0003](0003-bootstrap-break-glass-recovery.md) | Proposed | Define Bootstrap break-glass recovery and admission escape |
 
 ## Lifecycle
 
