@@ -1,6 +1,6 @@
 # ADR-0003: Define Bootstrap break-glass recovery and admission escape
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-15
 - Deciders: repository owner and required CODEOWNERS
 - Clarifies: ADR-0002 evidence protection and recovery authority
