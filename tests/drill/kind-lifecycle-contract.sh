@@ -284,7 +284,7 @@ drill::_version_triplet() {
 }
 
 drill::create_cluster "$cluster_four" "$context_four" "$kubeconfig_four" "$audit_four" > /dev/null
-[[ -s $kubeconfig_four && $(stat -f '%Lp' "$kubeconfig_four") == 600 ]] || test::fail "isolated kubeconfig was not created with mode 0600"
+[[ -s $kubeconfig_four && $(drill::_kubeconfig_mode "$kubeconfig_four") == 600 ]] || test::fail "isolated kubeconfig was not created with mode 0600"
 [[ $(shasum -a 256 "$ambient_kubeconfig" | awk '{print $1}') == "$ambient_hash" ]] || test::fail "ambient kubeconfig changed"
 [[ $(shasum -a 256 "$default_kubeconfig" | awk '{print $1}') == "$default_hash" ]] || test::fail "default kubeconfig changed"
 [[ -s ${audit_four}/kube-apiserver-audit.log ]] || test::fail "API audit output was not verified"
