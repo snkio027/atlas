@@ -230,6 +230,16 @@ drill::_paths_are_disjoint() {
   [[ $first != "$second" && $first != "${second}/"* && $second != "${first}/"* ]]
 }
 
+drill::_reject_shared_temporary_path() {
+  local path=$1 label=$2 shared_root
+  for shared_root in /tmp /private/tmp /var/tmp /private/var/tmp /dev/shm /usr/tmp; do
+    [[ $path != "$shared_root" && $path != "${shared_root}/"* ]] || {
+      drill::die "${label} must remain outside shared temporary directories"
+      return 1
+    }
+  done
+}
+
 drill::resolve_target() {
   local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4 evidence_root=$5 storage_assertion=$6
   local expected_context resolved_kubeconfig resolved_audit resolved_evidence key value
@@ -251,11 +261,16 @@ drill::resolve_target() {
     drill::die "--evidence-root must be an absolute ASCII path"
     return 1
   }
+  [[ -n ${HOME:-} ]] || {
+    drill::die "HOME is unavailable for OrbStack target resolution"
+    return 1
+  }
 
   resolved_kubeconfig=$(drill::_canonical_kubeconfig "$kubeconfig" "$cluster_name") || return 1
   drill::_reject_ambient_destination "$resolved_kubeconfig" || return 1
   resolved_audit=$(drill::_canonical_directory "$audit_directory" "--audit-dir") || return 1
   resolved_evidence=$(drill::_canonical_directory "$evidence_root" "--evidence-root") || return 1
+  drill::_reject_shared_temporary_path "$resolved_evidence" "--evidence-root" || return 1
   [[ $(basename "$resolved_audit") == "$cluster_name" ]] || {
     drill::die "--audit-dir basename must equal the cluster name"
     return 1
@@ -279,6 +294,8 @@ drill::resolve_target() {
   ATLAS_DRILL_TARGET[audit_directory]=$resolved_audit
   ATLAS_DRILL_TARGET[evidence_root]=$resolved_evidence
   ATLAS_DRILL_TARGET[storage_assertion]=$storage_assertion
+  ATLAS_DRILL_TARGET[docker_context]=orbstack
+  ATLAS_DRILL_TARGET[docker_endpoint]="unix://${HOME}/.orbstack/run/docker.sock"
   for key in BASH_VERSION KIND_VERSION KUBECTL_VERSION KIND_NODE_IMAGE; do
     value=$(drill::_locked_value "$key") || return 1
     ATLAS_DRILL_TARGET[$key]=$value
@@ -317,6 +334,7 @@ drill::revalidate_target_paths() {
     drill::die "--evidence-root target changed after validation"
     return 1
   }
+  drill::_reject_shared_temporary_path "$resolved" "--evidence-root" || return 1
 }
 
 drill::render_base_kind_config() {

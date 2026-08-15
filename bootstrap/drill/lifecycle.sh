@@ -7,7 +7,29 @@ readonly ATLAS_DRILL_WAIT_TIMEOUT=300s
 readonly ATLAS_DRILL_AUDIT_TIMEOUT_SECONDS=20
 
 drill::_kind() {
-  env -u KUBECONFIG KIND_EXPERIMENTAL_PROVIDER=docker kind "$@"
+  env \
+    -u DOCKER_API_VERSION \
+    -u DOCKER_CERT_PATH \
+    -u DOCKER_CONFIG \
+    -u DOCKER_DEFAULT_PLATFORM \
+    -u DOCKER_HOST \
+    -u DOCKER_TLS_VERIFY \
+    -u KUBECONFIG \
+    DOCKER_CONTEXT="$(drill::target docker_context)" \
+    KIND_EXPERIMENTAL_PROVIDER=docker \
+    kind "$@"
+}
+
+drill::_docker() {
+  env \
+    -u DOCKER_API_VERSION \
+    -u DOCKER_CERT_PATH \
+    -u DOCKER_CONFIG \
+    -u DOCKER_DEFAULT_PLATFORM \
+    -u DOCKER_HOST \
+    -u DOCKER_TLS_VERIFY \
+    DOCKER_CONTEXT="$(drill::target docker_context)" \
+    docker "$@"
 }
 
 drill::_version_triplet() {
@@ -33,8 +55,41 @@ drill::_reject_kind_environment() {
   }
 }
 
+drill::_reject_docker_environment() {
+  local names
+  names=$(env | awk -F= '$1 ~ /^DOCKER_/ {print $1}') || return 1
+  [[ -z $names ]] || {
+    drill::die "inherited DOCKER_* environment variables are forbidden: ${names//$'\n'/,}"
+    return 1
+  }
+}
+
+drill::_verify_docker_target() {
+  local actual_context actual_endpoint
+  drill::_reject_kind_environment || return 1
+  drill::_reject_docker_environment || return 1
+  actual_context=$(drill::_docker context show 2> /dev/null) || return 1
+  actual_endpoint=$(drill::_docker context inspect "$(drill::target docker_context)" \
+    --format '{{.Endpoints.docker.Host}}' 2> /dev/null) || return 1
+  [[ $actual_context == "$(drill::target docker_context)" ]] || {
+    drill::die "the effective Docker context differs from the approved target"
+    return 1
+  }
+  [[ $actual_endpoint == "$(drill::target docker_endpoint)" ]] || {
+    drill::die "the OrbStack Docker endpoint differs from the approved target"
+    return 1
+  }
+}
+
+drill::_verify_node_image() {
+  drill::_docker image inspect "$(drill::target KIND_NODE_IMAGE)" > /dev/null 2>&1 || {
+    drill::die "approved Kind node image is unavailable on the approved Docker target"
+    return 1
+  }
+}
+
 drill::_host_preflight() {
-  local tool actual docker_endpoint expected_endpoint
+  local tool actual
   [[ $(uname -s) == Darwin ]] || {
     drill::die "audited Kind drills require Darwin"
     return 1
@@ -49,25 +104,7 @@ drill::_host_preflight() {
       return 1
     }
   done
-  drill::_reject_kind_environment || return 1
-  [[ -z ${DOCKER_HOST:-} ]] || {
-    drill::die "DOCKER_HOST overrides are forbidden for an OrbStack drill"
-    return 1
-  }
-  [[ $(docker context show 2> /dev/null) == orbstack ]] || {
-    drill::die "the active Docker context must be orbstack"
-    return 1
-  }
-  [[ -n ${HOME:-} ]] || {
-    drill::die "HOME is unavailable for OrbStack endpoint validation"
-    return 1
-  }
-  docker_endpoint=$(docker context inspect orbstack --format '{{.Endpoints.docker.Host}}' 2> /dev/null) || return 1
-  expected_endpoint="unix://${HOME}/.orbstack/run/docker.sock"
-  [[ $docker_endpoint == "$expected_endpoint" ]] || {
-    drill::die "the orbstack Docker context has an unexpected endpoint"
-    return 1
-  }
+  drill::_verify_docker_target || return 1
 
   actual=$(drill::_version_triplet "$BASH_VERSION") || return 1
   drill::_require_exact_version bash "$actual" "$(drill::target BASH_VERSION)" || return 1
@@ -75,14 +112,11 @@ drill::_host_preflight() {
   drill::_require_exact_version kind "$actual" "$(drill::target KIND_VERSION)" || return 1
   actual=$(env -u KUBECONFIG kubectl version --client --output=json 2> /dev/null | awk -F'"' '/"gitVersion"/ {sub(/^v/, "", $4); print $4; exit}') || return 1
   drill::_require_exact_version kubectl "$actual" "$(drill::target KUBECTL_VERSION)" || return 1
-  docker info > /dev/null 2>&1 || {
+  drill::_docker info > /dev/null 2>&1 || {
     drill::die "Docker daemon is unavailable"
     return 1
   }
-  docker image inspect "$(drill::target KIND_NODE_IMAGE)" > /dev/null 2>&1 || {
-    drill::die "locked Kind node image is not available locally"
-    return 1
-  }
+  drill::_verify_node_image || return 1
 }
 
 drill::_cluster_absent() {
@@ -96,7 +130,7 @@ drill::_cluster_absent() {
     drill::die "drill cluster already exists; reuse is forbidden: ${cluster}"
     return 1
   }
-  containers=$(docker ps -a \
+  containers=$(drill::_docker ps -a \
     --filter "label=io.x-k8s.kind.cluster=${cluster}" \
     --format '{{.Names}}') || {
     drill::die "Docker node discovery failed"
@@ -124,9 +158,10 @@ drill::_read_confirmation() {
 }
 
 drill::_human_gate() {
-  local plan_sha expected response
+  local plan_sha approval_sha expected response
   plan_sha=$(drill::operation plan_sha) || return 1
-  expected="CREATE $(drill::target cluster_name) ${plan_sha:0:12}"
+  approval_sha=$(drill::operation approval_sha) || return 1
+  expected="CREATE $(drill::target cluster_name) ${approval_sha:0:12}"
   drill::journal_append GATE PROMPTED "cluster-lifecycle approval requested" || return 1
   drill::_terminal_available || {
     drill::journal_append GATE DENIED "interactive terminal unavailable" || true
@@ -143,12 +178,16 @@ drill::_human_gate() {
     printf 'auditDirectory=%s\n' "$(drill::target audit_directory)"
     printf 'evidenceSession=%s\n' "$(drill::operation evidence_session)"
     printf 'storageAssertion=%s\n' "$(drill::target storage_assertion)"
+    printf 'dockerContext=%s\n' "$(drill::target docker_context)"
+    printf 'dockerEndpoint=%s\n' "$(drill::target docker_endpoint)"
     printf 'gitCommit=%s\n' "$(drill::operation git_commit)"
     printf 'gitTree=%s\n' "$(drill::operation git_tree)"
     printf 'kindConfigSHA256=%s\n' "$(drill::operation config_sha)"
     printf 'auditPolicySHA256=%s\n' "$(drill::operation policy_sha)"
     printf 'versionsLockSHA256=%s\n' "$(drill::operation versions_sha)"
     printf 'nodeImage=%s\n' "$(drill::target KIND_NODE_IMAGE)"
+    printf 'preMutationManifestSHA256=%s\n' "$(drill::operation pre_mutation_sha)"
+    printf 'approvalSHA256=%s\n' "$(drill::operation approval_sha)"
     printf 'planSHA256=%s\n' "$plan_sha"
     printf 'Type exactly: %s\n> ' "$expected"
   } > /dev/tty; then
@@ -164,7 +203,7 @@ drill::_human_gate() {
     drill::die "cluster-lifecycle Human Judgment challenge did not match"
     return 1
   }
-  drill::journal_append GATE APPROVED "exact plan-bound challenge matched" || return 1
+  drill::journal_append GATE APPROVED "exact approval-bound challenge matched" || return 1
 }
 
 drill::_verify_audit_directory_writable() {
@@ -188,7 +227,7 @@ drill::_kubectl() {
 
 drill::_verify_mount() {
   local node=$1 destination=$2 expected_source=$3 expected_rw=$4 record source writable
-  record=$(docker inspect --format \
+  record=$(drill::_docker inspect --format \
     "{{range .Mounts}}{{if eq .Destination \"${destination}\"}}{{printf \"%s\\t%t\" .Source .RW}}{{end}}{{end}}" \
     "$node") || return 1
   IFS=$'\t' read -r source writable <<< "$record"
@@ -220,11 +259,11 @@ drill::verify_cluster() {
     drill::die "created Kind cluster is not discoverable"
     return 1
   }
-  [[ $(docker ps -a --filter "label=io.x-k8s.kind.cluster=${cluster}" --format '{{.Names}}') == "$node" ]] || {
+  [[ $(drill::_docker ps -a --filter "label=io.x-k8s.kind.cluster=${cluster}" --format '{{.Names}}') == "$node" ]] || {
     drill::die "drill cluster must have exactly one canonical control-plane node"
     return 1
   }
-  actual_image=$(docker inspect --format '{{.Config.Image}}' "$node") || return 1
+  actual_image=$(drill::_docker inspect --format '{{.Config.Image}}' "$node") || return 1
   [[ $actual_image == "$(drill::target KIND_NODE_IMAGE)" ]] || {
     drill::die "Kind node image differs from the approved digest"
     return 1
@@ -245,15 +284,15 @@ drill::verify_cluster() {
     drill::die "audit log mount is missing or read-only"
     return 1
   }
-  docker exec "$node" grep -Fq -- '--audit-policy-file=/etc/kubernetes/policies/atlas-recovery-audit-policy.yaml' /etc/kubernetes/manifests/kube-apiserver.yaml || {
+  drill::_docker exec "$node" grep -Fq -- '--audit-policy-file=/etc/kubernetes/policies/atlas-recovery-audit-policy.yaml' /etc/kubernetes/manifests/kube-apiserver.yaml || {
     drill::die "live API server audit-policy-file argument is missing"
     return 1
   }
-  docker exec "$node" grep -Fq -- '--audit-log-path=/var/log/kubernetes/audit/kube-apiserver-audit.log' /etc/kubernetes/manifests/kube-apiserver.yaml || {
+  drill::_docker exec "$node" grep -Fq -- '--audit-log-path=/var/log/kubernetes/audit/kube-apiserver-audit.log' /etc/kubernetes/manifests/kube-apiserver.yaml || {
     drill::die "live API server audit-log-path argument is missing"
     return 1
   }
-  mounted_sha=$(docker exec "$node" sha256sum /etc/kubernetes/policies/atlas-recovery-audit-policy.yaml | awk '{print $1}') || return 1
+  mounted_sha=$(drill::_docker exec "$node" sha256sum /etc/kubernetes/policies/atlas-recovery-audit-policy.yaml | awk '{print $1}') || return 1
   [[ $mounted_sha == "$(drill::operation policy_sha)" ]] || {
     drill::die "mounted audit policy differs from the Gate-approved snapshot"
     return 1
@@ -266,7 +305,7 @@ drill::_retained_state() {
   local cluster clusters containers kubeconfig_state
   cluster=$(drill::target cluster_name) || return 1
   clusters=$(drill::_kind get clusters --quiet 2> /dev/null) || clusters=DISCOVERY_ERROR
-  containers=$(docker ps -a --filter "label=io.x-k8s.kind.cluster=${cluster}" --format '{{.Names}}' 2> /dev/null) || containers=DISCOVERY_ERROR
+  containers=$(drill::_docker ps -a --filter "label=io.x-k8s.kind.cluster=${cluster}" --format '{{.Names}}' 2> /dev/null) || containers=DISCOVERY_ERROR
   containers=${containers//$'\n'/,}
   if [[ -e $(drill::target kubeconfig) || -L $(drill::target kubeconfig) ]]; then
     kubeconfig_state=PRESENT
@@ -296,6 +335,14 @@ drill::_create_cluster_inner() {
     drill::journal_append PREMUTATION DENIED "approved inputs changed or became unavailable" || true
     return 1
   fi
+  if ! drill::_verify_docker_target; then
+    drill::journal_append PREMUTATION DENIED "Docker mutation target changed or became unavailable" || true
+    return 1
+  fi
+  if ! drill::_verify_node_image; then
+    drill::journal_append PREMUTATION DENIED "approved node image became unavailable" || true
+    return 1
+  fi
   if ! drill::_cluster_absent; then
     drill::journal_append PREMUTATION DENIED "cluster state changed after approval" || true
     return 1
@@ -306,7 +353,7 @@ drill::_create_cluster_inner() {
   fi
   drill::journal_append CREATE STARTED "invoking digest-pinned Kind with Docker provider" || return 1
 
-  if ! env -u KUBECONFIG KIND_EXPERIMENTAL_PROVIDER=docker kind create cluster \
+  if ! drill::_kind create cluster \
     --name "$(drill::target cluster_name)" \
     --image "$(drill::target KIND_NODE_IMAGE)" \
     --config "$(drill::operation config_file)" \

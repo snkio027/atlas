@@ -7,20 +7,23 @@ ATLAS_DRILL_LOCK_PATH=''
 ATLAS_DRILL_LOCK_TOKEN=''
 
 drill::_lock_root() {
-  local temporary_root lock_root
-  [[ -n ${TMPDIR:-} ]] || {
-    drill::die "TMPDIR is required for the host lifecycle lock"
+  local lock_parent lock_root
+  lock_parent=$(drill::_system_temporary_directory) || return 1
+  [[ $lock_parent == /* && -d $lock_parent ]] || {
+    drill::die "the system lock parent is unavailable"
     return 1
   }
-  temporary_root=${TMPDIR%/}
-  drill::assert_managed_directory "$temporary_root" "TMPDIR" || return 1
-  lock_root="${temporary_root}/atlas-kind-drill-locks"
+  lock_root="${lock_parent%/}/atlas-kind-drill-locks-$(id -u)"
   if mkdir -m 0700 "$lock_root" 2> /dev/null; then
     :
   else
     drill::assert_managed_directory "$lock_root" "drill lock root" || return 1
   fi
   printf '%s\n' "$lock_root"
+}
+
+drill::_system_temporary_directory() {
+  printf '/tmp\n'
 }
 
 drill::acquire_lifecycle_lock() {

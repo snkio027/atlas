@@ -61,8 +61,10 @@ the operator prepares four disjoint paths on encrypted local storage:
 
 The audit directory, evidence root, and kubeconfig parent must be owned by the
 current UID, mode `0700`, non-symlink, and free of extended ACLs. The operator
-must explicitly attest `encrypted-owner-controlled` storage. An execution shape
-is:
+must explicitly attest `encrypted-owner-controlled` storage. The evidence root
+must not be located below a shared temporary root, including `/tmp`,
+`/private/tmp`, `/var/tmp`, `/private/var/tmp`, `/dev/shm`, or `/usr/tmp`.
+An execution shape is:
 
 ```bash
 ./bootstrap/drill/atlas-kind-drill create \
@@ -75,25 +77,32 @@ is:
 ```
 
 Do not run this example without a separate cluster-lifecycle authorization. The
-command rejects inherited `KIND_*` topology variables and `DOCKER_HOST`, fixes
-Kind to the Docker provider, and verifies the supported OrbStack endpoint. It
-never reads or changes the default Kubernetes context.
+command rejects inherited `KIND_*` and `DOCKER_*` variables. Every Docker and
+Kind call explicitly selects the `orbstack` context; its exact socket endpoint
+is included in the plan and revalidated after approval. The command never reads
+or changes the default Kubernetes context.
 
 Before the interactive challenge, the command acquires a dedicated host lock,
 snapshots the audit policy into the evidence session, renders the final Kind
-configuration against that snapshot, and writes `plan.json`, `plan.sha256`,
-`pre-mutation.sha256`, ambient kubeconfig hashes, and a hash-chained
+configuration against that snapshot, snapshots `versions.lock`, and writes
+`plan.json`, `plan.sha256`, `pre-mutation.sha256`,
+`pre-mutation-manifest.sha256`, ambient kubeconfig hashes, and a hash-chained
 `journal.jsonl`. The challenge binds:
 
 - actor, UTC time, action ID, cluster, context, and all explicit paths;
 - Git commit and tree;
 - Kind configuration, policy, and `versions.lock` SHA-256 values;
+- the OrbStack Docker context and endpoint;
 - the digest-pinned node image; and
-- the encrypted-storage assertion and complete plan hash.
+- the encrypted-storage assertion, complete plan hash, pre-mutation manifest
+  hash, and their combined approval hash.
 
 Every authority input and managed path is revalidated after approval and before
 `kind create`. The policy mounted into the node is the owner-only snapshot, not
-the live working-tree file. Successful verification requires current-UID,
+the live working-tree file. Git inspection clears repository, index, namespace,
+replacement-object, and configuration environment overrides and requires the
+reported top-level to equal the canonical Atlas root. Successful verification
+requires current-UID,
 non-symlink kubeconfig and audit-log files with mode `0600`, the approved policy
 hash inside the node, an exact context, a Ready node, and a recorded `/readyz`
 audit event.
@@ -125,8 +134,9 @@ After failure:
    file contents; and
 4. request a separate human review for diagnosis and eventual teardown.
 
-The lifecycle command has no delete or stale-lock recovery operation. An
-interrupted process may leave its owner-only host lock; that is a deliberate
+The lifecycle command has no delete or stale-lock recovery operation. Its
+per-UID lock root is deterministic and does not depend on caller `TMPDIR`.
+An interrupted process may leave its owner-only host lock; that is a deliberate
 fail-closed signal and requires a separately reviewed disposition. This runbook
 does not grant teardown or lock-removal authority.
 
@@ -139,6 +149,7 @@ task quality
 Quality verifies deterministic rendering, path confinement, first-match audit
 semantics, YAML-printable UTF-8 validation, owner-only custody, provider
 pinning, lifecycle locking, plan-bound approval, post-Gate hash revalidation,
-journaling, retained-state evidence, physical isolation from normal Bootstrap,
-and a fully mocked create/verify path. It does not run Kind and does not replace
-the separately authorized macOS/OrbStack runtime drill required by ADR-0003.
+journaling with independently recomputed entry digests, retained-state evidence,
+physical isolation from normal Bootstrap, and a fully mocked create/verify path.
+It does not run Kind and does not replace the separately authorized
+macOS/OrbStack runtime drill required by ADR-0003.

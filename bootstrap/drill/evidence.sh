@@ -32,15 +32,25 @@ drill::_json_escape() {
   printf '%s' "$value"
 }
 
+drill::_git() {
+  env -i PATH="$PATH" LC_ALL=C git --no-replace-objects "$@"
+}
+
 drill::_git_authority() {
-  local status commit tree
-  status=$(git -C "$ATLAS_DRILL_ROOT_DIR" status --porcelain=v1 --untracked-files=all) || return 1
+  local repository toplevel status commit tree
+  repository=$(cd "$ATLAS_DRILL_ROOT_DIR" && pwd -P) || return 1
+  toplevel=$(drill::_git -C "$repository" rev-parse --show-toplevel) || return 1
+  [[ $toplevel == "$repository" ]] || {
+    drill::die "Git authority does not resolve to the Atlas repository root"
+    return 1
+  }
+  status=$(drill::_git -C "$repository" status --porcelain=v1 --untracked-files=all) || return 1
   [[ -z $status ]] || {
     drill::die "the repository must be clean before lifecycle approval"
     return 1
   }
-  commit=$(git -C "$ATLAS_DRILL_ROOT_DIR" rev-parse --verify 'HEAD^{commit}') || return 1
-  tree=$(git -C "$ATLAS_DRILL_ROOT_DIR" rev-parse --verify 'HEAD^{tree}') || return 1
+  commit=$(drill::_git -C "$repository" rev-parse --verify 'HEAD^{commit}') || return 1
+  tree=$(drill::_git -C "$repository" rev-parse --verify 'HEAD^{tree}') || return 1
   [[ $commit =~ ^[0-9a-f]{40}$ && $tree =~ ^[0-9a-f]{40}$ ]] || {
     drill::die "Git commit or tree authority is malformed"
     return 1
@@ -92,7 +102,7 @@ drill::_create_evidence_session() {
 }
 
 drill::_write_plan() {
-  local plan_file=$1 plan_sha_file=$2 pre_mutation_file=$3
+  local plan_file=$1 plan_sha_file=$2
   local actor action_id prepared_at fingerprint json plan_sha
   actor=$(drill::operation actor) || return 1
   action_id=$(drill::operation action_id) || return 1
@@ -100,25 +110,38 @@ drill::_write_plan() {
   fingerprint=$(drill::operation target_fingerprint) || return 1
 
   printf -v json '%s' \
-    "{\"schemaVersion\":1,\"action\":\"cluster.create\",\"actionId\":\"$(drill::_json_escape "$action_id")\",\"actor\":\"$(drill::_json_escape "$actor")\",\"preparedAt\":\"${prepared_at}\",\"targetFingerprintSHA256\":\"${fingerprint}\",\"clusterName\":\"$(drill::_json_escape "$(drill::target cluster_name)")\",\"context\":\"$(drill::_json_escape "$(drill::target context)")\",\"kubeconfig\":\"$(drill::_json_escape "$(drill::target kubeconfig)")\",\"auditDirectory\":\"$(drill::_json_escape "$(drill::target audit_directory)")\",\"evidenceSession\":\"$(drill::_json_escape "$(drill::operation evidence_session)")\",\"storageAssertion\":\"$(drill::target storage_assertion)\",\"gitCommit\":\"$(drill::operation git_commit)\",\"gitTree\":\"$(drill::operation git_tree)\",\"kindConfigSHA256\":\"$(drill::operation config_sha)\",\"auditPolicySHA256\":\"$(drill::operation policy_sha)\",\"versionsLockSHA256\":\"$(drill::operation versions_sha)\",\"nodeImage\":\"$(drill::target KIND_NODE_IMAGE)\"}"
+    "{\"schemaVersion\":1,\"action\":\"cluster.create\",\"actionId\":\"$(drill::_json_escape "$action_id")\",\"actor\":\"$(drill::_json_escape "$actor")\",\"preparedAt\":\"${prepared_at}\",\"targetFingerprintSHA256\":\"${fingerprint}\",\"clusterName\":\"$(drill::_json_escape "$(drill::target cluster_name)")\",\"context\":\"$(drill::_json_escape "$(drill::target context)")\",\"kubeconfig\":\"$(drill::_json_escape "$(drill::target kubeconfig)")\",\"auditDirectory\":\"$(drill::_json_escape "$(drill::target audit_directory)")\",\"evidenceSession\":\"$(drill::_json_escape "$(drill::operation evidence_session)")\",\"storageAssertion\":\"$(drill::target storage_assertion)\",\"dockerContext\":\"$(drill::target docker_context)\",\"dockerEndpoint\":\"$(drill::_json_escape "$(drill::target docker_endpoint)")\",\"gitCommit\":\"$(drill::operation git_commit)\",\"gitTree\":\"$(drill::operation git_tree)\",\"kindConfigSHA256\":\"$(drill::operation config_sha)\",\"auditPolicySHA256\":\"$(drill::operation policy_sha)\",\"versionsLockSHA256\":\"$(drill::operation versions_sha)\",\"nodeImage\":\"$(drill::target KIND_NODE_IMAGE)\"}"
   printf '%s\n' "$json" > "$plan_file" || return 1
   chmod 0400 "$plan_file" || return 1
   plan_sha=$(drill::_sha256 "$plan_file") || return 1
   ATLAS_DRILL_OPERATION[plan_sha]=$plan_sha
   printf '%s  plan.json\n' "$plan_sha" > "$plan_sha_file" || return 1
   chmod 0400 "$plan_sha_file" || return 1
-  printf '%s  plan.json\n%s  kind.yaml\n%s  audit-policy.yaml\n%s  versions.lock\n' \
-    "$plan_sha" \
+}
+
+drill::_write_pre_mutation_manifest() {
+  local pre_mutation_file=$1 pre_mutation_sha_file=$2 pre_mutation_sha approval_sha
+  printf '%s  plan.json\n%s  kind.yaml\n%s  audit-policy.yaml\n%s  versions.lock\n%s  ambient-before.sha256\n' \
+    "$(drill::operation plan_sha)" \
     "$(drill::operation config_sha)" \
     "$(drill::operation policy_sha)" \
-    "$(drill::operation versions_sha)" > "$pre_mutation_file" || return 1
+    "$(drill::operation versions_sha)" \
+    "$(drill::operation ambient_before_sha)" > "$pre_mutation_file" || return 1
   chmod 0400 "$pre_mutation_file" || return 1
+  pre_mutation_sha=$(drill::_sha256 "$pre_mutation_file") || return 1
+  ATLAS_DRILL_OPERATION[pre_mutation_sha]=$pre_mutation_sha
+  printf '%s  pre-mutation.sha256\n' "$pre_mutation_sha" > "$pre_mutation_sha_file" || return 1
+  chmod 0400 "$pre_mutation_sha_file" || return 1
+  approval_sha=$(printf 'planSHA256=%s\npreMutationManifestSHA256=%s\n' \
+    "$(drill::operation plan_sha)" "$pre_mutation_sha" | shasum -a 256 | awk '{print $1}') || return 1
+  ATLAS_DRILL_OPERATION[approval_sha]=$approval_sha
 }
 
 drill::prepare_evidence() {
   local base_config=$1 authority git_commit git_tree policy_source versions_file
   local policy_sha versions_sha fingerprint_payload fingerprint start_utc start_compact session_id session
-  local policy_snapshot config_file ambient_before plan_file plan_sha_file pre_mutation_file journal_file actor
+  local policy_snapshot versions_snapshot config_file ambient_before plan_file plan_sha_file
+  local pre_mutation_file pre_mutation_sha_file journal_file actor
 
   authority=$(drill::_git_authority) || return 1
   IFS=$'\t' read -r git_commit git_tree <<< "$authority"
@@ -130,10 +153,11 @@ drill::prepare_evidence() {
   }
   policy_sha=$(drill::_sha256 "$policy_source") || return 1
   versions_sha=$(drill::_sha256 "$versions_file") || return 1
-  printf -v fingerprint_payload '%s\n%s\n%s\n%s\n%s' \
+  printf -v fingerprint_payload '%s\n%s\n%s\n%s\n%s\n%s\n%s' \
     "$(drill::target cluster_name)" "$(drill::target context)" \
     "$(drill::target audit_directory)" "$(drill::target kubeconfig)" \
-    "$(drill::target KIND_NODE_IMAGE)"
+    "$(drill::target KIND_NODE_IMAGE)" "$(drill::target docker_context)" \
+    "$(drill::target docker_endpoint)"
   fingerprint=$(printf '%s' "$fingerprint_payload" | shasum -a 256 | awk '{print $1}') || return 1
   start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ) || return 1
   start_compact=$(date -u +%Y%m%dT%H%M%SZ) || return 1
@@ -141,16 +165,24 @@ drill::prepare_evidence() {
   session=$(drill::_create_evidence_session "$fingerprint" "$start_compact" "$session_id") || return 1
 
   policy_snapshot="${session}/audit-policy.yaml"
+  versions_snapshot="${session}/versions.lock"
   config_file="${session}/kind.yaml"
   ambient_before="${session}/ambient-before.sha256"
   plan_file="${session}/plan.json"
   plan_sha_file="${session}/plan.sha256"
   pre_mutation_file="${session}/pre-mutation.sha256"
+  pre_mutation_sha_file="${session}/pre-mutation-manifest.sha256"
   journal_file="${session}/journal.jsonl"
   install -m 0400 "$policy_source" "$policy_snapshot" || return 1
+  install -m 0400 "$versions_file" "$versions_snapshot" || return 1
   drill::assert_managed_file "$policy_snapshot" 400 "audit policy snapshot" || return 1
+  drill::assert_managed_file "$versions_snapshot" 400 "versions.lock snapshot" || return 1
   [[ $(drill::_sha256 "$policy_snapshot") == "$policy_sha" ]] || {
     drill::die "audit policy snapshot differs from the approved source"
+    return 1
+  }
+  [[ $(drill::_sha256 "$versions_snapshot") == "$versions_sha" ]] || {
+    drill::die "versions.lock snapshot differs from the approved source"
     return 1
   }
   drill::render_kind_config "$base_config" "$config_file" "$policy_snapshot" || return 1
@@ -167,16 +199,20 @@ drill::prepare_evidence() {
   ATLAS_DRILL_OPERATION[git_tree]=$git_tree
   ATLAS_DRILL_OPERATION[policy_sha]=$policy_sha
   ATLAS_DRILL_OPERATION[versions_sha]=$versions_sha
+  ATLAS_DRILL_OPERATION[versions_snapshot]=$versions_snapshot
   ATLAS_DRILL_OPERATION[policy_snapshot]=$policy_snapshot
   ATLAS_DRILL_OPERATION[config_file]=$config_file
   ATLAS_DRILL_OPERATION[config_sha]=$(drill::_sha256 "$config_file") || return 1
   ATLAS_DRILL_OPERATION[ambient_before]=$ambient_before
+  ATLAS_DRILL_OPERATION[ambient_before_sha]=$(drill::_sha256 "$ambient_before") || return 1
   ATLAS_DRILL_OPERATION[evidence_session]=$session
   ATLAS_DRILL_OPERATION[plan_file]=$plan_file
   ATLAS_DRILL_OPERATION[plan_sha_file]=$plan_sha_file
   ATLAS_DRILL_OPERATION[pre_mutation_file]=$pre_mutation_file
+  ATLAS_DRILL_OPERATION[pre_mutation_sha_file]=$pre_mutation_sha_file
   ATLAS_DRILL_OPERATION[journal_file]=$journal_file
-  drill::_write_plan "$plan_file" "$plan_sha_file" "$pre_mutation_file" || return 1
+  drill::_write_plan "$plan_file" "$plan_sha_file" || return 1
+  drill::_write_pre_mutation_manifest "$pre_mutation_file" "$pre_mutation_sha_file" || return 1
   : > "$journal_file" || return 1
   chmod 0600 "$journal_file" || return 1
   readonly -A ATLAS_DRILL_OPERATION
@@ -201,7 +237,7 @@ drill::journal_append() {
   utc=$(date -u +%Y-%m-%dT%H:%M:%SZ) || return 1
   ((ATLAS_DRILL_JOURNAL_SEQUENCE += 1))
   printf -v payload '%s' \
-    "{\"sequence\":${ATLAS_DRILL_JOURNAL_SEQUENCE},\"previousEntrySHA256\":\"${ATLAS_DRILL_JOURNAL_PREVIOUS_SHA}\",\"utc\":\"${utc}\",\"actionId\":\"$(drill::_json_escape "$(drill::operation action_id)")\",\"actor\":\"$(drill::_json_escape "$(drill::operation actor)")\",\"action\":\"$(drill::_json_escape "$action")\",\"outcome\":\"$(drill::_json_escape "$outcome")\",\"detail\":\"$(drill::_json_escape "$detail")\",\"planSHA256\":\"$(drill::operation plan_sha)\",\"kindConfigSHA256\":\"$(drill::operation config_sha)\",\"auditPolicySHA256\":\"$(drill::operation policy_sha)\",\"versionsLockSHA256\":\"$(drill::operation versions_sha)\"}"
+    "{\"sequence\":${ATLAS_DRILL_JOURNAL_SEQUENCE},\"previousEntrySHA256\":\"${ATLAS_DRILL_JOURNAL_PREVIOUS_SHA}\",\"utc\":\"${utc}\",\"actionId\":\"$(drill::_json_escape "$(drill::operation action_id)")\",\"actor\":\"$(drill::_json_escape "$(drill::operation actor)")\",\"action\":\"$(drill::_json_escape "$action")\",\"outcome\":\"$(drill::_json_escape "$outcome")\",\"detail\":\"$(drill::_json_escape "$detail")\",\"planSHA256\":\"$(drill::operation plan_sha)\",\"preMutationManifestSHA256\":\"$(drill::operation pre_mutation_sha)\",\"approvalSHA256\":\"$(drill::operation approval_sha)\",\"kindConfigSHA256\":\"$(drill::operation config_sha)\",\"auditPolicySHA256\":\"$(drill::operation policy_sha)\",\"versionsLockSHA256\":\"$(drill::operation versions_sha)\"}"
   entry_sha=$(printf '%s' "$payload" | shasum -a 256 | awk '{print $1}') || return 1
   entry="${payload%?},\"entrySHA256\":\"${entry_sha}\"}"
   printf '%s\n' "$entry" >> "$journal_file" || return 1
@@ -211,6 +247,7 @@ drill::journal_append() {
 
 drill::revalidate_approved_inputs() {
   local authority git_commit git_tree policy_source versions_file plan_sha_file
+  local pre_mutation_sha_file recalculated_approval_sha
   authority=$(drill::_git_authority) || return 1
   IFS=$'\t' read -r git_commit git_tree <<< "$authority"
   [[ $git_commit == "$(drill::operation git_commit)" && $git_tree == "$(drill::operation git_tree)" ]] || {
@@ -230,13 +267,25 @@ drill::revalidate_approved_inputs() {
   }
   drill::assert_managed_directory "$(drill::operation evidence_session)" "evidence session" || return 1
   drill::assert_managed_file "$(drill::operation policy_snapshot)" 400 "audit policy snapshot" || return 1
+  drill::assert_managed_file "$(drill::operation versions_snapshot)" 400 "versions.lock snapshot" || return 1
+  drill::assert_managed_file "$(drill::operation ambient_before)" 400 "ambient kubeconfig snapshot" || return 1
   drill::assert_managed_file "$(drill::operation config_file)" 400 "Kind configuration evidence" || return 1
   drill::assert_managed_file "$(drill::operation plan_file)" 400 "lifecycle plan" || return 1
   plan_sha_file=$(drill::operation plan_sha_file) || return 1
   drill::assert_managed_file "$plan_sha_file" 400 "lifecycle plan hash" || return 1
   drill::assert_managed_file "$(drill::operation pre_mutation_file)" 400 "pre-mutation hash manifest" || return 1
+  pre_mutation_sha_file=$(drill::operation pre_mutation_sha_file) || return 1
+  drill::assert_managed_file "$pre_mutation_sha_file" 400 "pre-mutation manifest hash" || return 1
   [[ $(drill::_sha256 "$(drill::operation policy_snapshot)") == "$(drill::operation policy_sha)" ]] || {
     drill::die "audit policy snapshot changed after approval"
+    return 1
+  }
+  [[ $(drill::_sha256 "$(drill::operation versions_snapshot)") == "$(drill::operation versions_sha)" ]] || {
+    drill::die "versions.lock snapshot changed after approval"
+    return 1
+  }
+  [[ $(drill::_sha256 "$(drill::operation ambient_before)") == "$(drill::operation ambient_before_sha)" ]] || {
+    drill::die "ambient kubeconfig snapshot changed after approval"
     return 1
   }
   [[ $(drill::_sha256 "$(drill::operation config_file)") == "$(drill::operation config_sha)" ]] || {
@@ -251,10 +300,20 @@ drill::revalidate_approved_inputs() {
     drill::die "lifecycle plan hash record changed after approval"
     return 1
   }
-  drill::validate_kind_config "$(drill::operation config_file)" "$(drill::operation policy_snapshot)" || return 1
-  drill::journal_integrity || return 1
-  docker image inspect "$(drill::target KIND_NODE_IMAGE)" > /dev/null 2>&1 || {
-    drill::die "approved Kind node image is no longer available"
+  [[ $(drill::_sha256 "$(drill::operation pre_mutation_file)") == "$(drill::operation pre_mutation_sha)" ]] || {
+    drill::die "pre-mutation manifest changed after approval"
     return 1
   }
+  grep -Fqx "$(drill::operation pre_mutation_sha)  pre-mutation.sha256" "$pre_mutation_sha_file" || {
+    drill::die "pre-mutation manifest hash record changed after approval"
+    return 1
+  }
+  recalculated_approval_sha=$(printf 'planSHA256=%s\npreMutationManifestSHA256=%s\n' \
+    "$(drill::operation plan_sha)" "$(drill::operation pre_mutation_sha)" | shasum -a 256 | awk '{print $1}') || return 1
+  [[ $recalculated_approval_sha == "$(drill::operation approval_sha)" ]] || {
+    drill::die "Human Judgment approval anchor changed after approval"
+    return 1
+  }
+  drill::validate_kind_config "$(drill::operation config_file)" "$(drill::operation policy_snapshot)" || return 1
+  drill::journal_integrity || return 1
 }

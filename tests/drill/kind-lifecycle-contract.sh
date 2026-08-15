@@ -8,19 +8,23 @@ umask 077
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 cd "$ATLAS_TEST_ROOT"
 
-test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-kind-drill-test.XXXXXX")
-trap 'rm -rf "$test_workspace"' EXIT
+test_parent=${RUNNER_TEMP:-${TMPDIR:-${HOME}/.cache}}
+test_workspace=$(mktemp -d "${test_parent%/}/atlas-kind-drill-test.XXXXXX")
+shared_evidence=$(mktemp -d /tmp/atlas-kind-drill-shared-test.XXXXXX)
+trap 'rm -rf "$test_workspace" "$shared_evidence"' EXIT
 
 drill_cli=./bootstrap/drill/atlas-kind-drill
 mock_bin="${test_workspace}/bin"
 command_log="${test_workspace}/commands.log"
 cluster_state="${test_workspace}/cluster.state"
 policy_path_state="${test_workspace}/policy-path.state"
+docker_endpoint_state="${test_workspace}/docker-endpoint.state"
 ambient_kubeconfig="${test_workspace}/ambient.kubeconfig"
 default_kubeconfig="${test_workspace}/home/.kube/config"
 private_tmp="${test_workspace}/tmp"
+lock_parent="${test_workspace}/system-locks"
 mkdir -m 0700 "$mock_bin" "${test_workspace}/audit" "${test_workspace}/credentials" \
-  "${test_workspace}/evidence" "${test_workspace}/home" "$private_tmp"
+  "${test_workspace}/evidence" "${test_workspace}/home" "$private_tmp" "$lock_parent"
 mkdir -m 0700 "${test_workspace}/home/.kube"
 printf 'apiVersion: v1\nkind: Config\ncurrent-context: developer\n' > "$ambient_kubeconfig"
 printf 'apiVersion: v1\nkind: Config\ncurrent-context: default-developer\n' > "$default_kubeconfig"
@@ -44,6 +48,7 @@ cat > "${mock_bin}/kind" << 'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ ${KIND_EXPERIMENTAL_PROVIDER:-} == docker ]] || exit 90
+[[ ${DOCKER_CONTEXT:-} == orbstack ]] || exit 94
 case "${1:-}" in
   version)
     printf 'kind v%s go-test darwin/arm64\n' "$ATLAS_TEST_KIND_VERSION"
@@ -93,12 +98,13 @@ EOF
 cat > "${mock_bin}/docker" << 'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+[[ ${DOCKER_CONTEXT:-} == orbstack ]] || exit 90
 case "${1:-}" in
   info) exit 0 ;;
   context)
     case "${2:-}" in
-      show) printf 'orbstack\n' ;;
-      inspect) printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" ;;
+      show) printf '%s\n' "$DOCKER_CONTEXT" ;;
+      inspect) cat "$ATLAS_TEST_DOCKER_ENDPOINT_STATE" ;;
       *) exit 2 ;;
     esac
     ;;
@@ -184,13 +190,16 @@ drill::_git_authority() {
 drill::_version_triplet() {
   drill::target BASH_VERSION
 }
+drill::_system_temporary_directory() {
+  printf '%s\n' "$ATLAS_TEST_LOCK_PARENT"
+}
 if [[ ${ATLAS_TEST_GATE_MODE:-approve} == noninteractive ]]; then
   drill::_terminal_available() { return 1; }
 else
   drill::_human_gate() {
     drill::journal_append GATE PROMPTED "mock approval requested"
     drill::journal_append GATE APPROVED "mock exact challenge matched"
-    printf 'GATE\t%s\n' "$(drill::operation plan_sha)" >> "$ATLAS_TEST_COMMAND_LOG"
+    printf 'GATE\t%s\n' "$(drill::operation approval_sha)" >> "$ATLAS_TEST_COMMAND_LOG"
     case "${ATLAS_TEST_GATE_MODE:-approve}" in
       tamper-policy)
         chmod 0600 "$(drill::operation policy_snapshot)"
@@ -205,6 +214,14 @@ else
       tamper-git)
         : > "$ATLAS_TEST_GIT_CHANGED_MARKER"
         ;;
+      tamper-docker)
+        printf 'unix:///changed-after-approval.sock\n' > "$ATLAS_TEST_DOCKER_ENDPOINT_STATE"
+        ;;
+      tamper-manifest)
+        chmod 0600 "$(drill::operation pre_mutation_file)"
+        printf '%064d  forged\n' 0 >> "$(drill::operation pre_mutation_file)"
+        chmod 0400 "$(drill::operation pre_mutation_file)"
+        ;;
     esac
   }
 fi
@@ -216,6 +233,18 @@ EOF
 chmod 0755 "${mock_bin}/docker" "${mock_bin}/kind" "${mock_bin}/kubectl" "${mock_bin}/uname" \
   "${test_workspace}/run-lifecycle"
 
+cat > "${test_workspace}/run-git-authority" << 'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+source "$ATLAS_TEST_IMPLEMENTATION_ROOT/bootstrap/drill/evidence.sh"
+drill::die() {
+  printf 'git-authority-test: %s\n' "$*" >&2
+  return 1
+}
+drill::_git_authority
+EOF
+chmod 0755 "${test_workspace}/run-git-authority"
+
 export PATH="${mock_bin}:${PATH}"
 export HOME="${test_workspace}/home"
 export TMPDIR="${private_tmp}/"
@@ -224,7 +253,9 @@ export ATLAS_DRILL_ROOT_DIR=$ATLAS_TEST_ROOT
 export ATLAS_TEST_COMMAND_LOG=$command_log
 export ATLAS_TEST_CLUSTER_STATE=$cluster_state
 export ATLAS_TEST_POLICY_PATH_STATE=$policy_path_state
+export ATLAS_TEST_DOCKER_ENDPOINT_STATE=$docker_endpoint_state
 export ATLAS_TEST_GIT_CHANGED_MARKER="${test_workspace}/git-changed.marker"
+export ATLAS_TEST_LOCK_PARENT=$lock_parent
 export ATLAS_TEST_KIND_VERSION=$locked_kind
 export ATLAS_TEST_KUBECTL_VERSION=$locked_kubectl
 export ATLAS_TEST_NODE_IMAGE=$locked_image
@@ -251,26 +282,73 @@ drill_test::plan() {
   find "$ATLAS_TEST_EVIDENCE_ROOT" -type f -name plan.json -print -quit
 }
 
-drill_test::verify_journal_chain() {
-  local journal=$1 line previous current
+drill_test::journal_chain_valid() {
+  local journal=$1 line previous current payload calculated
   previous=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   while IFS= read -r line; do
-    [[ $(yq -p=json '.previousEntrySHA256' <<< "$line") == "$previous" ]] || test::fail "journal hash chain is discontinuous"
-    current=$(yq -p=json '.entrySHA256' <<< "$line")
-    [[ $current =~ ^[0-9a-f]{64}$ ]] || test::fail "journal entry hash is malformed"
+    [[ $(yq -p=json '.previousEntrySHA256' <<< "$line") == "$previous" ]] || return 1
+    current=$(yq -p=json '.entrySHA256' <<< "$line") || return 1
+    [[ $current =~ ^[0-9a-f]{64}$ ]] || return 1
+    payload=$(sed -E 's/,"entrySHA256":"[0-9a-f]{64}"}$/}/' <<< "$line") || return 1
+    [[ $payload != "$line" ]] || return 1
+    calculated=$(printf '%s' "$payload" | shasum -a 256 | awk '{print $1}') || return 1
+    [[ $calculated == "$current" ]] || return 1
     previous=$current
   done < "$journal"
+}
+
+drill_test::verify_journal_chain() {
+  drill_test::journal_chain_valid "$1" || test::fail "journal hash chain or entry digest is invalid"
 }
 
 drill_test::reset_runtime() {
   rm -f -- "$cluster_state" "$policy_path_state" "$ATLAS_TEST_KUBECONFIG"
   rm -f -- "$ATLAS_TEST_GIT_CHANGED_MARKER"
+  printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
   : > "$command_log"
   unset ATLAS_TEST_EXISTING_CLUSTER ATLAS_TEST_KIND_CREATE_FAIL ATLAS_TEST_GATE_MODE
 }
 
+printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
+
 "$drill_cli" --help > /dev/null
 "$drill_cli" --version | grep -Eq '^atlas-kind-drill [0-9]+\.[0-9]+\.[0-9]+$'
+
+git_fixture="${test_workspace}/git-atlas"
+foreign_git_fixture="${test_workspace}/git-foreign"
+mkdir -m 0700 "$git_fixture" "$foreign_git_fixture"
+git -C "$git_fixture" init -q
+git -C "$git_fixture" config user.name atlas-test
+git -C "$git_fixture" config user.email atlas-test@example.invalid
+printf 'atlas\n' > "${git_fixture}/tracked"
+git -C "$git_fixture" add tracked
+git -C "$git_fixture" -c commit.gpgsign=false commit -q -m initial
+git -C "$foreign_git_fixture" init -q
+git -C "$foreign_git_fixture" config user.name foreign-test
+git -C "$foreign_git_fixture" config user.email foreign-test@example.invalid
+printf 'foreign\n' > "${foreign_git_fixture}/tracked"
+git -C "$foreign_git_fixture" add tracked
+git -C "$foreign_git_fixture" -c commit.gpgsign=false commit -q -m initial
+expected_git_commit=$(git -C "$git_fixture" rev-parse 'HEAD^{commit}')
+expected_git_tree=$(git -C "$git_fixture" rev-parse 'HEAD^{tree}')
+authority=$(
+  ATLAS_TEST_IMPLEMENTATION_ROOT=$ATLAS_TEST_ROOT \
+    ATLAS_DRILL_ROOT_DIR=$git_fixture \
+    GIT_DIR="${foreign_git_fixture}/.git" \
+    GIT_WORK_TREE=$foreign_git_fixture \
+    GIT_INDEX_FILE="${foreign_git_fixture}/.git/index" \
+    GIT_COMMON_DIR="${foreign_git_fixture}/.git" \
+    GIT_OBJECT_DIRECTORY="${foreign_git_fixture}/.git/objects" \
+    GIT_ALTERNATE_OBJECT_DIRECTORIES="${foreign_git_fixture}/.git/objects" \
+    GIT_NAMESPACE=foreign \
+    "${test_workspace}/run-git-authority"
+)
+[[ $authority == "${expected_git_commit}"$'\t'"${expected_git_tree}" ]] || test::fail "Git authority inherited repository-redirection variables"
+mkdir -m 0700 "${git_fixture}/nested"
+ATLAS_TEST_IMPLEMENTATION_ROOT=$ATLAS_TEST_ROOT ATLAS_DRILL_ROOT_DIR="${git_fixture}/nested" \
+  "${test_workspace}/run-git-authority" > /dev/null 2>&1 &&
+  test::fail "Git authority accepted a non-root Atlas path"
+test::pass "Git authority clears repository environment and requires the exact Atlas root"
 
 cluster_one=atlas-recovery-drill-20260815t010203z-a1b2c3d4
 drill_test::prepare_target "$cluster_one"
@@ -294,6 +372,13 @@ if KUBECONFIG=$ATLAS_TEST_KUBECONFIG "$drill_cli" create \
   --evidence-root "$ATLAS_TEST_EVIDENCE_ROOT" \
   --storage-assertion encrypted-owner-controlled > /dev/null 2>&1; then
   test::fail "an ambient kubeconfig destination was accepted"
+fi
+if "$drill_cli" create \
+  --cluster-name "$cluster_one" --context "$ATLAS_TEST_CONTEXT" \
+  --kubeconfig "$ATLAS_TEST_KUBECONFIG" --audit-dir "$ATLAS_TEST_AUDIT_DIR" \
+  --evidence-root "$shared_evidence" \
+  --storage-assertion encrypted-owner-controlled > /dev/null 2>&1; then
+  test::fail "a shared temporary evidence root was accepted"
 fi
 test::pass "drill identity, storage attestation, and kubeconfig isolation fail closed"
 
@@ -322,14 +407,16 @@ drill_test::prepare_target "$cluster_three"
 ATLAS_TEST_EXISTING_CLUSTER=$cluster_three "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "an existing drill cluster was reused"
 grep -Fq KIND_CREATE "$command_log" && test::fail "existing-cluster rejection reached Kind creation"
 KIND_EXPERIMENTAL_PROVIDER=podman "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a caller-selected Kind provider was accepted"
+DOCKER_CONTEXT=remote "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a caller-selected Docker target was accepted"
 grep -Fq KIND_CREATE "$command_log" && test::fail "Kind environment rejection reached cluster creation"
-test::pass "existing state and all inherited KIND_* topology controls fail closed"
+test::pass "existing state and inherited Kind or Docker topology controls fail closed"
 
 cluster_four=atlas-recovery-drill-20260815t040506z-d4e5f6a7
 drill_test::prepare_target "$cluster_four"
-lock_root="${TMPDIR%/}/atlas-kind-drill-locks"
+lock_root="${lock_parent}/atlas-kind-drill-locks-$(id -u)"
 mkdir -m 0700 "${lock_root}/${cluster_four}.lock"
-"${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a concurrent lifecycle lock was ignored"
+mkdir -m 0700 "${test_workspace}/alternate-tmp"
+TMPDIR="${test_workspace}/alternate-tmp" "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a concurrent lifecycle lock was ignored"
 grep -Fq KIND_CREATE "$command_log" && test::fail "lock rejection reached cluster creation"
 rmdir "${lock_root}/${cluster_four}.lock"
 test::pass "the dedicated host lifecycle lock rejects concurrent creation"
@@ -344,10 +431,12 @@ noninteractive_journal=$(drill_test::journal)
 grep -Fq '"action":"GATE","outcome":"DENIED"' "$noninteractive_journal" || test::fail "Human Gate denial is absent from the journal"
 test::pass "cluster creation has no non-interactive or unjournaled approval path"
 
-for gate_mode in tamper-policy tamper-config tamper-git; do
+for gate_mode in tamper-policy tamper-config tamper-git tamper-docker tamper-manifest; do
   cluster_suffix=f6a7b8c9
   [[ $gate_mode == tamper-config ]] && cluster_suffix=07b8c9da
   [[ $gate_mode == tamper-git ]] && cluster_suffix=18c9daeb
+  [[ $gate_mode == tamper-docker ]] && cluster_suffix=29daebfc
+  [[ $gate_mode == tamper-manifest ]] && cluster_suffix=3aebfc0d
   cluster="atlas-recovery-drill-20260815t060708z-${cluster_suffix}"
   drill_test::prepare_target "$cluster"
   : > "$command_log"
@@ -356,8 +445,9 @@ for gate_mode in tamper-policy tamper-config tamper-git; do
   tamper_journal=$(drill_test::journal)
   grep -Fq '"action":"PREMUTATION","outcome":"DENIED"' "$tamper_journal" || test::fail "${gate_mode} rejection was not journaled"
   rm -f -- "$ATLAS_TEST_GIT_CHANGED_MARKER"
+  printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
 done
-test::pass "Gate-approved policy and Kind configuration hashes are revalidated"
+test::pass "all Gate-approved authority inputs and the Docker target are revalidated"
 
 cluster_eight=atlas-recovery-drill-20260815t080910z-18c9daeb
 drill_test::prepare_target "$cluster_eight"
@@ -376,18 +466,37 @@ drill_test::prepare_target "$cluster_nine"
 "${test_workspace}/run-lifecycle" > /dev/null
 journal=$(drill_test::journal)
 plan=$(drill_test::plan)
+evidence_session=$(dirname "$plan")
+pre_mutation_manifest="${evidence_session}/pre-mutation.sha256"
+pre_mutation_hash_record="${evidence_session}/pre-mutation-manifest.sha256"
 [[ -s $journal && -s $plan ]] || test::fail "successful lifecycle evidence is missing"
 grep -Fq '"action":"GATE","outcome":"APPROVED"' "$journal" || test::fail "Gate approval is absent from the journal"
 grep -Fq '"action":"VERIFY","outcome":"READY"' "$journal" || test::fail "READY result is absent from the journal"
 grep -Fq '"previousEntrySHA256"' "$journal" || test::fail "journal entries are not hash chained"
 drill_test::verify_journal_chain "$journal"
+forged_journal="${test_workspace}/forged-journal.jsonl"
+sed '1s/"entrySHA256":"[0-9a-f]\{64\}"/"entrySHA256":"0000000000000000000000000000000000000000000000000000000000000000"/' \
+  "$journal" > "$forged_journal"
+drill_test::journal_chain_valid "$forged_journal" && test::fail "a forged journal entry digest was accepted"
 [[ $(yq '.gitCommit | length' "$plan") == 40 ]] || test::fail "plan lacks the Git commit authority"
 [[ $(yq '.gitTree | length' "$plan") == 40 ]] || test::fail "plan lacks the Git tree authority"
+[[ $(yq -r '.dockerContext' "$plan") == orbstack ]] || test::fail "plan lacks the Docker context authority"
+[[ $(yq -r '.dockerEndpoint' "$plan") == "unix://${HOME}/.orbstack/run/docker.sock" ]] || test::fail "plan lacks the Docker endpoint authority"
 [[ $(yq '.kindConfigSHA256 | length' "$plan") == 64 ]] || test::fail "plan lacks the Kind config hash"
 [[ $(yq '.auditPolicySHA256 | length' "$plan") == 64 ]] || test::fail "plan lacks the audit policy hash"
 [[ $(yq '.versionsLockSHA256 | length' "$plan") == 64 ]] || test::fail "plan lacks the versions.lock hash"
 [[ $(yq -r '.storageAssertion' "$plan") == encrypted-owner-controlled ]] || test::fail "plan lacks the storage assertion"
 [[ $(yq -r '.nodeImage' "$plan") == "$locked_image" ]] || test::fail "plan lacks the digest-pinned node image"
+[[ -s ${evidence_session}/versions.lock ]] || test::fail "pre-mutation evidence lacks the versions.lock snapshot"
+manifest_sha=$(shasum -a 256 "$pre_mutation_manifest" | awk '{print $1}')
+plan_sha=$(shasum -a 256 "$plan" | awk '{print $1}')
+approval_sha=$(printf 'planSHA256=%s\npreMutationManifestSHA256=%s\n' "$plan_sha" "$manifest_sha" | shasum -a 256 | awk '{print $1}')
+grep -Fqx "${manifest_sha}  pre-mutation.sha256" "$pre_mutation_hash_record" || test::fail "pre-mutation manifest hash is not persisted"
+grep -Fqx "$(shasum -a 256 "${evidence_session}/versions.lock" | awk '{print $1}')  versions.lock" "$pre_mutation_manifest" ||
+  test::fail "pre-mutation manifest does not bind its versions.lock snapshot"
+gate_record=$(grep '"action":"GATE","outcome":"APPROVED"' "$journal")
+[[ $gate_record == *"\"preMutationManifestSHA256\":\"${manifest_sha}\""* ]] || test::fail "Human Judgment approval lacks the pre-mutation manifest anchor"
+[[ $gate_record == *"\"approvalSHA256\":\"${approval_sha}\""* ]] || test::fail "Human Judgment approval lacks the combined approval anchor"
 [[ $(shasum -a 256 "$ambient_kubeconfig" | awk '{print $1}') == "$ambient_hash" ]] || test::fail "ambient kubeconfig changed"
 [[ $(shasum -a 256 "$default_kubeconfig" | awk '{print $1}') == "$default_hash" ]] || test::fail "default kubeconfig changed"
 gate_line=$(grep -n '^GATE' "$command_log" | cut -d: -f1)
@@ -397,6 +506,7 @@ grep -Fq $'\t--retain' "$command_log" || test::fail "Kind failure retention is n
 test::pass "mocked lifecycle binds authority, journals approval, and verifies audit output"
 
 test::assert_not_found 'kind[[:space:]]+delete|kubectl[[:space:]]+config[[:space:]]+(use-context|set-context)|--approve' bootstrap/drill
+test::assert_not_found 'TMPDIR' bootstrap/drill/lock.sh
 test::assert_not_found 'atlas-kind-drill|bootstrap/drill' bootstrap/recovery
 test::assert_not_found 'certificatesigningrequests|ClusterRoleBinding|RoleBinding|ValidatingAdmissionPolicy|atlas-adoption-(signal|receipt)' bootstrap/drill
 test::pass "drill lifecycle remains separate from recovery and future authorization gates"
