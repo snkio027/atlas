@@ -1,0 +1,67 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitManagedFields: true
+omitStages:
+  - RequestReceived
+rules:
+  # Credential-bearing API objects are metadata-only even when a later rule
+  # captures request bodies for recovery authority resources.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources:
+          - secrets
+      - group: authentication.k8s.io
+        resources:
+          - tokenreviews
+      - group: certificates.k8s.io
+        resources:
+          - certificatesigningrequests
+
+  # Recovery and adoption ConfigMaps are safe, schema-constrained evidence.
+  # RequestResponse is required to reconstruct Fence and Receipt transitions.
+  - level: RequestResponse
+    namespaces:
+      - kube-system
+    resources:
+      - group: ""
+        resources:
+          - configmaps
+        resourceNames:
+          - atlas-bootstrap-adoption-receipt
+          - atlas-bootstrap-identity
+          - atlas-bootstrap-operation-fence
+          - atlas-bootstrap-operation-fence-canary
+
+  - level: RequestResponse
+    namespaces:
+      - argocd
+    resources:
+      - group: ""
+        resources:
+          - configmaps
+        resourceNames:
+          - argocd-rbac-cm
+          - atlas-bootstrap-adoption-signal
+
+  - level: RequestResponse
+    resources:
+      - group: admissionregistration.k8s.io
+        resources:
+          - validatingadmissionpolicies
+          - validatingadmissionpolicybindings
+      - group: rbac.authorization.k8s.io
+        resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+      - group: argoproj.io
+        resources:
+          - applications
+          - applicationsets
+          - appprojects
+
+  # Preserve an identity and outcome trail for every other request without
+  # recording request or response bodies.
+  - level: Metadata

@@ -39,6 +39,7 @@ tasks:
       - ./tests/shell/config.sh
       - ./tests/bootstrap/safety-contract.sh
       - ./tests/bootstrap/status-contract.sh
+      - ./tests/recovery/phase0-contract.sh
 
   conformance:
     desc: Run render, architecture, and supply-chain contracts

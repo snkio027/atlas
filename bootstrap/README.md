@@ -41,13 +41,22 @@ bootstrap/
 ├── host/doctor.sh
 ├── cluster/kind.sh
 ├── registry/local.sh
-└── argocd/{render,seed,handoff,status}.sh
+├── argocd/{render,seed,handoff,status}.sh
+└── recovery/
+    ├── atlas-recovery
+    └── audit.sh
 ```
 
 Files follow lifecycle and domain boundaries. Public functions use explicit
 actions such as `cluster::ensure_kind`, `registry::ensure_local`,
 `argocd::install_seed`, `argocd::instantiate_root`, and
 `argocd::inspect_status`; `reconcile` is not used as a generic workflow name.
+
+`bootstrap/recovery/atlas-recovery` is a physically separate entry point
+governed by ADR-0003. Its current Phase-0 surface only renders an audited Kind
+configuration. It cannot create a cluster, issue credentials, activate RBAC or
+Admission, or dispatch recovery. The normal `bootstrap/atlas` command never
+imports it.
 
 ## Configuration contract
 
