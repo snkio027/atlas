@@ -5,8 +5,8 @@ IFS=$'\n\t'
 
 # shellcheck source=tests/lib/assert.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
-# shellcheck source=bootstrap/recovery/audit.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../../bootstrap/recovery/audit.sh"
+# shellcheck source=bootstrap/recovery/audit-config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../bootstrap/recovery/audit-config.sh"
 cd "$ATLAS_TEST_ROOT"
 
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-phase0-test.XXXXXX")

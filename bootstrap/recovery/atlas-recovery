@@ -15,8 +15,8 @@ readonly ATLAS_RECOVERY_CLI_VERSION=0.1.0
 
 # Recovery code is intentionally sourced only by this entry point. The normal
 # Bootstrap CLI must remain unable to dispatch recovery behavior.
-# shellcheck source=bootstrap/recovery/audit.sh
-source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit.sh"
+# shellcheck source=bootstrap/recovery/audit-config.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit-config.sh"
 
 recovery::usage() {
   cat << 'EOF'

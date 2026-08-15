@@ -19,8 +19,8 @@ source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/contract.sh"
 source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/lock.sh"
 # shellcheck source=bootstrap/drill/evidence.sh
 source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/evidence.sh"
-# shellcheck source=bootstrap/drill/lifecycle.sh
-source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/lifecycle.sh"
+# shellcheck source=bootstrap/drill/cluster-create.sh
+source "${ATLAS_DRILL_ROOT_DIR}/bootstrap/drill/cluster-create.sh"
 
 drill::usage() {
   cat << 'EOF'
@@ -34,7 +34,7 @@ Required create options:
   --context <name>       Exact context; must equal kind-<cluster-name>
   --kubeconfig <path>    New absolute kubeconfig path outside the repository
   --audit-dir <path>     Existing empty audit directory named after the cluster
-  --evidence-root <path> Existing owner-only root for persistent lifecycle evidence
+  --evidence-root <path> Existing owner-only root for persistent cluster-creation evidence
   --storage-assertion encrypted-owner-controlled
                          Attest encrypted, owner-controlled audit/evidence storage
 

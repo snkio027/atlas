@@ -53,6 +53,8 @@ runtime::kubectl() {
 
 status_output=$(argocd::inspect_status)
 grep -Fq $'argocd\tREADY\targocd' <<< "$status_output" || test::fail "ready control plane was not reported READY"
+grep -Fq $'argocd-self\tSynced/Healthy\targocd-self' <<< "$status_output" || test::fail "argocd-self health was not reported explicitly"
+! grep -Fq $'adoption\t' <<< "$status_output" || test::fail "argocd-self health was mislabeled as adoption"
 
 assert_degraded() {
   local label=$1 output
@@ -85,4 +87,5 @@ else
 fi
 ((unavailable_status == 2)) || test::fail "namespace API failure did not return status 2"
 grep -Fq $'argocd\tUNAVAILABLE\targocd' <<< "$unavailable_output" || test::fail "namespace API failure was not reported UNAVAILABLE"
+grep -Fq $'argocd-self\tUNAVAILABLE\targocd-self' <<< "$unavailable_output" || test::fail "argocd-self API failure was not reported UNAVAILABLE"
 test::pass "status distinguishes API errors from absence"

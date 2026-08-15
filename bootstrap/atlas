@@ -145,11 +145,11 @@ case "$command_name" in
       if ((cluster_query_status == 1)); then
         printf 'argocd\tABSENT\tcluster absent\n'
         printf 'root\tABSENT\tcluster absent\n'
-        printf 'adoption\tABSENT\tcluster absent\n'
+        printf 'argocd-self\tABSENT\tcluster absent\n'
       else
         printf 'argocd\tUNAVAILABLE\tcluster status unavailable\n'
         printf 'root\tUNAVAILABLE\tcluster status unavailable\n'
-        printf 'adoption\tUNAVAILABLE\tcluster status unavailable\n'
+        printf 'argocd-self\tUNAVAILABLE\tcluster status unavailable\n'
       fi
     fi
     ;;

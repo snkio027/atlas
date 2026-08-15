@@ -37,17 +37,17 @@ argocd::_application_status() {
 }
 
 argocd::inspect_status() {
-  local namespace root_state adoption_state
+  local namespace root_state argocd_self_state
   namespace=$(runtime::kubectl get namespace argocd --ignore-not-found --output name 2> /dev/null) || {
     printf 'argocd\tUNAVAILABLE\targocd\n'
     printf 'root\tUNAVAILABLE\t%s\n' "$(config::get ATLAS_ROOT_NAME)"
-    printf 'adoption\tUNAVAILABLE\targocd-self\n'
+    printf 'argocd-self\tUNAVAILABLE\targocd-self\n'
     return 2
   }
   if [[ -z $namespace ]]; then
     printf 'argocd\tABSENT\targocd\n'
     printf 'root\tABSENT\t%s\n' "$(config::get ATLAS_ROOT_NAME)"
-    printf 'adoption\tABSENT\targocd-self\n'
+    printf 'argocd-self\tABSENT\targocd-self\n'
     return 0
   fi
   if argocd::_control_plane_ready; then
@@ -57,6 +57,6 @@ argocd::inspect_status() {
   fi
   root_state=$(argocd::_application_status "$(config::get ATLAS_ROOT_NAME)") || root_state=UNAVAILABLE
   printf 'root\t%s\t%s\n' "$root_state" "$(config::get ATLAS_ROOT_NAME)"
-  adoption_state=$(argocd::_application_status argocd-self) || adoption_state=UNAVAILABLE
-  printf 'adoption\t%s\targocd-self\n' "$adoption_state"
+  argocd_self_state=$(argocd::_application_status argocd-self) || argocd_self_state=UNAVAILABLE
+  printf 'argocd-self\t%s\targocd-self\n' "$argocd_self_state"
 }

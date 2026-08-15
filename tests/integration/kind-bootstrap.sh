@@ -38,5 +38,5 @@ grep -Fq $'cluster\tREADY' <<< "$second_status" || test::fail "Kind cluster is n
 grep -Fq $'registry\tREADY' <<< "$second_status" || test::fail "local Registry is not READY"
 grep -Fq $'argocd\tREADY' <<< "$second_status" || test::fail "Argo CD is not READY"
 grep -Fq $'root\tSynced/Healthy' <<< "$second_status" || test::fail "External Root is not Synced/Healthy"
-grep -Fq $'adoption\tSynced/Healthy' <<< "$second_status" || test::fail "argocd-self is not Synced/Healthy"
-test::pass "two approved applies are idempotent after GitOps adoption"
+grep -Fq $'argocd-self\tSynced/Healthy' <<< "$second_status" || test::fail "argocd-self is not Synced/Healthy"
+test::pass "two approved applies are idempotent after a Healthy GitOps handoff"
