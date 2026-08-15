@@ -27,11 +27,13 @@ unique_pools=$(yq -r '[.nodes[].labels."atlas.io/node-pool"] | unique | length' 
 if rg -n 'node-role\.local/' "$kind_config"; then
   test::fail "legacy node-role.local labels or taints remain in the Kind topology"
 fi
+if rg -n 'topology\.kubernetes\.io/(zone|region)' "$kind_config"; then
+  test::fail "single-host Kind topology declares a false failure domain"
+fi
 [[ $(yq '[.nodes[] | select(has("image"))] | length' "$kind_config") -eq 0 ]] || test::fail "Kind topology declares a node-level image"
 test::pass "four Kind nodes have unique canonical roles and node pools"
 
 data_node=$(yq '.nodes[] | select(.labels."atlas.io/node-pool" == "data")' "$kind_config")
-[[ $(yq -r '.labels."topology.kubernetes.io/zone"' <<< "$data_node") == data-zone-1 ]] || test::fail "data node zone is missing"
 [[ $(yq '.kubeadmConfigPatches | length' <<< "$data_node") -eq 1 ]] || test::fail "data node must have exactly one kubeadm patch"
 
 kubeadm_patch=$(yq -r '.kubeadmConfigPatches[0]' <<< "$data_node")
@@ -44,6 +46,12 @@ kubeadm_patch=$(yq -r '.kubeadmConfigPatches[0]' <<< "$data_node")
 
 non_data_patches=$(yq '[.nodes[] | select(.labels."atlas.io/node-pool" != "data") | select(has("kubeadmConfigPatches"))] | length' "$kind_config")
 [[ $non_data_patches -eq 0 ]] || test::fail "a non-data node has a kubeadm patch"
-non_data_zones=$(yq '[.nodes[] | select(.labels."atlas.io/node-pool" != "data") | select(.labels | has("topology.kubernetes.io/zone"))] | length' "$kind_config")
-[[ $non_data_zones -eq 0 ]] || test::fail "a non-data node has the data-zone label"
-test::pass "data placement is isolated by a v1beta4 JoinConfiguration taint"
+test::pass "data scheduling requires the v1beta4 JoinConfiguration taint"
+
+readonly bootstrap_readme=bootstrap/README.md
+grep -Fq 'does not support in-place expansion' "$bootstrap_readme" || test::fail "README omits the Kind replacement boundary"
+grep -Fq "report \`DRIFTED\`" "$bootstrap_readme" || test::fail "README omits post-merge drift semantics"
+grep -Fq 'will not add nodes, repair topology, or delete' "$bootstrap_readme" || test::fail "README overstates normal Bootstrap migration authority"
+grep -Fq 'Human Judgment Gate' "$bootstrap_readme" || test::fail "README omits the destructive migration gate"
+test::assert_not_found 'data-zone-1|topology\.kubernetes\.io/(zone|region)' "$bootstrap_readme"
+test::pass "single-node replacement remains an explicit Human-gated migration"

@@ -23,7 +23,6 @@ nodes:
   - role: worker
     labels:
       atlas.io/node-pool: data
-      topology.kubernetes.io/zone: data-zone-1
     kubeadmConfigPatches:
       - |-
         apiVersion: kubeadm.k8s.io/v1beta4

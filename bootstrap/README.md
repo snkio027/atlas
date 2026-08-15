@@ -108,9 +108,18 @@ Registry configuration and image preloading consume the node names emitted by
 that same validated inventory, without a second Docker enumeration.
 
 The checked-in `local-orbstack` topology uses four distinct node pools:
-`control`, `gateway`, `compute`, and `data`. The data worker is additionally
-bound to `data-zone-1` and carries an `atlas.io/node-pool=data:NoSchedule`
-taint, so workloads require an explicit data-pool toleration.
+`control`, `gateway`, `compute`, and `data`. The data worker carries an
+`atlas.io/node-pool=data:NoSchedule` taint, so workloads require an explicit
+data-pool toleration. These pools share one macOS/OrbStack host and are not
+advertised as Kubernetes failure domains.
+
+Kind does not support in-place expansion of an existing single-node cluster to
+this four-node topology. After this configuration is selected, the previous
+Identity SHA and node inventory report `DRIFTED`.
+Normal Bootstrap will not add nodes, repair topology, or delete the existing
+cluster. Destroying the old cluster and creating the four-node replacement
+requires a separate Human Judgment Gate bound to the exact Git revision,
+cluster name, kubeconfig, and context.
 
 ## Supply-chain contract
 
