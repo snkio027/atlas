@@ -21,7 +21,6 @@ drill::_locked_value() {
     drill::die "versions.lock is missing or unsafe"
     return 1
   }
-
   while IFS= read -r line || [[ -n $line ]]; do
     [[ $line == "${key}="* ]] || continue
     candidate=${line#*=}
@@ -32,12 +31,94 @@ drill::_locked_value() {
     value=$candidate
     ((count += 1))
   done < "$file"
-
   ((count == 1)) || {
     drill::die "versions.lock must contain ${key} exactly once"
     return 1
   }
   printf '%s\n' "$value"
+}
+
+drill::_path_uid() {
+  local path=$1 value
+  if value=$(stat -f '%u' "$path" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%u' "$path"
+  fi
+}
+
+drill::_path_mode() {
+  local path=$1 value
+  if value=$(stat -f '%Lp' "$path" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%a' "$path"
+  fi
+}
+
+drill::_path_has_extended_acl() {
+  local path=$1 listing permissions
+  listing=$(LC_ALL=C ls -ld "$path") || return 2
+  permissions=${listing%%[[:space:]]*}
+  [[ $permissions == *+* ]]
+}
+
+drill::assert_managed_directory() {
+  local directory=$1 label=$2 current_uid acl_status
+  current_uid=$(id -u) || return 1
+  [[ -d $directory && ! -L $directory ]] || {
+    drill::die "${label} must be an existing non-symlink directory"
+    return 1
+  }
+  [[ $(drill::_path_uid "$directory") == "$current_uid" ]] || {
+    drill::die "${label} must be owned by the current UID"
+    return 1
+  }
+  [[ $(drill::_path_mode "$directory") == 700 ]] || {
+    drill::die "${label} must have mode 0700"
+    return 1
+  }
+  if drill::_path_has_extended_acl "$directory"; then
+    drill::die "${label} must not have an extended ACL"
+    return 1
+  else
+    acl_status=$?
+    ((acl_status == 1)) || {
+      drill::die "${label} ACL state is unavailable"
+      return 1
+    }
+  fi
+  [[ -w $directory ]] || {
+    drill::die "${label} is not writable: ${directory}"
+    return 1
+  }
+}
+
+drill::assert_managed_file() {
+  local file=$1 expected_mode=$2 label=$3 current_uid acl_status
+  current_uid=$(id -u) || return 1
+  [[ -f $file && ! -L $file ]] || {
+    drill::die "${label} must be a regular non-symlink file"
+    return 1
+  }
+  [[ $(drill::_path_uid "$file") == "$current_uid" ]] || {
+    drill::die "${label} must be owned by the current UID"
+    return 1
+  }
+  [[ $(drill::_path_mode "$file") == "$expected_mode" ]] || {
+    drill::die "${label} must have mode 0${expected_mode}"
+    return 1
+  }
+  if drill::_path_has_extended_acl "$file"; then
+    drill::die "${label} must not have an extended ACL"
+    return 1
+  else
+    acl_status=$?
+    ((acl_status == 1)) || {
+      drill::die "${label} ACL state is unavailable"
+      return 1
+    }
+  fi
 }
 
 drill::_directory_empty() {
@@ -55,10 +136,7 @@ drill::_canonical_directory() {
     drill::die "${label} must be an absolute path"
     return 1
   }
-  [[ -d $requested && ! -L $requested ]] || {
-    drill::die "${label} must be an existing non-symlink directory"
-    return 1
-  }
+  drill::assert_managed_directory "$requested" "$label" || return 1
   canonical=$(cd "$requested" && pwd -P) || return 1
   repository=$(cd "$ATLAS_DRILL_ROOT_DIR" && pwd -P) || return 1
   [[ $canonical != / ]] || {
@@ -67,10 +145,6 @@ drill::_canonical_directory() {
   }
   [[ $canonical != "$repository" && $canonical != "${repository}/"* ]] || {
     drill::die "${label} must remain outside the repository"
-    return 1
-  }
-  [[ -w $canonical ]] || {
-    drill::die "${label} is not writable: ${canonical}"
     return 1
   }
   printf '%s\n' "$canonical"
@@ -94,12 +168,8 @@ drill::_canonical_kubeconfig() {
     drill::die "--kubeconfig already exists; reuse and overwrite are forbidden"
     return 1
   }
-
   parent=$(dirname "$requested")
-  [[ -d $parent && ! -L $parent && -w $parent ]] || {
-    drill::die "--kubeconfig parent must be an existing writable non-symlink directory"
-    return 1
-  }
+  drill::assert_managed_directory "$parent" "--kubeconfig parent" || return 1
   canonical_parent=$(cd "$parent" && pwd -P) || return 1
   destination="${canonical_parent}/$(basename "$requested")"
   repository=$(cd "$ATLAS_DRILL_ROOT_DIR" && pwd -P) || return 1
@@ -120,7 +190,6 @@ drill::_ambient_kubeconfig_paths() {
     return 1
   }
   candidates=("${HOME}/.kube/config")
-
   if [[ -n ${KUBECONFIG:-} ]]; then
     raw=$KUBECONFIG
     [[ $raw != :* && $raw != *: && $raw != *::* ]] || {
@@ -130,15 +199,12 @@ drill::_ambient_kubeconfig_paths() {
     IFS=: read -r -a configured <<< "$raw"
     candidates+=("${configured[@]}")
   fi
-
   for candidate in "${candidates[@]}"; do
     [[ -n $candidate ]] || {
       drill::die "ambient KUBECONFIG contains an empty path"
       return 1
     }
-    if [[ $candidate != /* ]]; then
-      candidate="$(pwd -P)/${candidate}"
-    fi
+    [[ $candidate == /* ]] || candidate="$(pwd -P)/${candidate}"
     parent=$(dirname "$candidate")
     if [[ -d $parent ]]; then
       candidate="$(cd "$parent" && pwd -P)/$(basename "$candidate")" || return 1
@@ -159,9 +225,14 @@ drill::_reject_ambient_destination() {
   done
 }
 
+drill::_paths_are_disjoint() {
+  local first=$1 second=$2
+  [[ $first != "$second" && $first != "${second}/"* && $second != "${first}/"* ]]
+}
+
 drill::resolve_target() {
-  local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4
-  local expected_context resolved_kubeconfig resolved_audit key value
+  local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4 evidence_root=$5 storage_assertion=$6
+  local expected_context resolved_kubeconfig resolved_audit resolved_evidence key value
 
   [[ $cluster_name =~ ^atlas-recovery-drill-[0-9]{8}t[0-9]{6}z-[0-9a-f]{8}$ ]] || {
     drill::die "--cluster-name must match atlas-recovery-drill-YYYYMMDDtHHMMSSz-<8 lowercase hex>"
@@ -172,10 +243,19 @@ drill::resolve_target() {
     drill::die "--context must equal ${expected_context}"
     return 1
   }
+  [[ $storage_assertion == encrypted-owner-controlled ]] || {
+    drill::die "--storage-assertion must equal encrypted-owner-controlled"
+    return 1
+  }
+  [[ $evidence_root =~ ^/[A-Za-z0-9._/-]+$ ]] || {
+    drill::die "--evidence-root must be an absolute ASCII path"
+    return 1
+  }
 
   resolved_kubeconfig=$(drill::_canonical_kubeconfig "$kubeconfig" "$cluster_name") || return 1
   drill::_reject_ambient_destination "$resolved_kubeconfig" || return 1
   resolved_audit=$(drill::_canonical_directory "$audit_directory" "--audit-dir") || return 1
+  resolved_evidence=$(drill::_canonical_directory "$evidence_root" "--evidence-root") || return 1
   [[ $(basename "$resolved_audit") == "$cluster_name" ]] || {
     drill::die "--audit-dir basename must equal the cluster name"
     return 1
@@ -184,8 +264,12 @@ drill::resolve_target() {
     drill::die "--audit-dir must be empty for a one-time drill cluster"
     return 1
   }
-  [[ $resolved_kubeconfig != "${resolved_audit}/"* ]] || {
-    drill::die "--kubeconfig must not be stored in the audit directory"
+  drill::_paths_are_disjoint "$resolved_audit" "$resolved_evidence" || {
+    drill::die "--audit-dir and --evidence-root must be disjoint"
+    return 1
+  }
+  [[ $resolved_kubeconfig != "${resolved_audit}/"* && $resolved_kubeconfig != "${resolved_evidence}/"* ]] || {
+    drill::die "--kubeconfig must remain outside audit and evidence storage"
     return 1
   }
 
@@ -193,6 +277,8 @@ drill::resolve_target() {
   ATLAS_DRILL_TARGET[context]=$context
   ATLAS_DRILL_TARGET[kubeconfig]=$resolved_kubeconfig
   ATLAS_DRILL_TARGET[audit_directory]=$resolved_audit
+  ATLAS_DRILL_TARGET[evidence_root]=$resolved_evidence
+  ATLAS_DRILL_TARGET[storage_assertion]=$storage_assertion
   for key in BASH_VERSION KIND_VERSION KUBECTL_VERSION KIND_NODE_IMAGE; do
     value=$(drill::_locked_value "$key") || return 1
     ATLAS_DRILL_TARGET[$key]=$value
@@ -205,9 +291,11 @@ drill::resolve_target() {
 }
 
 drill::revalidate_target_paths() {
-  local kubeconfig audit_directory resolved
+  local kubeconfig audit_directory evidence_root resolved
   kubeconfig=$(drill::target kubeconfig) || return 1
   audit_directory=$(drill::target audit_directory) || return 1
+  evidence_root=$(drill::target evidence_root) || return 1
+  [[ $evidence_root =~ ^/[A-Za-z0-9._/-]+$ ]] || return 1
 
   resolved=$(drill::_canonical_kubeconfig "$kubeconfig" "$(drill::target cluster_name)") || return 1
   [[ $resolved == "$kubeconfig" ]] || {
@@ -215,15 +303,23 @@ drill::revalidate_target_paths() {
     return 1
   }
   drill::_reject_ambient_destination "$resolved" || return 1
-
   resolved=$(drill::_canonical_directory "$audit_directory" "--audit-dir") || return 1
   [[ $resolved == "$audit_directory" ]] || {
     drill::die "--audit-dir target changed after validation"
     return 1
   }
+  drill::_directory_empty "$resolved" || {
+    drill::die "--audit-dir changed before cluster creation"
+    return 1
+  }
+  resolved=$(drill::_canonical_directory "$evidence_root" "--evidence-root") || return 1
+  [[ $resolved == "$evidence_root" ]] || {
+    drill::die "--evidence-root target changed after validation"
+    return 1
+  }
 }
 
-drill::render_kind_config() {
+drill::render_base_kind_config() {
   local destination=$1
   "${ATLAS_DRILL_ROOT_DIR}/bootstrap/recovery/atlas-recovery" \
     phase0 audit-config \
@@ -231,14 +327,36 @@ drill::render_kind_config() {
   chmod 0600 "$destination" || return 1
 }
 
+drill::render_kind_config() {
+  local source=$1 destination=$2 policy_snapshot=$3 repository_policy source_line replacement line count=0
+  repository_policy="${ATLAS_DRILL_ROOT_DIR}/clusters/kind/recovery-audit-policy.yaml"
+  source_line="      - hostPath: '${repository_policy//\'/\'\'}'"
+  replacement="      - hostPath: '${policy_snapshot//\'/\'\'}'"
+  [[ -s $source && ! -L $source && ! -e $destination && ! -L $destination ]] || {
+    drill::die "Kind configuration render paths are unsafe"
+    return 1
+  }
+  while IFS= read -r line || [[ -n $line ]]; do
+    if [[ $line == "$source_line" ]]; then
+      printf '%s\n' "$replacement" >> "$destination" || return 1
+      ((count += 1))
+    else
+      printf '%s\n' "$line" >> "$destination" || return 1
+    fi
+  done < "$source"
+  ((count == 1)) || {
+    drill::die "repository audit policy mount was not replaced exactly once"
+    return 1
+  }
+  chmod 0400 "$destination" || return 1
+}
+
 drill::validate_kind_config() {
-  local config=$1 policy audit_directory quoted_policy quoted_audit content
+  local config=$1 policy=$2 audit_directory quoted_policy quoted_audit content
   local audit_log_argument audit_policy_argument policy_volume audit_volume policy_mount audit_mount
-  policy="${ATLAS_DRILL_ROOT_DIR}/clusters/kind/recovery-audit-policy.yaml"
   audit_directory=$(drill::target audit_directory) || return 1
   quoted_policy=${policy//\'/\'\'}
   quoted_audit=${audit_directory//\'/\'\'}
-
   [[ -s $config && ! -L $config ]] || {
     drill::die "rendered Kind configuration is missing or unsafe"
     return 1
@@ -288,28 +406,16 @@ drill::validate_kind_config() {
     '        containerPath: /var/log/kubernetes/audit' \
     '        readOnly: false'
 
-  [[ $content == *"$audit_log_argument"* ]] || {
-    drill::die "rendered API server audit-log argument is invalid"
+  [[ $content == *"$audit_log_argument"* && $content == *"$audit_policy_argument"* ]] || {
+    drill::die "rendered API server audit arguments are invalid"
     return 1
   }
-  [[ $content == *"$audit_policy_argument"* ]] || {
-    drill::die "rendered API server audit-policy argument is invalid"
+  [[ $content == *"$policy_volume"* && $content == *"$audit_volume"* ]] || {
+    drill::die "rendered API server audit volumes are invalid"
     return 1
   }
-  [[ $content == *"$policy_volume"* ]] || {
-    drill::die "rendered API server audit-policy volume is invalid"
-    return 1
-  }
-  [[ $content == *"$audit_volume"* ]] || {
-    drill::die "rendered API server audit-log volume is invalid"
-    return 1
-  }
-  [[ $content == *"$policy_mount"* ]] || {
-    drill::die "rendered audit policy mount is invalid"
-    return 1
-  }
-  [[ $content == *"$audit_mount"* ]] || {
-    drill::die "rendered audit directory mount is invalid"
+  [[ $content == *"$policy_mount"* && $content == *"$audit_mount"* ]] || {
+    drill::die "rendered Kind audit mounts are invalid"
     return 1
   }
 }

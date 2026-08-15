@@ -18,7 +18,9 @@ expected_production_shell=(
   bootstrap/cluster/kind.sh
   bootstrap/drill/atlas-kind-drill
   bootstrap/drill/contract.sh
+  bootstrap/drill/evidence.sh
   bootstrap/drill/lifecycle.sh
+  bootstrap/drill/lock.sh
   bootstrap/host/doctor.sh
   bootstrap/lib/config.sh
   bootstrap/lib/lock.sh

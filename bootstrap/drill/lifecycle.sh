@@ -6,6 +6,10 @@ readonly _ATLAS_DRILL_LIFECYCLE_LOADED=1
 readonly ATLAS_DRILL_WAIT_TIMEOUT=300s
 readonly ATLAS_DRILL_AUDIT_TIMEOUT_SECONDS=20
 
+drill::_kind() {
+  env -u KUBECONFIG KIND_EXPERIMENTAL_PROVIDER=docker kind "$@"
+}
+
 drill::_version_triplet() {
   local value=$1
   [[ $value =~ ([0-9]+)\.([0-9]+)\.([0-9]+) ]] || return 1
@@ -20,6 +24,15 @@ drill::_require_exact_version() {
   }
 }
 
+drill::_reject_kind_environment() {
+  local names
+  names=$(env | awk -F= '$1 ~ /^KIND_/ {print $1}') || return 1
+  [[ -z $names ]] || {
+    drill::die "inherited KIND_* environment variables are forbidden: ${names//$'\n'/,}"
+    return 1
+  }
+}
+
 drill::_host_preflight() {
   local tool actual docker_endpoint expected_endpoint
   [[ $(uname -s) == Darwin ]] || {
@@ -30,13 +43,13 @@ drill::_host_preflight() {
     drill::die "audited Kind drills require arm64"
     return 1
   }
-  for tool in docker kind kubectl shasum awk grep mktemp chmod stat cmp; do
+  for tool in awk chmod cmp date docker env git grep id install kind ls mktemp mv rmdir sed shasum stat kubectl; do
     command -v "$tool" > /dev/null 2>&1 || {
       drill::die "required command is missing: ${tool}"
       return 1
     }
   done
-
+  drill::_reject_kind_environment || return 1
   [[ -z ${DOCKER_HOST:-} ]] || {
     drill::die "DOCKER_HOST overrides are forbidden for an OrbStack drill"
     return 1
@@ -58,11 +71,10 @@ drill::_host_preflight() {
 
   actual=$(drill::_version_triplet "$BASH_VERSION") || return 1
   drill::_require_exact_version bash "$actual" "$(drill::target BASH_VERSION)" || return 1
-  actual=$(kind version 2> /dev/null | awk '{sub(/^v/, "", $2); print $2; exit}') || return 1
+  actual=$(drill::_kind version 2> /dev/null | awk '{sub(/^v/, "", $2); print $2; exit}') || return 1
   drill::_require_exact_version kind "$actual" "$(drill::target KIND_VERSION)" || return 1
   actual=$(env -u KUBECONFIG kubectl version --client --output=json 2> /dev/null | awk -F'"' '/"gitVersion"/ {sub(/^v/, "", $4); print $4; exit}') || return 1
   drill::_require_exact_version kubectl "$actual" "$(drill::target KUBECTL_VERSION)" || return 1
-
   docker info > /dev/null 2>&1 || {
     drill::die "Docker daemon is unavailable"
     return 1
@@ -74,9 +86,9 @@ drill::_host_preflight() {
 }
 
 drill::_cluster_absent() {
-  local cluster clusters containers
-  cluster=$(drill::target cluster_name)
-  clusters=$(kind get clusters --quiet 2>&1) || {
+  local cluster clusters containers kubeconfig
+  cluster=$(drill::target cluster_name) || return 1
+  clusters=$(drill::_kind get clusters --quiet 2>&1) || {
     drill::die "Kind cluster discovery failed: ${clusters}"
     return 1
   }
@@ -94,32 +106,11 @@ drill::_cluster_absent() {
     drill::die "retained Kind nodes already exist; implicit cleanup is forbidden"
     return 1
   }
-  [[ ! -e $(drill::target kubeconfig) && ! -L $(drill::target kubeconfig) ]] || {
+  kubeconfig=$(drill::target kubeconfig) || return 1
+  [[ ! -e $kubeconfig && ! -L $kubeconfig ]] || {
     drill::die "drill kubeconfig already exists; reuse is forbidden"
     return 1
   }
-}
-
-drill::_snapshot_ambient_kubeconfigs() {
-  local destination=$1 candidate parent canonical hash
-  local -a ambient_paths=()
-  drill::_ambient_kubeconfig_paths ambient_paths || return 1
-  : > "$destination" || return 1
-  chmod 0600 "$destination" || return 1
-  for candidate in "${ambient_paths[@]}"; do
-    if [[ -e $candidate || -L $candidate ]]; then
-      [[ -f $candidate && ! -L $candidate ]] || {
-        drill::die "ambient kubeconfig is not a safe regular file: ${candidate}"
-        return 1
-      }
-      parent=$(cd "$(dirname "$candidate")" && pwd -P) || return 1
-      canonical="${parent}/$(basename "$candidate")"
-      hash=$(shasum -a 256 "$canonical" | awk '{print $1}') || return 1
-      printf 'PRESENT\t%s\t%s\n' "$canonical" "$hash" >> "$destination" || return 1
-    else
-      printf 'ABSENT\t%s\n' "$candidate" >> "$destination" || return 1
-    fi
-  done
 }
 
 drill::_terminal_available() {
@@ -133,48 +124,58 @@ drill::_read_confirmation() {
 }
 
 drill::_human_gate() {
-  local config_sha=$1 expected response
-  expected="CREATE $(drill::target cluster_name) ${config_sha:0:12}"
+  local plan_sha expected response
+  plan_sha=$(drill::operation plan_sha) || return 1
+  expected="CREATE $(drill::target cluster_name) ${plan_sha:0:12}"
+  drill::journal_append GATE PROMPTED "cluster-lifecycle approval requested" || return 1
   drill::_terminal_available || {
+    drill::journal_append GATE DENIED "interactive terminal unavailable" || true
     drill::die "cluster creation requires an interactive terminal"
     return 1
   }
-
-  {
+  if ! {
     printf 'Human Judgment Gate: cluster-lifecycle\n'
+    printf 'actionId=%s\n' "$(drill::operation action_id)"
+    printf 'actor=%s\n' "$(drill::operation actor)"
     printf 'cluster=%s\n' "$(drill::target cluster_name)"
     printf 'context=%s\n' "$(drill::target context)"
     printf 'kubeconfig=%s\n' "$(drill::target kubeconfig)"
     printf 'auditDirectory=%s\n' "$(drill::target audit_directory)"
+    printf 'evidenceSession=%s\n' "$(drill::operation evidence_session)"
+    printf 'storageAssertion=%s\n' "$(drill::target storage_assertion)"
+    printf 'gitCommit=%s\n' "$(drill::operation git_commit)"
+    printf 'gitTree=%s\n' "$(drill::operation git_tree)"
+    printf 'kindConfigSHA256=%s\n' "$(drill::operation config_sha)"
+    printf 'auditPolicySHA256=%s\n' "$(drill::operation policy_sha)"
+    printf 'versionsLockSHA256=%s\n' "$(drill::operation versions_sha)"
     printf 'nodeImage=%s\n' "$(drill::target KIND_NODE_IMAGE)"
-    printf 'kindConfigSHA256=%s\n' "$config_sha"
+    printf 'planSHA256=%s\n' "$plan_sha"
     printf 'Type exactly: %s\n> ' "$expected"
-  } > /dev/tty || return 1
-  drill::_read_confirmation response || return 1
+  } > /dev/tty; then
+    drill::journal_append GATE DENIED "terminal write failed" || true
+    return 1
+  fi
+  if ! drill::_read_confirmation response; then
+    drill::journal_append GATE DENIED "terminal read failed" || true
+    return 1
+  fi
   [[ $response == "$expected" ]] || {
+    drill::journal_append GATE DENIED "challenge mismatch" || true
     drill::die "cluster-lifecycle Human Judgment challenge did not match"
     return 1
   }
+  drill::journal_append GATE APPROVED "exact plan-bound challenge matched" || return 1
 }
 
 drill::_verify_audit_directory_writable() {
   local directory probe
-  directory=$(drill::target audit_directory)
+  directory=$(drill::target audit_directory) || return 1
   probe=$(mktemp "${directory}/.atlas-write-probe.XXXXXX") || {
     drill::die "audit directory write probe failed"
     return 1
   }
   chmod 0600 "$probe" || return 1
   rm -f -- "$probe" || return 1
-}
-
-drill::_kubeconfig_mode() {
-  local file=$1 mode
-  if mode=$(stat -f '%Lp' "$file" 2> /dev/null); then
-    printf '%s\n' "$mode"
-  else
-    stat -c '%a' "$file"
-  fi
 }
 
 drill::_kubectl() {
@@ -199,6 +200,7 @@ drill::_wait_for_audit_event() {
   log_file="$(drill::target audit_directory)/kube-apiserver-audit.log"
   for ((attempt = 0; attempt < ATLAS_DRILL_AUDIT_TIMEOUT_SECONDS; attempt++)); do
     if [[ -f $log_file && ! -L $log_file && -s $log_file ]] && grep -Fq '"requestURI":"/readyz"' "$log_file"; then
+      drill::assert_managed_file "$log_file" 600 "API audit log" || return 1
       return 0
     fi
     sleep 1
@@ -207,12 +209,14 @@ drill::_wait_for_audit_event() {
 }
 
 drill::verify_cluster() {
-  local cluster node actual_image current_context policy policy_sha mounted_sha
-  cluster=$(drill::target cluster_name)
+  local cluster node actual_image current_context mounted_sha policy_snapshot kubeconfig
+  cluster=$(drill::target cluster_name) || return 1
   node="${cluster}-control-plane"
-  policy="${ATLAS_DRILL_ROOT_DIR}/clusters/kind/recovery-audit-policy.yaml"
+  policy_snapshot=$(drill::operation policy_snapshot) || return 1
+  kubeconfig=$(drill::target kubeconfig) || return 1
+  drill::assert_managed_file "$policy_snapshot" 400 "approved audit policy snapshot" || return 1
 
-  kind get clusters --quiet | grep -Fqx -- "$cluster" || {
+  drill::_kind get clusters --quiet | grep -Fqx -- "$cluster" || {
     drill::die "created Kind cluster is not discoverable"
     return 1
   }
@@ -222,18 +226,10 @@ drill::verify_cluster() {
   }
   actual_image=$(docker inspect --format '{{.Config.Image}}' "$node") || return 1
   [[ $actual_image == "$(drill::target KIND_NODE_IMAGE)" ]] || {
-    drill::die "Kind node image differs from versions.lock"
+    drill::die "Kind node image differs from the approved digest"
     return 1
   }
-
-  [[ -s $(drill::target kubeconfig) && ! -L $(drill::target kubeconfig) ]] || {
-    drill::die "generated kubeconfig is missing or unsafe"
-    return 1
-  }
-  [[ $(drill::_kubeconfig_mode "$(drill::target kubeconfig)") == 600 ]] || {
-    drill::die "generated kubeconfig must have mode 0600"
-    return 1
-  }
+  drill::assert_managed_file "$kubeconfig" 600 "generated kubeconfig" || return 1
   current_context=$(drill::_kubectl config current-context) || return 1
   [[ $current_context == "$(drill::target context)" ]] || {
     drill::die "generated kubeconfig has an unexpected current context"
@@ -241,8 +237,8 @@ drill::verify_cluster() {
   }
   drill::_kubectl wait node --all --for=condition=Ready --timeout="$ATLAS_DRILL_WAIT_TIMEOUT" > /dev/null || return 1
 
-  drill::_verify_mount "$node" /etc/kubernetes/policies/atlas-recovery-audit-policy.yaml "$policy" false || {
-    drill::die "audit policy mount is missing or writable"
+  drill::_verify_mount "$node" /etc/kubernetes/policies/atlas-recovery-audit-policy.yaml "$policy_snapshot" false || {
+    drill::die "approved audit policy snapshot mount is missing or writable"
     return 1
   }
   drill::_verify_mount "$node" /var/log/kubernetes/audit "$(drill::target audit_directory)" true || {
@@ -257,71 +253,101 @@ drill::verify_cluster() {
     drill::die "live API server audit-log-path argument is missing"
     return 1
   }
-  policy_sha=$(shasum -a 256 "$policy" | awk '{print $1}') || return 1
   mounted_sha=$(docker exec "$node" sha256sum /etc/kubernetes/policies/atlas-recovery-audit-policy.yaml | awk '{print $1}') || return 1
-  [[ $mounted_sha == "$policy_sha" ]] || {
-    drill::die "mounted audit policy checksum differs from Git"
+  [[ $mounted_sha == "$(drill::operation policy_sha)" ]] || {
+    drill::die "mounted audit policy differs from the Gate-approved snapshot"
     return 1
   }
-
   drill::_kubectl get --raw=/readyz > /dev/null || return 1
   drill::_wait_for_audit_event || return 1
 }
 
+drill::_retained_state() {
+  local cluster clusters containers kubeconfig_state
+  cluster=$(drill::target cluster_name) || return 1
+  clusters=$(drill::_kind get clusters --quiet 2> /dev/null) || clusters=DISCOVERY_ERROR
+  containers=$(docker ps -a --filter "label=io.x-k8s.kind.cluster=${cluster}" --format '{{.Names}}' 2> /dev/null) || containers=DISCOVERY_ERROR
+  containers=${containers//$'\n'/,}
+  if [[ -e $(drill::target kubeconfig) || -L $(drill::target kubeconfig) ]]; then
+    kubeconfig_state=PRESENT
+  else
+    kubeconfig_state=ABSENT
+  fi
+  printf 'kind=%s;containers=%s;kubeconfig=%s' "${clusters:-ABSENT}" "${containers:-ABSENT}" "$kubeconfig_state"
+}
+
 drill::_remove_temporary_directory() {
   local directory=$1
-  [[ $directory == "${TMPDIR:-/tmp}/atlas-kind-drill."* && -d $directory && ! -L $directory ]] || return 1
+  [[ $directory == "${TMPDIR%/}/atlas-kind-drill."* && -d $directory && ! -L $directory ]] || return 1
   rm -rf -- "$directory"
 }
 
 drill::_create_cluster_inner() {
-  local temporary_directory=$1 config_file ambient_before ambient_after config_sha
-  config_file="${temporary_directory}/kind.yaml"
-  ambient_before="${temporary_directory}/ambient-before.sha256"
-  ambient_after="${temporary_directory}/ambient-after.sha256"
+  local temporary_directory=$1 base_config ambient_after retained
+  base_config="${temporary_directory}/kind-base.yaml"
 
-  drill::_host_preflight || return 1
   drill::_cluster_absent || return 1
-  drill::render_kind_config "$config_file" || return 1
-  drill::validate_kind_config "$config_file" || return 1
-  config_sha=$(shasum -a 256 "$config_file" | awk '{print $1}') || return 1
-  drill::_snapshot_ambient_kubeconfigs "$ambient_before" || return 1
-  drill::_human_gate "$config_sha" || return 1
+  drill::render_base_kind_config "$base_config" || return 1
+  drill::validate_kind_config "$base_config" "${ATLAS_DRILL_ROOT_DIR}/clusters/kind/recovery-audit-policy.yaml" || return 1
+  drill::prepare_evidence "$base_config" || return 1
+  drill::_human_gate || return 1
 
-  # Recheck every uniqueness boundary after the human decision and immediately
-  # before the first durable mutation.
-  drill::_cluster_absent || return 1
-  drill::revalidate_target_paths || return 1
-  drill::_directory_empty "$(drill::target audit_directory)" || {
-    drill::die "audit directory changed after approval"
+  if ! drill::revalidate_approved_inputs; then
+    drill::journal_append PREMUTATION DENIED "approved inputs changed or became unavailable" || true
     return 1
-  }
-  drill::_verify_audit_directory_writable || return 1
+  fi
+  if ! drill::_cluster_absent; then
+    drill::journal_append PREMUTATION DENIED "cluster state changed after approval" || true
+    return 1
+  fi
+  if ! drill::_verify_audit_directory_writable; then
+    drill::journal_append PREMUTATION DENIED "audit directory write probe failed" || true
+    return 1
+  fi
+  drill::journal_append CREATE STARTED "invoking digest-pinned Kind with Docker provider" || return 1
 
-  if ! env -u KUBECONFIG kind create cluster \
+  if ! env -u KUBECONFIG KIND_EXPERIMENTAL_PROVIDER=docker kind create cluster \
     --name "$(drill::target cluster_name)" \
     --image "$(drill::target KIND_NODE_IMAGE)" \
-    --config "$config_file" \
+    --config "$(drill::operation config_file)" \
     --kubeconfig "$(drill::target kubeconfig)" \
     --wait "$ATLAS_DRILL_WAIT_TIMEOUT" \
     --retain; then
-    drill::die "Kind creation failed; retained state requires separate human review"
+    retained=$(drill::_retained_state) || retained=INVENTORY_UNAVAILABLE
+    drill::journal_append CREATE FAILED "$retained" || true
+    drill::die "Kind creation failed; retained state and evidence require human review"
     return 1
   fi
+  retained=$(drill::_retained_state) || retained=INVENTORY_UNAVAILABLE
+  drill::journal_append CREATE SUCCEEDED "$retained" || return 1
 
-  drill::verify_cluster || return 1
+  if ! drill::verify_cluster; then
+    retained=$(drill::_retained_state) || retained=INVENTORY_UNAVAILABLE
+    drill::journal_append VERIFY FAILED "$retained" || true
+    return 1
+  fi
+  ambient_after="$(drill::operation evidence_session)/ambient-after.sha256"
   drill::_snapshot_ambient_kubeconfigs "$ambient_after" || return 1
-  cmp -s "$ambient_before" "$ambient_after" || {
+  cmp -s "$(drill::operation ambient_before)" "$ambient_after" || {
+    drill::journal_append VERIFY FAILED "ambient/default kubeconfig changed" || true
     drill::die "ambient/default kubeconfig changed during drill creation"
     return 1
   }
-  printf 'drill-cluster\tREADY\t%s\t%s\n' "$(drill::target cluster_name)" "$(drill::target context)"
+  drill::journal_append VERIFY READY "cluster, audit, ownership, and isolation checks passed" || return 1
+  printf 'drill-cluster\tREADY\t%s\t%s\t%s\n' \
+    "$(drill::target cluster_name)" "$(drill::target context)" "$(drill::operation evidence_session)"
 }
 
 drill::create_cluster() {
-  local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4 temporary_directory status
-  drill::resolve_target "$cluster_name" "$context" "$kubeconfig" "$audit_directory" || return 1
-  temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/atlas-kind-drill.XXXXXX") || return 1
+  local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4 evidence_root=$5 storage_assertion=$6
+  local temporary_directory status release_status=0
+  drill::resolve_target "$cluster_name" "$context" "$kubeconfig" "$audit_directory" "$evidence_root" "$storage_assertion" || return 1
+  drill::_host_preflight || return 1
+  drill::acquire_lifecycle_lock || return 1
+  if ! temporary_directory=$(mktemp -d "${TMPDIR%/}/atlas-kind-drill.XXXXXX"); then
+    drill::release_lifecycle_lock || true
+    return 1
+  fi
 
   if drill::_create_cluster_inner "$temporary_directory"; then
     status=0
@@ -329,5 +355,7 @@ drill::create_cluster() {
     status=$?
   fi
   drill::_remove_temporary_directory "$temporary_directory" || true
+  drill::release_lifecycle_lock || release_status=$?
+  ((release_status == 0)) || return "$release_status"
   return "$status"
 }
