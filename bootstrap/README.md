@@ -42,6 +42,12 @@ bootstrap/
 ├── cluster/kind.sh
 ├── registry/local.sh
 ├── argocd/{render,seed,handoff,status}.sh
+├── drill/
+│   ├── atlas-kind-drill
+│   ├── contract.sh
+│   ├── evidence.sh
+│   ├── lifecycle.sh
+│   └── lock.sh
 └── recovery/
     ├── atlas-recovery
     └── audit.sh
@@ -57,6 +63,17 @@ governed by ADR-0003. Its current Phase-0 surface only renders an audited Kind
 configuration. It cannot create a cluster, issue credentials, activate RBAC or
 Admission, or dispatch recovery. The normal `bootstrap/atlas` command never
 imports it.
+
+`bootstrap/drill/atlas-kind-drill` is the separately gated cluster-lifecycle
+entry point. It can create one uniquely named audited Kind drill cluster, but
+has no reuse or delete command and cannot issue credentials or dispatch
+recovery. Creation requires a clean Git authority, an owner-only evidence root,
+an immutable policy snapshot, a hash-chained journal, an exact interactive
+challenge, and the explicitly bound OrbStack Docker context and endpoint. Git
+authority is resolved through an environment-clean read-only invocation, and
+sparse checkout or tracked entries hidden by index flags are rejected. Evidence
+storage in shared temporary directories is also rejected. It is not included in
+routine tasks; see the Phase-0 runbook before considering execution.
 
 ## Configuration contract
 
@@ -83,6 +100,7 @@ state.
 ## Verification
 
 `task quality` runs non-mutating Shell, configuration, Bootstrap, render,
-GitOps, and supply-chain contracts. `task integration` is separate because it
-performs two explicitly approved applies against the `test` Kind profile and
-verifies stable resource identities after adoption.
+GitOps, supply-chain, and mocked drill-lifecycle contracts. The drill tests do
+not create a cluster. `task integration` is separate because it performs two
+explicitly approved applies against the `test` Kind profile and verifies stable
+resource identities after adoption.
