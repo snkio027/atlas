@@ -27,10 +27,10 @@ networking:
 nodes:
   - role: control-plane
     labels:
-      node-role.local/control: "true"
+      atlas.io/node-pool: control
   - role: worker
     labels:
-      node-role.local/gateway: "true"
+      atlas.io/node-pool: gateway
   - role: worker
     extraMounts:
       - hostPath: /tmp/source
@@ -43,15 +43,38 @@ nodes:
           featureGates: {Example: true}
           imagePullPolicy: "*literal-content"
           taints:
-            - key: "node-role.local/data"
+            - key: "atlas.io/node-pool"
+              value: data
               effect: "NoSchedule"
 EOF
 
-shell_roles=$(cluster::_parse_kind_node_roles "$valid_config")
-yq_roles=$(yq -r '.nodes[].role' "$valid_config")
-[[ $shell_roles == "$yq_roles" ]] || test::fail "Shell and yq disagree on the canonical Kind node role sequence"
-[[ $shell_roles == $'control-plane\nworker\nworker\nworker' ]] || test::fail "arbitrary worker count was not parsed"
-test::pass "canonical one-control-plane Kind topology matches independent yq parsing"
+assert_valid_roles() {
+  local label=$1 fixture=$2 expected=$3 shell_roles yq_roles
+  shell_roles=$(cluster::_parse_kind_node_roles "$fixture")
+  yq_roles=$(yq -r '.nodes[].role' "$fixture")
+  [[ $shell_roles == "$yq_roles" ]] || test::fail "${label}: Shell and yq role sequences differ"
+  [[ $shell_roles == "$expected" ]] || test::fail "${label}: unexpected role sequence"
+}
+
+one_node_config="${test_workspace}/one-node.yaml"
+printf 'nodes:\n  - role: control-plane\n' > "$one_node_config"
+assert_valid_roles "one node" "$one_node_config" control-plane
+
+two_node_config="${test_workspace}/two-node.yaml"
+printf 'nodes:\n  - role: control-plane\n  - role: worker\n    extraPortMappings:\n      - containerPort: 8080\n        hostPort: 18080\n' > "$two_node_config"
+assert_valid_roles "two nodes" "$two_node_config" $'control-plane\nworker'
+
+assert_valid_roles "four nodes with nested configuration" "$valid_config" $'control-plane\nworker\nworker\nworker'
+
+generated_config="${test_workspace}/generated-nodes.yaml"
+printf 'nodes:\n  - role: control-plane\n' > "$generated_config"
+generated_roles=control-plane
+for ((worker_index = 1; worker_index <= 24; worker_index++)); do
+  printf '  - role: worker\n' >> "$generated_config"
+  generated_roles+=$'\nworker'
+done
+assert_valid_roles "generated 25-node topology" "$generated_config" "$generated_roles"
+test::pass "canonical 1-node, 2-node, 4-node, and generated N-node topologies match yq"
 
 assert_rejected() {
   local label=$1 content=$2 fixture output
@@ -62,6 +85,14 @@ assert_rejected() {
   fi
 }
 
+assert_valid_yaml_rejected() {
+  local label=$1 content=$2 fixture
+  fixture="${test_workspace}/valid-but-unsupported.yaml"
+  printf '%s' "$content" > "$fixture"
+  yq '.' "$fixture" > /dev/null || test::fail "${label} fixture is not legal YAML"
+  assert_rejected "$label" "$content"
+}
+
 assert_rejected "missing nodes" $'apiVersion: kind.x-k8s.io/v1alpha4\nkind: Cluster\n'
 assert_rejected "duplicate nodes" $'nodes:\n  - role: control-plane\nnodes:\n  - role: worker\n'
 assert_rejected "tab indentation" $'nodes:\n\t- role: control-plane\n'
@@ -69,16 +100,20 @@ assert_rejected "flow-style nodes" $'nodes: [{role: control-plane}]\n'
 assert_rejected "aliased nodes" $'nodes: *topology\n'
 assert_rejected "anchored node" $'nodes:\n  - &primary role: control-plane\n'
 assert_rejected "aliased node" $'nodes:\n  - *primary\n'
-assert_rejected "missing node role" $'nodes:\n  - labels:\n      node-role.local/data: "true"\n'
+assert_rejected "missing node role" $'nodes:\n  - labels:\n      atlas.io/node-pool: data\n'
 assert_rejected "unknown node role" $'nodes:\n  - role: edge\n'
 assert_rejected "misindented node" $'nodes:\n  - role: control-plane\n   - role: worker\n'
 assert_rejected "nested node entry" $'nodes:\n  - role: control-plane\n    - role: worker\n'
 assert_rejected "nested node role" $'nodes:\n  - role: control-plane\n    role: worker\n'
-assert_rejected "node image override" $'nodes:\n  - role: control-plane\n    image: kindest/node:latest\n'
-assert_rejected "flow-style node mapping" $'nodes:\n  - role: control-plane\n    labels: {node-role.local/data: "true"}\n'
+assert_valid_yaml_rejected "node image override" $'nodes:\n  - role: control-plane\n    image: kindest/node:latest\n'
+assert_valid_yaml_rejected "quoted node image override" $'nodes:\n  - role: control-plane\n    "image": kindest/node:latest\n'
+assert_valid_yaml_rejected "tagged node image override" $'nodes:\n  - role: control-plane\n    !!str image: kindest/node:latest\n'
+assert_valid_yaml_rejected "explicit node image override" $'nodes:\n  - role: control-plane\n    ? image\n    : kindest/node:latest\n'
+assert_rejected "unsupported node property" $'nodes:\n  - role: control-plane\n    extraFoo: value\n'
+assert_rejected "flow-style node mapping" $'nodes:\n  - role: control-plane\n    labels: {atlas.io/node-pool: data}\n'
 assert_rejected "node mapping alias" $'nodes:\n  - role: control-plane\n    labels: *labels\n'
-assert_rejected "nested mapping alias" $'nodes:\n  - role: control-plane\n    labels:\n      node-role.local/data: *label\n'
-assert_rejected "nested flow-style mapping" $'nodes:\n  - role: control-plane\n    labels:\n      node-role.local/data: {enabled: true}\n'
+assert_rejected "nested mapping alias" $'nodes:\n  - role: control-plane\n    labels:\n      atlas.io/node-pool: *label\n'
+assert_rejected "nested flow-style mapping" $'nodes:\n  - role: control-plane\n    labels:\n      atlas.io/node-pool: {name: data}\n'
 assert_rejected "no control-plane" $'nodes:\n  - role: worker\n'
 assert_rejected "multiple control-planes" $'nodes:\n  - role: control-plane\n  - role: control-plane\n'
 test::pass "non-canonical and unsupported Kind topology syntax fails closed"
@@ -92,6 +127,9 @@ readonly MOCK_IMAGE='kindest/node@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 readonly MOCK_REPO='https://github.com/snkio027/atlas.git'
 MOCK_MARKER_HASH=$(runtime::sha256 "${test_workspace}/kind.yaml")
 MOCK_DOCKER_NAMES=$'node-zeta\nnode-alpha\nnode-mu\nnode-beta'
+MOCK_DOCKER_NAMES_AFTER_FIRST=''
+docker_ps_log="${test_workspace}/docker-ps.log"
+: > "$docker_ps_log"
 declare -A MOCK_DOCKER_DETAILS
 MOCK_DOCKER_DETAILS["node-zeta"]="${MOCK_CLUSTER}|control-plane|${MOCK_IMAGE}|true"
 MOCK_DOCKER_DETAILS["node-alpha"]="${MOCK_CLUSTER}|worker|${MOCK_IMAGE}|true"
@@ -122,7 +160,14 @@ config::version() {
 docker() {
   case "$1" in
     ps)
-      printf '%s\n' "$MOCK_DOCKER_NAMES"
+      local calls
+      calls=$(wc -l < "$docker_ps_log")
+      printf 'PS\n' >> "$docker_ps_log"
+      if [[ -n $MOCK_DOCKER_NAMES_AFTER_FIRST && $calls -ge 1 ]]; then
+        printf '%s\n' "$MOCK_DOCKER_NAMES_AFTER_FIRST"
+      else
+        printf '%s\n' "$MOCK_DOCKER_NAMES"
+      fi
       ;;
     inspect)
       local container=${!#}
@@ -159,7 +204,7 @@ runtime::kubectl() {
 }
 
 cluster::_validate_nodes
-listed_nodes=$(cluster::list_kind_node_containers)
+listed_nodes=$(cluster::list_validated_kind_node_containers)
 [[ $listed_nodes == "$MOCK_DOCKER_NAMES" ]] || test::fail "validated node enumeration changed or predicted container names"
 cluster::_marker_matches || test::fail "exact Kind config identity did not match"
 MOCK_MARKER_HASH=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -169,6 +214,16 @@ fi
 MOCK_MARKER_HASH=$(runtime::sha256 "${test_workspace}/kind.yaml")
 test::pass "runtime validation uses exact Docker and Kubernetes node sets"
 
+MOCK_DOCKER_DETAILS["node-intruder"]="${MOCK_CLUSTER}|worker|${MOCK_IMAGE}|true"
+MOCK_DOCKER_NAMES_AFTER_FIRST="${MOCK_DOCKER_NAMES}"$'\nnode-intruder'
+: > "$docker_ps_log"
+listed_nodes=$(cluster::list_validated_kind_node_containers)
+[[ $listed_nodes == "$MOCK_DOCKER_NAMES" ]] || test::fail "Registry-facing inventory was re-enumerated after validation"
+[[ $(wc -l < "$docker_ps_log") -eq 1 ]] || test::fail "validated inventory performed more than one Docker enumeration"
+MOCK_DOCKER_NAMES_AFTER_FIRST=''
+unset 'MOCK_DOCKER_DETAILS[node-intruder]'
+test::pass "Registry-facing node names come from the exact validated inventory snapshot"
+
 assert_runtime_rejected() {
   local label=$1
   if cluster::_validate_nodes > /dev/null 2>&1; then
@@ -176,7 +231,8 @@ assert_runtime_rejected() {
   fi
 }
 
-original_details=${MOCK_DOCKER_DETAILS["node-beta"]}
+original_control_plane_details=${MOCK_DOCKER_DETAILS["node-zeta"]}
+original_worker_details=${MOCK_DOCKER_DETAILS["node-beta"]}
 MOCK_DOCKER_DETAILS["node-beta"]="${MOCK_CLUSTER}|external-load-balancer|envoy@sha256:bbbb|true"
 assert_runtime_rejected "an implicit Kind external load balancer"
 MOCK_DOCKER_DETAILS["node-beta"]="${MOCK_CLUSTER}|unknown|${MOCK_IMAGE}|true"
@@ -187,11 +243,26 @@ MOCK_DOCKER_DETAILS["node-beta"]="${MOCK_CLUSTER}|worker|kindest/node@sha256:bbb
 assert_runtime_rejected "a drifted Kind node image"
 MOCK_DOCKER_DETAILS["node-beta"]="${MOCK_CLUSTER}|worker|${MOCK_IMAGE}|false"
 assert_runtime_rejected "a stopped Kind node"
-MOCK_DOCKER_DETAILS["node-beta"]=$original_details
+MOCK_DOCKER_DETAILS["node-beta"]=$original_worker_details
+
+MOCK_DOCKER_DETAILS["node-zeta"]="${MOCK_CLUSTER}|worker|${MOCK_IMAGE}|true"
+MOCK_DOCKER_DETAILS["node-beta"]="${MOCK_CLUSTER}|control-plane|${MOCK_IMAGE}|true"
+assert_runtime_rejected "a worker and control-plane role exchange"
+MOCK_DOCKER_DETAILS["node-zeta"]=$original_control_plane_details
+MOCK_DOCKER_DETAILS["node-beta"]=$original_worker_details
 
 MOCK_DOCKER_NAMES=$'node-zeta\nnode-alpha\nnode-mu'
 assert_runtime_rejected "a missing Docker worker"
 MOCK_DOCKER_NAMES=$'node-zeta\nnode-alpha\nnode-mu\nnode-beta'
+
+MOCK_DOCKER_DETAILS["node-extra"]="${MOCK_CLUSTER}|worker|${MOCK_IMAGE}|true"
+MOCK_READY["node-extra"]=True
+MOCK_DOCKER_NAMES+=$'\nnode-extra'
+MOCK_KUBERNETES_NODES+=$'\nnode-extra'
+assert_runtime_rejected "an extra Docker worker"
+MOCK_DOCKER_NAMES=$'node-zeta\nnode-alpha\nnode-mu\nnode-beta'
+MOCK_KUBERNETES_NODES=$'node-beta\nnode-zeta\nnode-alpha\nnode-mu'
+unset 'MOCK_DOCKER_DETAILS[node-extra]' 'MOCK_READY[node-extra]'
 
 MOCK_KUBERNETES_NODES=$'node-zeta\nnode-alpha\nnode-mu\nnode-foreign'
 assert_runtime_rejected "a mismatched Docker and Kubernetes node-name set"

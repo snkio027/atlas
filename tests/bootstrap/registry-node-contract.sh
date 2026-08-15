@@ -38,7 +38,7 @@ config::version() {
   esac
 }
 
-cluster::list_kind_node_containers() {
+cluster::list_validated_kind_node_containers() {
   printf '%s\n' "$MOCK_NODES"
 }
 

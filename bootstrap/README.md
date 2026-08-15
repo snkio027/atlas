@@ -97,13 +97,15 @@ cluster remains independently constrained to its single-node audit topology.
 
 The Shell parser intentionally supports only Atlas's normalized `nodes:` YAML
 subset. It rejects duplicate or flow-style declarations, omitted or unknown
-roles, aliases, tabs, and node-level `image:` overrides before cluster discovery
-or creation. Nested labels, mounts, and kubeadm patch literals remain Kind-owned
-content. Runtime validation compares declared role counts with running Docker
-containers, proves the exact Docker/Kubernetes Node name sets and control-plane
-labels, requires every Node to be Ready, and rejects auxiliary or unknown Kind
-container roles. Registry configuration and image preloading consume only this
-validated Kubernetes Node set.
+roles, aliases, and tabs before cluster discovery or creation. Direct node
+properties are allow-listed to `labels`, `extraMounts`, `extraPortMappings`, and
+`kubeadmConfigPatches`; every other spelling, including `image` overrides, is
+rejected. Nested content under those properties remains Kind-owned. Runtime
+validation compares declared role counts with running Docker containers, proves
+the exact Docker/Kubernetes Node name sets and control-plane labels, requires
+every Node to be Ready, and rejects auxiliary or unknown Kind container roles.
+Registry configuration and image preloading consume the node names emitted by
+that same validated inventory, without a second Docker enumeration.
 
 ## Supply-chain contract
 

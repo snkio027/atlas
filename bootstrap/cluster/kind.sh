@@ -70,13 +70,14 @@ cluster::_parse_kind_node_roles() {
       runtime::die "unrecognized Kind node entry or indentation: ${line}"
       return 1
     fi
-    if [[ $line =~ ^\ {4}image[[:space:]]*: ]]; then
-      runtime::die "node-level image is forbidden; versions.lock is authoritative"
-      return 1
-    fi
-    if [[ $line =~ ^\ {4}role[[:space:]]*: ]]; then
-      runtime::die "Kind node role must appear only in the node entry"
-      return 1
+    if ((indent == 4)); then
+      case "$line" in
+        '    labels:' | '    extraMounts:' | '    extraPortMappings:' | '    kubeadmConfigPatches:') continue ;;
+        *)
+          runtime::die "unsupported direct Kind node property: ${line}"
+          return 1
+          ;;
+      esac
     fi
     if [[ $line =~ ^\ {4,}(-\ )?[^#]*[\|\>][+-]?[[:space:]]*(#.*)?$ ]]; then
       literal_indent=$indent
@@ -156,10 +157,9 @@ cluster::_inspect_kind_containers() {
   done <<< "$names_output"
 }
 
-cluster::list_kind_node_containers() {
+cluster::list_validated_kind_node_containers() {
   local inventory name role
-  cluster::_validate_nodes || return 1
-  inventory=$(cluster::_inspect_kind_containers) || return 1
+  inventory=$(cluster::_validated_kind_node_inventory) || return 1
   while IFS='|' read -r name role; do
     [[ -n $name && -n $role ]] || {
       runtime::die "invalid Kind node inventory"
@@ -169,7 +169,7 @@ cluster::list_kind_node_containers() {
   done <<< "$inventory"
 }
 
-cluster::_validate_nodes() {
+cluster::_validated_kind_node_inventory() {
   local expected_output inventory kubernetes_output control_plane_output name role ready
   local expected_control_planes=0 expected_workers=0 actual_control_planes=0 actual_workers=0
   local -A docker_roles=() kubernetes_nodes=() kubernetes_control_planes=()
@@ -279,6 +279,11 @@ cluster::_validate_nodes() {
       return 1
     }
   done
+  printf '%s\n' "$inventory"
+}
+
+cluster::_validate_nodes() {
+  cluster::_validated_kind_node_inventory > /dev/null
 }
 
 cluster::_marker_matches() {

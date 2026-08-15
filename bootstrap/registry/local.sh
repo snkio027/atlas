@@ -103,7 +103,7 @@ registry::_load_node_image() {
 registry::_preload_seed_images() {
   local node image nodes_output
   local -a nodes=()
-  nodes_output=$(cluster::list_kind_node_containers) || return 1
+  nodes_output=$(cluster::list_validated_kind_node_containers) || return 1
   mapfile -t nodes <<< "$nodes_output"
   ((${#nodes[@]} > 0)) || {
     runtime::die "Kind returned no Kubernetes nodes while preloading images"
@@ -159,7 +159,7 @@ registry::ensure_local() {
     fi
   fi
 
-  nodes_output=$(cluster::list_kind_node_containers) || return 1
+  nodes_output=$(cluster::list_validated_kind_node_containers) || return 1
   mapfile -t nodes <<< "$nodes_output"
   ((${#nodes[@]} > 0)) || {
     runtime::die "Kind returned no Kubernetes nodes for ${cluster}"
