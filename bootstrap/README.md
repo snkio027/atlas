@@ -27,10 +27,11 @@ The `--approve-tier0` flag is mandatory for `apply`. An existing External Root
 is compared but never overwritten by the normal Bootstrap path. Root repair is
 a separate break-glass operation and is intentionally not implemented here.
 
-After `argocd-self` exists, normal Bootstrap never reapplies the Seed. A Healthy
-Application confirms that control has transferred; an existing but unhealthy
-Application makes `apply` fail closed so that Bootstrap cannot silently reclaim
-authority.
+While `argocd-self` exists, normal Bootstrap does not reapply the Seed. Its
+Synced/Healthy state is a handoff-health signal, not the monotonic adoption proof
+defined by ADR-0002. An existing but unhealthy Application makes `apply` fail
+closed. If `argocd-self` is later deleted, the current heuristic can re-enter the
+Seed path; ADR-0002 Phase 4 is required to close that known authority gap.
 
 ## Shell modules
 
@@ -46,11 +47,11 @@ bootstrap/
 │   ├── atlas-kind-drill
 │   ├── contract.sh
 │   ├── evidence.sh
-│   ├── lifecycle.sh
+│   ├── cluster-create.sh
 │   └── lock.sh
 └── recovery/
     ├── atlas-recovery
-    └── audit.sh
+    └── audit-config.sh
 ```
 
 Files follow lifecycle and domain boundaries. Public functions use explicit
@@ -68,8 +69,9 @@ imports it.
 entry point. It can create one uniquely named audited Kind drill cluster, but
 has no reuse or delete command and cannot issue credentials or dispatch
 recovery. Creation requires a clean Git authority, an owner-only evidence root,
-an immutable policy snapshot, a hash-chained journal, an exact interactive
-challenge, and the explicitly bound OrbStack Docker context and endpoint. Git
+an owner-controlled, read-only, approval-bound policy snapshot, a hash-chained
+journal, an exact interactive challenge, and the explicitly bound OrbStack
+Docker context and endpoint. Git
 authority is resolved through an environment-clean read-only invocation, and
 sparse checkout or tracked entries hidden by index flags are rejected. Evidence
 storage in shared temporary directories is also rejected. It is not included in
@@ -100,7 +102,7 @@ state.
 ## Verification
 
 `task quality` runs non-mutating Shell, configuration, Bootstrap, render,
-GitOps, supply-chain, and mocked drill-lifecycle contracts. The drill tests do
+GitOps, supply-chain, and mocked drill cluster-create contracts. The drill tests do
 not create a cluster. `task integration` is separate because it performs two
 explicitly approved applies against the `test` Kind profile and verifies stable
 resource identities after adoption.

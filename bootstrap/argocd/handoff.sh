@@ -13,7 +13,7 @@ argocd::_root_source_ready() {
   grep -Fq 'name: workload-control' <<< "$output" || return 1
 }
 
-argocd::_adoption_state() {
+argocd::_argocd_self_state() {
   local crd record state
   crd=$(runtime::kubectl get customresourcedefinition applications.argoproj.io \
     --ignore-not-found --output name 2> /dev/null) || return 1
@@ -32,36 +32,36 @@ argocd::_adoption_state() {
   [[ $record == *$'\t'* ]] || return 1
   state=${record#*$'\t'}
   if [[ $state == Synced/Healthy ]]; then
-    printf 'ADOPTED\n'
+    printf 'HEALTHY\n'
   else
     printf 'PRESENT:%s\n' "${state:-Unknown/Unknown}"
   fi
 }
 
-argocd::_self_managed() {
-  [[ $(argocd::_adoption_state) == ADOPTED ]]
+argocd::_argocd_self_healthy() {
+  [[ $(argocd::_argocd_self_state) == HEALTHY ]]
 }
 
 argocd::_ensure_seed_authority() {
-  local adoption_state
-  adoption_state=$(argocd::_adoption_state) || {
-    runtime::die "unable to inspect argocd-self adoption state"
+  local argocd_self_state
+  argocd_self_state=$(argocd::_argocd_self_state) || {
+    runtime::die "unable to inspect argocd-self health state"
     return 1
   }
 
-  case "$adoption_state" in
+  case "$argocd_self_state" in
     ABSENT)
       argocd::install_seed
       ;;
-    ADOPTED)
-      runtime::info "argocd-self is Healthy; Bootstrap will not modify the adopted control plane"
+    HEALTHY)
+      runtime::info "argocd-self is Healthy; Bootstrap will not modify the Git-managed control plane"
       ;;
     PRESENT:*)
-      runtime::die "argocd-self already exists but is not Healthy (${adoption_state#PRESENT:}); normal Bootstrap will not resume Seed authority"
+      runtime::die "argocd-self already exists but is not Healthy (${argocd_self_state#PRESENT:}); normal Bootstrap will not resume Seed authority"
       return 1
       ;;
     *)
-      runtime::die "unknown argocd-self adoption state: ${adoption_state}"
+      runtime::die "unknown argocd-self health state: ${argocd_self_state}"
       return 1
       ;;
   esac
@@ -100,15 +100,15 @@ argocd::_root_ready() {
   [[ $state == Synced/Healthy ]]
 }
 
-argocd::_handoff_ready() {
-  argocd::_root_ready && argocd::_self_managed
+argocd::_handoff_health_ready() {
+  argocd::_root_ready && argocd::_argocd_self_healthy
 }
 
-argocd::wait_for_adoption() {
+argocd::wait_for_handoff_health() {
   local timeout_seconds
   timeout_seconds=$(config::get ATLAS_READY_TIMEOUT)
   timeout_seconds=${timeout_seconds%s}
-  runtime::wait_for "$timeout_seconds" 5 "External Root health and argocd-self adoption" argocd::_handoff_ready
+  runtime::wait_for "$timeout_seconds" 5 "External Root and argocd-self health" argocd::_handoff_health_ready
 }
 
 argocd::handoff() {
@@ -128,6 +128,6 @@ argocd::handoff() {
   argocd::_ensure_seed_authority
   runtime::kubectl apply --filename "${ATLAS_ROOT_DIR}/bootstrap/argocd/atlas-bootstrap-project.yaml" > /dev/null
   argocd::instantiate_root
-  argocd::wait_for_adoption
-  runtime::ok "GitOps control handoff is Healthy; Bootstrap authority has terminated"
+  argocd::wait_for_handoff_health
+  runtime::ok "GitOps control handoff is Healthy; normal Bootstrap has stopped Seed mutation"
 }

@@ -37,14 +37,14 @@ done
 test::pass "all Kustomize entrypoints"
 
 platform_output=$(kubectl kustomize gitops/platform/applications/overlays/local-orbstack)
-[[ $(grep -c '^kind: Application$' <<< "$platform_output") == 1 ]] || test::fail "Platform DAG must contain the argocd-self adoption leaf"
+[[ $(grep -c '^kind: Application$' <<< "$platform_output") == 1 ]] || test::fail "Platform DAG must contain the argocd-self management leaf"
 grep -Fq 'name: argocd-self' <<< "$platform_output" || test::fail "Platform DAG is missing argocd-self"
 grep -Fq 'argocd.argoproj.io/sync-wave: "-90"' <<< "$platform_output" || test::fail "argocd-self must use management wave -90"
 grep -Fq 'project: platform-project' <<< "$platform_output" || test::fail "argocd-self must use platform-project"
 grep -Fq 'path: vendor/charts/argo-cd-10.3.3' <<< "$platform_output" || test::fail "argocd-self does not use the vendored chart"
 grep -Fq 'releaseName: atlas-argocd' <<< "$platform_output" || test::fail "argocd-self does not preserve Seed object identity"
 grep -Fq 'path: gitops/platform/management/argocd-self/base' <<< "$platform_output" || test::fail "argocd-self does not own the shared health capability"
-test::pass "argocd-self adoption leaf"
+test::pass "argocd-self management leaf"
 
 for project in atlas-bootstrap platform-project workload-project; do
   rg -q "name: ${project}" bootstrap/argocd gitops/platform/management/projects || test::fail "canonical AppProject is missing: ${project}"

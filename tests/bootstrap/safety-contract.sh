@@ -64,12 +64,12 @@ test::pass "lock::acquire and lock::release recover only isolated stale state"
 
 seed_decision() {
   local state=$1
-  ATLAS_TEST_ADOPTION_STATE=$state bash -Eeuo pipefail -c '
+  ATLAS_TEST_ARGOCD_SELF_STATE=$state bash -Eeuo pipefail -c '
     source bootstrap/lib/runtime.sh
     source bootstrap/argocd/handoff.sh
-    argocd::_adoption_state() {
-      [[ $ATLAS_TEST_ADOPTION_STATE != ERROR ]] || return 1
-      printf "%s\n" "$ATLAS_TEST_ADOPTION_STATE"
+    argocd::_argocd_self_state() {
+      [[ $ATLAS_TEST_ARGOCD_SELF_STATE != ERROR ]] || return 1
+      printf "%s\n" "$ATLAS_TEST_ARGOCD_SELF_STATE"
     }
     argocd::install_seed() {
       printf "SEED_APPLIED\n"
@@ -78,7 +78,7 @@ seed_decision() {
   '
 }
 
-adoption_state() {
+argocd_self_state() {
   local application_record=$1
   ATLAS_TEST_APPLICATION_RECORD=$application_record bash -Eeuo pipefail -c '
     source bootstrap/lib/runtime.sh
@@ -90,28 +90,28 @@ adoption_state() {
         *) return 1 ;;
       esac
     }
-    argocd::_adoption_state
+    argocd::_argocd_self_state
   '
 }
 
-[[ $(adoption_state $'argocd-self\tSynced/Healthy') == ADOPTED ]] || test::fail "Healthy argocd-self was not classified as adopted"
-[[ $(adoption_state $'argocd-self\t/') == PRESENT:/ ]] || test::fail "argocd-self without status was classified as absent"
-[[ $(adoption_state '') == ABSENT ]] || test::fail "missing argocd-self was not classified as absent"
+[[ $(argocd_self_state $'argocd-self\tSynced/Healthy') == HEALTHY ]] || test::fail "Healthy argocd-self was not classified as healthy"
+[[ $(argocd_self_state $'argocd-self\t/') == PRESENT:/ ]] || test::fail "argocd-self without status was classified as absent"
+[[ $(argocd_self_state '') == ABSENT ]] || test::fail "missing argocd-self was not classified as absent"
 
 absent_output=$(seed_decision ABSENT 2>&1)
 [[ $(grep -Fc SEED_APPLIED <<< "$absent_output") == 1 ]] || test::fail "Bootstrap did not install the initial Seed exactly once"
 
-adopted_output=$(seed_decision ADOPTED 2>&1)
-! grep -Fq SEED_APPLIED <<< "$adopted_output" || test::fail "Bootstrap reapplied Seed after adoption"
+healthy_output=$(seed_decision HEALTHY 2>&1)
+! grep -Fq SEED_APPLIED <<< "$healthy_output" || test::fail "Bootstrap reapplied Seed after argocd-self became Healthy"
 
 if unhealthy_output=$(seed_decision PRESENT:OutOfSync/Degraded 2>&1); then
   test::fail "Bootstrap reclaimed Seed authority from an unhealthy argocd-self"
 fi
-grep -Fq 'will not resume Seed authority' <<< "$unhealthy_output" || test::fail "unhealthy adoption did not fail with the control-boundary error"
-! grep -Fq SEED_APPLIED <<< "$unhealthy_output" || test::fail "unhealthy adoption applied Seed"
+grep -Fq 'will not resume Seed authority' <<< "$unhealthy_output" || test::fail "unhealthy argocd-self did not fail with the control-boundary error"
+! grep -Fq SEED_APPLIED <<< "$unhealthy_output" || test::fail "unhealthy argocd-self applied Seed"
 
 if inspection_output=$(seed_decision ERROR 2>&1); then
-  test::fail "Bootstrap continued when adoption inspection failed"
+  test::fail "Bootstrap continued when argocd-self health inspection failed"
 fi
-grep -Fq 'unable to inspect argocd-self adoption state' <<< "$inspection_output" || test::fail "adoption inspection error was not reported"
-test::pass "Seed authority is initial-only and terminates after argocd-self exists"
+grep -Fq 'unable to inspect argocd-self health state' <<< "$inspection_output" || test::fail "argocd-self health inspection error was not reported"
+test::pass "Seed mutation is denied while argocd-self exists"

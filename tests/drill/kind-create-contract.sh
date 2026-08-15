@@ -167,7 +167,7 @@ case "${1:-} ${2:-}" in
 esac
 EOF
 
-cat > "${test_workspace}/run-lifecycle" << 'EOF'
+cat > "${test_workspace}/run-create" << 'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -175,7 +175,7 @@ umask 077
 source "$ATLAS_DRILL_ROOT_DIR/bootstrap/drill/contract.sh"
 source "$ATLAS_DRILL_ROOT_DIR/bootstrap/drill/lock.sh"
 source "$ATLAS_DRILL_ROOT_DIR/bootstrap/drill/evidence.sh"
-source "$ATLAS_DRILL_ROOT_DIR/bootstrap/drill/lifecycle.sh"
+source "$ATLAS_DRILL_ROOT_DIR/bootstrap/drill/cluster-create.sh"
 drill::die() {
   printf 'drill-test: %s\n' "$*" >&2
   return 1
@@ -234,7 +234,7 @@ drill::create_cluster \
 EOF
 
 chmod 0755 "${mock_bin}/docker" "${mock_bin}/kind" "${mock_bin}/kubectl" "${mock_bin}/uname" \
-  "${test_workspace}/run-lifecycle"
+  "${test_workspace}/run-create"
 
 cat > "${test_workspace}/run-git-authority" << 'EOF'
 #!/usr/bin/env bash
@@ -369,7 +369,7 @@ for hidden_flag in assume-unchanged skip-worktree; do
   : > "$command_log"
   git -C "$git_fixture" update-index "--${hidden_flag}" tracked
   printf 'hidden worktree change\n' > "${git_fixture}/tracked"
-  "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "${hidden_flag} bypassed Git authority"
+  "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "${hidden_flag} bypassed Git authority"
   grep -Eq '^(GATE|KIND_CREATE)' "$command_log" && test::fail "${hidden_flag} reached the Gate or Kind creation"
   git -C "$git_fixture" update-index "--no-${hidden_flag}" tracked
   printf 'atlas\n' > "${git_fixture}/tracked"
@@ -378,7 +378,7 @@ cluster=atlas-recovery-drill-20260815t001122z-ccddee00
 drill_test::prepare_target "$cluster"
 : > "$command_log"
 git -C "$git_fixture" config core.sparseCheckout true
-"${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "sparse-checkout bypassed Git authority"
+"${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "sparse-checkout bypassed Git authority"
 grep -Eq '^(GATE|KIND_CREATE)' "$command_log" && test::fail "sparse-checkout reached the Gate or Kind creation"
 git -C "$git_fixture" config --unset core.sparseCheckout
 test::pass "hidden index entries and sparse-checkout fail before the Gate and Kind creation"
@@ -418,17 +418,17 @@ test::pass "drill identity, storage attestation, and kubeconfig isolation fail c
 cluster_two=atlas-recovery-drill-20260815t020304z-b2c3d4e5
 drill_test::prepare_target "$cluster_two"
 chmod 0777 "$(dirname "$ATLAS_TEST_KUBECONFIG")"
-if "${test_workspace}/run-lifecycle" > /dev/null 2>&1; then
+if "${test_workspace}/run-create" > /dev/null 2>&1; then
   test::fail "a world-writable kubeconfig parent was accepted"
 fi
 chmod 0700 "$(dirname "$ATLAS_TEST_KUBECONFIG")"
 chmod 0777 "$ATLAS_TEST_AUDIT_DIR"
-if "${test_workspace}/run-lifecycle" > /dev/null 2>&1; then
+if "${test_workspace}/run-create" > /dev/null 2>&1; then
   test::fail "a world-writable audit directory was accepted"
 fi
 chmod 0700 "$ATLAS_TEST_AUDIT_DIR"
 chmod 0777 "$ATLAS_TEST_EVIDENCE_ROOT"
-if "${test_workspace}/run-lifecycle" > /dev/null 2>&1; then
+if "${test_workspace}/run-create" > /dev/null 2>&1; then
   test::fail "a world-writable evidence root was accepted"
 fi
 chmod 0700 "$ATLAS_TEST_EVIDENCE_ROOT"
@@ -437,10 +437,10 @@ test::pass "audit, evidence, and credential directories require owner-only custo
 cluster_three=atlas-recovery-drill-20260815t030405z-c3d4e5f6
 drill_test::prepare_target "$cluster_three"
 : > "$command_log"
-ATLAS_TEST_EXISTING_CLUSTER=$cluster_three "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "an existing drill cluster was reused"
+ATLAS_TEST_EXISTING_CLUSTER=$cluster_three "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "an existing drill cluster was reused"
 grep -Fq KIND_CREATE "$command_log" && test::fail "existing-cluster rejection reached Kind creation"
-KIND_EXPERIMENTAL_PROVIDER=podman "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a caller-selected Kind provider was accepted"
-DOCKER_CONTEXT=remote "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a caller-selected Docker target was accepted"
+KIND_EXPERIMENTAL_PROVIDER=podman "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "a caller-selected Kind provider was accepted"
+DOCKER_CONTEXT=remote "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "a caller-selected Docker target was accepted"
 grep -Fq KIND_CREATE "$command_log" && test::fail "Kind environment rejection reached cluster creation"
 test::pass "existing state and inherited Kind or Docker topology controls fail closed"
 
@@ -449,7 +449,7 @@ drill_test::prepare_target "$cluster_four"
 lock_root="${lock_parent}/atlas-kind-drill-locks-$(id -u)"
 mkdir -m 0700 "${lock_root}/${cluster_four}.lock"
 mkdir -m 0700 "${test_workspace}/alternate-tmp"
-TMPDIR="${test_workspace}/alternate-tmp" "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a concurrent lifecycle lock was ignored"
+TMPDIR="${test_workspace}/alternate-tmp" "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "a concurrent lifecycle lock was ignored"
 grep -Fq KIND_CREATE "$command_log" && test::fail "lock rejection reached cluster creation"
 rmdir "${lock_root}/${cluster_four}.lock"
 test::pass "the dedicated host lifecycle lock rejects concurrent creation"
@@ -458,7 +458,7 @@ cluster_five=atlas-recovery-drill-20260815t050607z-e5f6a7b8
 drill_test::prepare_target "$cluster_five"
 : > "$command_log"
 noninteractive_output="${test_workspace}/noninteractive.log"
-ATLAS_TEST_GATE_MODE=noninteractive "${test_workspace}/run-lifecycle" > /dev/null 2> "$noninteractive_output" && test::fail "non-interactive creation bypassed the Human Judgment Gate"
+ATLAS_TEST_GATE_MODE=noninteractive "${test_workspace}/run-create" > /dev/null 2> "$noninteractive_output" && test::fail "non-interactive creation bypassed the Human Judgment Gate"
 grep -Fq KIND_CREATE "$command_log" && test::fail "Human Judgment rejection reached Kind creation"
 noninteractive_journal=$(drill_test::journal)
 [[ -s $noninteractive_journal ]] || {
@@ -479,7 +479,7 @@ for gate_mode in tamper-policy tamper-config tamper-git tamper-docker tamper-man
   cluster="atlas-recovery-drill-20260815t060708z-${cluster_suffix}"
   drill_test::prepare_target "$cluster"
   : > "$command_log"
-  ATLAS_TEST_GATE_MODE=$gate_mode "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "${gate_mode} crossed the pre-mutation revalidation gate"
+  ATLAS_TEST_GATE_MODE=$gate_mode "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "${gate_mode} crossed the pre-mutation revalidation gate"
   grep -Fq KIND_CREATE "$command_log" && test::fail "${gate_mode} reached Kind creation"
   tamper_journal=$(drill_test::journal)
   grep -Fq '"action":"PREMUTATION","outcome":"DENIED"' "$tamper_journal" || test::fail "${gate_mode} rejection was not journaled"
@@ -491,7 +491,7 @@ test::pass "all Gate-approved authority inputs and the Docker target are revalid
 cluster_eight=atlas-recovery-drill-20260815t080910z-18c9daeb
 drill_test::prepare_target "$cluster_eight"
 : > "$command_log"
-ATLAS_TEST_KIND_CREATE_FAIL=1 "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "a failed Kind create returned success"
+ATLAS_TEST_KIND_CREATE_FAIL=1 "${test_workspace}/run-create" > /dev/null 2>&1 && test::fail "a failed Kind create returned success"
 failed_journal=$(drill_test::journal)
 grep -Fq '"action":"CREATE","outcome":"FAILED"' "$failed_journal" || test::fail "retained create failure was not journaled"
 [[ -s $(drill_test::plan) ]] || test::fail "failed creation removed its approved plan"
@@ -502,13 +502,13 @@ test::pass "failed creation preserves inputs, journal, and retained-state invent
 cluster_nine=atlas-recovery-drill-20260815t091011z-29daebfc
 drill_test::prepare_target "$cluster_nine"
 : > "$command_log"
-"${test_workspace}/run-lifecycle" > /dev/null
+"${test_workspace}/run-create" > /dev/null
 journal=$(drill_test::journal)
 plan=$(drill_test::plan)
 evidence_session=$(dirname "$plan")
 pre_mutation_manifest="${evidence_session}/pre-mutation.sha256"
 pre_mutation_hash_record="${evidence_session}/pre-mutation-manifest.sha256"
-[[ -s $journal && -s $plan ]] || test::fail "successful lifecycle evidence is missing"
+[[ -s $journal && -s $plan ]] || test::fail "successful cluster-create evidence is missing"
 grep -Fq '"action":"GATE","outcome":"APPROVED"' "$journal" || test::fail "Gate approval is absent from the journal"
 grep -Fq '"action":"VERIFY","outcome":"READY"' "$journal" || test::fail "READY result is absent from the journal"
 grep -Fq '"previousEntrySHA256"' "$journal" || test::fail "journal entries are not hash chained"
@@ -542,10 +542,10 @@ gate_line=$(grep -n '^GATE' "$command_log" | cut -d: -f1)
 create_line=$(grep -n '^KIND_CREATE' "$command_log" | cut -d: -f1)
 [[ -n $gate_line && -n $create_line && $gate_line -lt $create_line ]] || test::fail "cluster mutation preceded the Human Judgment Gate"
 grep -Fq $'\t--retain' "$command_log" || test::fail "Kind failure retention is not enabled"
-test::pass "mocked lifecycle binds authority, journals approval, and verifies audit output"
+test::pass "mocked cluster creation binds authority, journals approval, and verifies audit output"
 
 test::assert_not_found 'kind[[:space:]]+delete|kubectl[[:space:]]+config[[:space:]]+(use-context|set-context)|--approve' bootstrap/drill
 test::assert_not_found 'TMPDIR' bootstrap/drill/lock.sh
 test::assert_not_found 'atlas-kind-drill|bootstrap/drill' bootstrap/recovery
 test::assert_not_found 'certificatesigningrequests|ClusterRoleBinding|RoleBinding|ValidatingAdmissionPolicy|atlas-adoption-(signal|receipt)' bootstrap/drill
-test::pass "drill lifecycle remains separate from recovery and future authorization gates"
+test::pass "drill cluster creation remains separate from recovery and future authorization gates"

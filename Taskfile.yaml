@@ -24,11 +24,11 @@ tasks:
   quality:
     desc: Run every mandatory local quality gate
     cmds:
-      - task: format
+      - task: lint
       - task: test
       - task: conformance
 
-  format:
+  lint:
     desc: Check Shell syntax, ShellCheck, and shfmt
     cmds:
       - ./tests/shell/lint.sh
@@ -39,8 +39,8 @@ tasks:
       - ./tests/shell/config.sh
       - ./tests/bootstrap/safety-contract.sh
       - ./tests/bootstrap/status-contract.sh
-      - ./tests/recovery/phase0-contract.sh
-      - ./tests/drill/kind-lifecycle-contract.sh
+      - ./tests/recovery/audit-config-contract.sh
+      - ./tests/drill/kind-create-contract.sh
 
   conformance:
     desc: Run render, architecture, and supply-chain contracts

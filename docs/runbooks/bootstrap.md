@@ -21,7 +21,8 @@ Crossing Tier-0 requires explicit human approval:
 ```
 
 Successful completion requires the External Root and `argocd-self` to be
-Synced/Healthy. Verify again with:
+Synced/Healthy. This is a handoff-health condition, not the Receipt-backed
+adoption proof defined by ADR-0002. Verify again with:
 
 ```bash
 ./bootstrap/atlas status --env test
