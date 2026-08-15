@@ -33,7 +33,48 @@ drill::_json_escape() {
 }
 
 drill::_git() {
-  env -i PATH="$PATH" LC_ALL=C git --no-replace-objects "$@"
+  env -i PATH="$PATH" LC_ALL=C git \
+    --no-replace-objects \
+    -c core.fsmonitor=false \
+    -c core.ignoreStat=false \
+    "$@"
+}
+
+drill::_reject_sparse_checkout() {
+  local repository=$1 sparse status
+  if sparse=$(drill::_git -C "$repository" config --bool --get core.sparseCheckout); then
+    [[ $sparse == false ]] || {
+      drill::die "sparse-checkout is forbidden for lifecycle authority"
+      return 1
+    }
+  else
+    status=$?
+    ((status == 1)) || {
+      drill::die "sparse-checkout state is unavailable"
+      return 1
+    }
+  fi
+}
+
+drill::_reject_hidden_index_entries() {
+  local repository=$1 descriptor process_id entry tag hidden=false
+  exec {descriptor}< <(drill::_git -C "$repository" ls-files -v -z) || return 1
+  process_id=$!
+  while IFS= read -r -d '' -u "$descriptor" entry; do
+    tag=${entry:0:1}
+    if [[ $tag == S || $tag =~ [a-z] ]]; then
+      hidden=true
+    fi
+  done
+  exec {descriptor}<&-
+  wait "$process_id" || {
+    drill::die "Git index visibility is unavailable"
+    return 1
+  }
+  [[ $hidden == false ]] || {
+    drill::die "assume-unchanged and skip-worktree index entries are forbidden"
+    return 1
+  }
 }
 
 drill::_git_authority() {
@@ -44,6 +85,8 @@ drill::_git_authority() {
     drill::die "Git authority does not resolve to the Atlas repository root"
     return 1
   }
+  drill::_reject_sparse_checkout "$repository" || return 1
+  drill::_reject_hidden_index_entries "$repository" || return 1
   status=$(drill::_git -C "$repository" status --porcelain=v1 --untracked-files=all) || return 1
   [[ -z $status ]] || {
     drill::die "the repository must be clean before lifecycle approval"
@@ -296,7 +339,7 @@ drill::revalidate_approved_inputs() {
     drill::die "lifecycle plan changed after approval"
     return 1
   }
-  grep -Fqx "$(drill::operation plan_sha)  plan.json" "$plan_sha_file" || {
+  cmp -s "$plan_sha_file" <(printf '%s  plan.json\n' "$(drill::operation plan_sha)") || {
     drill::die "lifecycle plan hash record changed after approval"
     return 1
   }
@@ -304,7 +347,7 @@ drill::revalidate_approved_inputs() {
     drill::die "pre-mutation manifest changed after approval"
     return 1
   }
-  grep -Fqx "$(drill::operation pre_mutation_sha)  pre-mutation.sha256" "$pre_mutation_sha_file" || {
+  cmp -s "$pre_mutation_sha_file" <(printf '%s  pre-mutation.sha256\n' "$(drill::operation pre_mutation_sha)") || {
     drill::die "pre-mutation manifest hash record changed after approval"
     return 1
   }

@@ -180,13 +180,6 @@ drill::die() {
   printf 'drill-test: %s\n' "$*" >&2
   return 1
 }
-drill::_git_authority() {
-  if [[ -e ${ATLAS_TEST_GIT_CHANGED_MARKER:-/nonexistent} ]]; then
-    printf '%040d\t%040d\n' 3 4
-  else
-    printf '%040d\t%040d\n' 1 2
-  fi
-}
 drill::_version_triplet() {
   drill::target BASH_VERSION
 }
@@ -212,7 +205,7 @@ else
         chmod 0400 "$(drill::operation config_file)"
         ;;
       tamper-git)
-        : > "$ATLAS_TEST_GIT_CHANGED_MARKER"
+        printf 'changed after approval\n' > "${ATLAS_DRILL_ROOT_DIR}/tracked"
         ;;
       tamper-docker)
         printf 'unix:///changed-after-approval.sock\n' > "$ATLAS_TEST_DOCKER_ENDPOINT_STATE"
@@ -221,6 +214,16 @@ else
         chmod 0600 "$(drill::operation pre_mutation_file)"
         printf '%064d  forged\n' 0 >> "$(drill::operation pre_mutation_file)"
         chmod 0400 "$(drill::operation pre_mutation_file)"
+        ;;
+      tamper-plan-hash-record)
+        chmod 0600 "$(drill::operation plan_sha_file)"
+        printf '%064d  forged\n' 0 >> "$(drill::operation plan_sha_file)"
+        chmod 0400 "$(drill::operation plan_sha_file)"
+        ;;
+      tamper-manifest-hash-record)
+        chmod 0600 "$(drill::operation pre_mutation_sha_file)"
+        printf '%064d  forged\n' 0 >> "$(drill::operation pre_mutation_sha_file)"
+        chmod 0400 "$(drill::operation pre_mutation_sha_file)"
         ;;
     esac
   }
@@ -254,7 +257,6 @@ export ATLAS_TEST_COMMAND_LOG=$command_log
 export ATLAS_TEST_CLUSTER_STATE=$cluster_state
 export ATLAS_TEST_POLICY_PATH_STATE=$policy_path_state
 export ATLAS_TEST_DOCKER_ENDPOINT_STATE=$docker_endpoint_state
-export ATLAS_TEST_GIT_CHANGED_MARKER="${test_workspace}/git-changed.marker"
 export ATLAS_TEST_LOCK_PARENT=$lock_parent
 export ATLAS_TEST_KIND_VERSION=$locked_kind
 export ATLAS_TEST_KUBECTL_VERSION=$locked_kubectl
@@ -303,7 +305,6 @@ drill_test::verify_journal_chain() {
 
 drill_test::reset_runtime() {
   rm -f -- "$cluster_state" "$policy_path_state" "$ATLAS_TEST_KUBECONFIG"
-  rm -f -- "$ATLAS_TEST_GIT_CHANGED_MARKER"
   printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
   : > "$command_log"
   unset ATLAS_TEST_EXISTING_CLUSTER ATLAS_TEST_KIND_CREATE_FAIL ATLAS_TEST_GATE_MODE
@@ -317,11 +318,18 @@ printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state
 git_fixture="${test_workspace}/git-atlas"
 foreign_git_fixture="${test_workspace}/git-foreign"
 mkdir -m 0700 "$git_fixture" "$foreign_git_fixture"
+git_fixture=$(cd "$git_fixture" && pwd -P)
+foreign_git_fixture=$(cd "$foreign_git_fixture" && pwd -P)
+mkdir -m 0700 "${git_fixture}/bootstrap" "${git_fixture}/clusters"
+cp -R "${ATLAS_TEST_ROOT}/bootstrap/drill" "${git_fixture}/bootstrap/"
+cp -R "${ATLAS_TEST_ROOT}/bootstrap/recovery" "${git_fixture}/bootstrap/"
+cp -R "${ATLAS_TEST_ROOT}/clusters/kind" "${git_fixture}/clusters/"
+cp "${ATLAS_TEST_ROOT}/versions.lock" "${git_fixture}/versions.lock"
 git -C "$git_fixture" init -q
 git -C "$git_fixture" config user.name atlas-test
 git -C "$git_fixture" config user.email atlas-test@example.invalid
 printf 'atlas\n' > "${git_fixture}/tracked"
-git -C "$git_fixture" add tracked
+git -C "$git_fixture" add bootstrap clusters versions.lock tracked
 git -C "$git_fixture" -c commit.gpgsign=false commit -q -m initial
 git -C "$foreign_git_fixture" init -q
 git -C "$foreign_git_fixture" config user.name foreign-test
@@ -349,6 +357,31 @@ ATLAS_TEST_IMPLEMENTATION_ROOT=$ATLAS_TEST_ROOT ATLAS_DRILL_ROOT_DIR="${git_fixt
   "${test_workspace}/run-git-authority" > /dev/null 2>&1 &&
   test::fail "Git authority accepted a non-root Atlas path"
 test::pass "Git authority clears repository environment and requires the exact Atlas root"
+
+ATLAS_DRILL_ROOT_DIR=$git_fixture
+export ATLAS_DRILL_ROOT_DIR
+
+for hidden_flag in assume-unchanged skip-worktree; do
+  hidden_suffix=aabbccdd
+  [[ $hidden_flag == skip-worktree ]] && hidden_suffix=bbccddee
+  cluster="atlas-recovery-drill-20260815t001122z-${hidden_suffix}"
+  drill_test::prepare_target "$cluster"
+  : > "$command_log"
+  git -C "$git_fixture" update-index "--${hidden_flag}" tracked
+  printf 'hidden worktree change\n' > "${git_fixture}/tracked"
+  "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "${hidden_flag} bypassed Git authority"
+  grep -Eq '^(GATE|KIND_CREATE)' "$command_log" && test::fail "${hidden_flag} reached the Gate or Kind creation"
+  git -C "$git_fixture" update-index "--no-${hidden_flag}" tracked
+  printf 'atlas\n' > "${git_fixture}/tracked"
+done
+cluster=atlas-recovery-drill-20260815t001122z-ccddee00
+drill_test::prepare_target "$cluster"
+: > "$command_log"
+git -C "$git_fixture" config core.sparseCheckout true
+"${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "sparse-checkout bypassed Git authority"
+grep -Eq '^(GATE|KIND_CREATE)' "$command_log" && test::fail "sparse-checkout reached the Gate or Kind creation"
+git -C "$git_fixture" config --unset core.sparseCheckout
+test::pass "hidden index entries and sparse-checkout fail before the Gate and Kind creation"
 
 cluster_one=atlas-recovery-drill-20260815t010203z-a1b2c3d4
 drill_test::prepare_target "$cluster_one"
@@ -424,19 +457,25 @@ test::pass "the dedicated host lifecycle lock rejects concurrent creation"
 cluster_five=atlas-recovery-drill-20260815t050607z-e5f6a7b8
 drill_test::prepare_target "$cluster_five"
 : > "$command_log"
-ATLAS_TEST_GATE_MODE=noninteractive "${test_workspace}/run-lifecycle" > /dev/null 2>&1 && test::fail "non-interactive creation bypassed the Human Judgment Gate"
+noninteractive_output="${test_workspace}/noninteractive.log"
+ATLAS_TEST_GATE_MODE=noninteractive "${test_workspace}/run-lifecycle" > /dev/null 2> "$noninteractive_output" && test::fail "non-interactive creation bypassed the Human Judgment Gate"
 grep -Fq KIND_CREATE "$command_log" && test::fail "Human Judgment rejection reached Kind creation"
 noninteractive_journal=$(drill_test::journal)
-[[ -s $noninteractive_journal ]] || test::fail "a denied Human Gate was not journaled"
+[[ -s $noninteractive_journal ]] || {
+  sed -n '1,80p' "$noninteractive_output" >&2
+  test::fail "a denied Human Gate was not journaled"
+}
 grep -Fq '"action":"GATE","outcome":"DENIED"' "$noninteractive_journal" || test::fail "Human Gate denial is absent from the journal"
 test::pass "cluster creation has no non-interactive or unjournaled approval path"
 
-for gate_mode in tamper-policy tamper-config tamper-git tamper-docker tamper-manifest; do
+for gate_mode in tamper-policy tamper-config tamper-git tamper-docker tamper-manifest tamper-plan-hash-record tamper-manifest-hash-record; do
   cluster_suffix=f6a7b8c9
   [[ $gate_mode == tamper-config ]] && cluster_suffix=07b8c9da
   [[ $gate_mode == tamper-git ]] && cluster_suffix=18c9daeb
   [[ $gate_mode == tamper-docker ]] && cluster_suffix=29daebfc
   [[ $gate_mode == tamper-manifest ]] && cluster_suffix=3aebfc0d
+  [[ $gate_mode == tamper-plan-hash-record ]] && cluster_suffix=4bfc0d1e
+  [[ $gate_mode == tamper-manifest-hash-record ]] && cluster_suffix=5c0d1e2f
   cluster="atlas-recovery-drill-20260815t060708z-${cluster_suffix}"
   drill_test::prepare_target "$cluster"
   : > "$command_log"
@@ -444,7 +483,7 @@ for gate_mode in tamper-policy tamper-config tamper-git tamper-docker tamper-man
   grep -Fq KIND_CREATE "$command_log" && test::fail "${gate_mode} reached Kind creation"
   tamper_journal=$(drill_test::journal)
   grep -Fq '"action":"PREMUTATION","outcome":"DENIED"' "$tamper_journal" || test::fail "${gate_mode} rejection was not journaled"
-  rm -f -- "$ATLAS_TEST_GIT_CHANGED_MARKER"
+  printf 'atlas\n' > "${git_fixture}/tracked"
   printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
 done
 test::pass "all Gate-approved authority inputs and the Docker target are revalidated"

@@ -101,8 +101,10 @@ Every authority input and managed path is revalidated after approval and before
 `kind create`. The policy mounted into the node is the owner-only snapshot, not
 the live working-tree file. Git inspection clears repository, index, namespace,
 replacement-object, and configuration environment overrides and requires the
-reported top-level to equal the canonical Atlas root. Successful verification
-requires current-UID,
+reported top-level to equal the canonical Atlas root. It disables fsmonitor and
+ignore-stat shortcuts and rejects sparse checkout plus every tracked entry with
+`assume-unchanged` or `skip-worktree`. Successful verification requires
+current-UID,
 non-symlink kubeconfig and audit-log files with mode `0600`, the approved policy
 hash inside the node, an exact context, a Ready node, and a recorded `/readyz`
 audit event.

@@ -71,8 +71,9 @@ recovery. Creation requires a clean Git authority, an owner-only evidence root,
 an immutable policy snapshot, a hash-chained journal, an exact interactive
 challenge, and the explicitly bound OrbStack Docker context and endpoint. Git
 authority is resolved through an environment-clean read-only invocation, and
-evidence storage in shared temporary directories is rejected. It is not included
-in routine tasks; see the Phase-0 runbook before considering execution.
+sparse checkout or tracked entries hidden by index flags are rejected. Evidence
+storage in shared temporary directories is also rejected. It is not included in
+routine tasks; see the Phase-0 runbook before considering execution.
 
 ## Configuration contract
 
