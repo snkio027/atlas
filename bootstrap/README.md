@@ -107,6 +107,11 @@ every Node to be Ready, and rejects auxiliary or unknown Kind container roles.
 Registry configuration and image preloading consume the node names emitted by
 that same validated inventory, without a second Docker enumeration.
 
+The checked-in `local-orbstack` topology uses four distinct node pools:
+`control`, `gateway`, `compute`, and `data`. The data worker is additionally
+bound to `data-zone-1` and carries an `atlas.io/node-pool=data:NoSchedule`
+taint, so workloads require an explicit data-pool toleration.
+
 ## Supply-chain contract
 
 `versions.lock` contains exact tool, chart, and image versions. Bootstrap never
