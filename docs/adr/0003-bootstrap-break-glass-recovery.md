@@ -38,13 +38,16 @@ Operation Fence, and their namespaces.
 Relevant upstream semantics are:
 
 - [Validating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/)
+- [Validating Admission Policy parameter resources](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/#parameter-resources)
 - [ValidatingAdmissionPolicy API](https://kubernetes.io/docs/reference/kubernetes-api/admissionregistration/validating-admission-policy-v1/)
 - [ValidatingAdmissionPolicyBinding API](https://kubernetes.io/docs/reference/kubernetes-api/admissionregistration/validating-admission-policy-binding-v1/)
 - [Kubernetes X.509 authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#x509-client-certs)
 - [Kubernetes CertificateSigningRequest](https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/)
 - [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
 - [Argo CD terminate operation](https://argo-cd.readthedocs.io/en/stable/faq/#how-can-i-terminate-a-sync)
+- [Argo CD terminate-op command](https://argo-cd.readthedocs.io/en/stable/user-guide/commands/argocd_app_terminate-op/)
 - [Argo CD RBAC](https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/)
+- [Argo CD RespectIgnoreDifferences](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#respect-ignore-differences-configs)
 - [kind audit logging](https://kind.sigs.k8s.io/docs/user/auditing/)
 
 The phase statement remains:
@@ -138,7 +141,10 @@ The canonical recovery resources are:
 | --- | --- |
 | Protection ValidatingAdmissionPolicy | `atlas-bootstrap-evidence-protection` |
 | Protection ValidatingAdmissionPolicyBinding | `atlas-bootstrap-evidence-protection` |
-| Recovery authorization Policy and Binding | `atlas-bootstrap-recovery-authorization` |
+| Fence authorization Policy and Binding | `atlas-bootstrap-recovery-fence-authorization` |
+| Binding-shape authorization Policy and Binding | `atlas-bootstrap-recovery-binding-shape-authorization` |
+| Permission authorization Policy and Binding | `atlas-bootstrap-recovery-permission-authorization` |
+| Guard authorization Policy and Binding | `atlas-bootstrap-recovery-guard-authorization` |
 | Escape ClusterRole | `atlas-bootstrap-break-glass-escape` |
 | Escape ClusterRoleBinding | `atlas-bootstrap-break-glass-escape` |
 | Session Authorizer ClusterRole and Binding | `atlas-bootstrap-recovery-authorizer-cluster` |
@@ -146,7 +152,12 @@ The canonical recovery resources are:
 | Cluster-scoped Recovery ClusterRole | `atlas-bootstrap-recovery-cluster` |
 | Namespaced Recovery Role | `atlas-bootstrap-recovery` in each approved Namespace |
 | Temporary Recovery bindings | `atlas-bg-<scope>-<sessionID>` |
-| Canary Policy and Binding | `atlas-bootstrap-admission-escape-canary` |
+| Protection escape Canary Policy and Binding | `atlas-bootstrap-admission-escape-canary` |
+| Fence authorization Canary Policy and Binding | `atlas-bootstrap-recovery-fence-authorization-canary` |
+| Binding-shape authorization Canary Policy and Binding | `atlas-bootstrap-recovery-binding-shape-authorization-canary` |
+| Permission authorization Canary Policy and Binding | `atlas-bootstrap-recovery-permission-authorization-canary` |
+| Guard authorization Canary Policy and Binding | `atlas-bootstrap-recovery-guard-authorization-canary` |
+| Canary Operation Fence | `atlas-bootstrap-operation-fence-canary` |
 | Operation Fence ConfigMap | `atlas-bootstrap-operation-fence` |
 
 Every temporary Binding carries
@@ -189,9 +200,10 @@ temporary Recovery Permission Bundle.
 `Escape` is the Recovery Operator's minimum Phase-0 capability. Its exact-user
 ClusterRoleBinding permits:
 
-- read of the canonical protection and recovery-authorization Policies and
-  Bindings;
-- read of the target fingerprint and non-secret recovery evidence metadata;
+- read of the canonical protection and all four recovery-authorization
+  Policies and Bindings;
+- read of the target fingerprint, Operation Fence, and non-secret recovery
+  evidence metadata;
 - `patch` and `update` of the production protection Binding by exact
   `resourceNames`;
 - `patch` and `update` of the separate canary Binding by exact
@@ -208,7 +220,7 @@ It is itself Namespace split: a ClusterRoleBinding contains only cluster-scoped
 Binding lifecycle and exact `bind`, while a RoleBinding in each approved
 Namespace contains that Namespace's Fence or RoleBinding lifecycle. It may:
 
-- create and delete the canonical Operation Fence in `kube-system`;
+- get, create, and delete the canonical Operation Fence in `kube-system`;
 - create and delete session-labeled RoleBindings in only `kube-system`,
   `argocd`, and Namespaces enumerated by the approved plan;
 - create and delete the one session-labeled ClusterRoleBinding for the
@@ -221,11 +233,10 @@ Namespace contains that Namespace's Fence or RoleBinding lifecycle. It may:
 The Session Authorizer cannot mutate adoption evidence, Applications,
 AppProjects, Seed resources, Policy specifications, workload resources, Role
 definitions, or any unrelated Binding. Kubernetes RBAC cannot constrain a
-top-level `create` by `resourceNames`; the always-enforced recovery-
-authorization VAP therefore validates the exact Fence name and schema and the
-exact temporary Binding name, session label, roleRef, Namespace, and
-Recovery-Operator subject. A missing, suspended, unavailable, or mismatched
-authorization Policy denies session opening and closing.
+top-level `create` by `resourceNames`; the always-enforced Fence-authorization
+and session-shape/Permission authorization VAPs therefore supply the
+exact-object boundary. A missing, suspended, unavailable, or mismatched
+authorization Policy or Binding denies session opening and closing.
 
 The `Recovery Permission Bundle` is installed only after the Session
 Authorizer has acquired the Operation Fence. It is structurally split:
@@ -259,7 +270,10 @@ the command and audit journal enforce the approved Seed/Application inventory.
 
 The bundle may include narrowly reviewed permissions needed to:
 
-- freeze and resume named Argo CD control Applications;
+- freeze and resume named Argo CD control Applications, including the exact
+  Application status mutation used by version-locked core-mode termination;
+- create or patch only the canonical `argocd-rbac-cm` needed for the guarded
+  configuration prelude;
 - restore the adoption-compatible Seed and required cluster-scoped resources;
 - validate or restore the canonical AppProject and External Root;
 - read protected adoption evidence;
@@ -406,13 +420,93 @@ Their protection is instead the combination of:
 - Human Judgment for every enforcement mutation;
 - cluster API audit evidence.
 
-The separate `atlas-bootstrap-recovery-authorization` Policy and Binding
-constrain Session Authorizer create/delete requests for the Fence and temporary
-RBAC bundle. They remain `failurePolicy: Fail` with `{Audit, Deny}` throughout
-recovery and are never part of evidence-protection suspend. They validate exact
-usernames, generations, names, Namespaces, labels, roleRefs, subjects, plan
-hash, and session ID. Their absence, drift, or uncertainty is
-`AUTHORITY_UNAVAILABLE`.
+Recovery authorization is deliberately split because Fence creation has no
+pre-existing session parameter while later permission operations must bind to
+the committed Fence.
+
+`atlas-bootstrap-recovery-fence-authorization` has no `paramKind` or
+`paramRef`. Its Binding matches only CREATE and DELETE of the canonical Fence.
+On CREATE it validates the request username, exact name, Namespace, immutable
+schema, mode, target, principals, session, plan, and revision from `object`. On
+DELETE it validates the same lineage from `oldObject` plus the authorized
+holder. It cannot validate temporary RBAC and never matches those resources.
+
+`atlas-bootstrap-recovery-binding-shape-authorization` has no parameter. Its
+resource rules cover RoleBindings and ClusterRoleBindings, and a
+parameter-independent `matchCondition` selects either an exact Session
+Authorizer request or an `object`/`oldObject` carrying the canonical recovery
+name or session label. It requires the exact name pattern, label, static
+roleRef, Recovery-Operator subject, and allowed Namespace. Consequently, the
+Session Authorizer cannot evade the parameterized control by omitting the
+selector label, while unrelated RBAC requests from other principals are
+skipped without consulting a Fence.
+
+`atlas-bootstrap-recovery-permission-authorization` then declares the native
+parameter kind:
+
+```yaml
+paramKind:
+  apiVersion: v1
+  kind: ConfigMap
+```
+
+Its Binding covers only RoleBindings and ClusterRoleBindings selected by an
+`objectSelector` with `atlas.io/recovery-session Exists`. Kubernetes
+evaluates the selector against both `object` and `oldObject`, so removing the
+label in an UPDATE or deleting a labeled Binding remains covered. The separate
+shape control makes this opt-in selector non-bypassable. Unrelated RBAC never
+selects the parameterized Binding, so a missing Fence cannot block ordinary
+RoleBinding administration. The Permission Binding uses exactly:
+
+```yaml
+paramRef:
+  name: atlas-bootstrap-operation-fence
+  namespace: kube-system
+  parameterNotFoundAction: Deny
+```
+
+For temporary RBAC, CEL requires the authenticated username to equal the
+Fence's `authorizerPrincipal`; the object's session ID, plan hash, target,
+roleRef, subject, Namespace, and canonical name must equal the immutable Fence
+and reviewed static-role inventory. CREATE uses `object`; UPDATE and DELETE use
+both `object` and `oldObject` as applicable. The Session Authorizer has exact
+`get` access to the Fence so the API server can authorize the parameter read.
+
+`atlas-bootstrap-recovery-guard-authorization` is another no-parameter
+control. Its match condition selects only CREATE, UPDATE, or DELETE that would
+add, change, or remove `policy.atlas-recovery-freeze.csv` in the canonical
+`argocd-rbac-cm`. It requires the exact Recovery Operator; on UPDATE every
+other API field in the guarded projection must remain semantically unchanged,
+and DELETE while the guard exists is denied. If the ConfigMap is absent,
+Admission constrains CREATE to the canonical identity, recovery labels, and
+exact guard value; the immutable plan, command, and audit hash enforce the
+remaining known-good configuration. The
+Recovery Operator has no standing RBAC for this ConfigMap: the parameter-bound
+temporary bundle is what grants the exact resource-name mutation permission.
+
+All four authorization Policies remain `failurePolicy: Fail` with Bindings in
+`{Audit, Deny}` throughout recovery. They are never part of evidence-protection
+suspend. A missing Fence makes only the parameter-selected temporary Binding
+request deny; `Allow` is forbidden for `parameterNotFoundAction`. An unreadable
+parameter, unresolved kind, CEL error, overlapping match, unexpected
+Policy/Binding state, or lineage mismatch is `AUTHORITY_UNAVAILABLE` and denies
+session mutation. Guard removal occurs while the temporary bundle still grants
+its exact ConfigMap permission. Fence DELETE alone remains possible after the
+bundle is removed and does not depend on the parameterized Binding, avoiding a
+circular close.
+
+The recovery-authorization state is:
+
+| State | Four authorization controls | Session mutation |
+| --- | --- | --- |
+| `UNINSTALLED` | absent | Phase 0/1A only; denied |
+| `OBSERVING` | type checked; observe actions; missing-param Deny configured | production RBAC denies |
+| `ENFORCED` | `Fail` + `{Audit, Deny}`; exact Fence parameter resolves | eligible after all other gates |
+| `DRIFTED` | any unexpected readable or mixed state | denied |
+| `UNAVAILABLE` | unreadable, undecodable, or parameter unresolved | denied |
+
+None has a supported `SUSPENDED` state. All four must transition together under
+separate activation evidence; mixed states are `DRIFTED`.
 
 Acceptance of this ADR overrides only ADR-0002's impossible VAP
 self-protection mechanism. It does not weaken protection of adoption evidence,
@@ -432,13 +526,18 @@ The canonical admission states are:
 | `DRIFTED` | readable but unexpected | any | deny recovery mutation until separately approved repair |
 | `UNAVAILABLE` | unreadable or undecodable | unreadable or undecodable | deny all mutation |
 
+This state table applies to the evidence-protection Policy and Binding. All
+four recovery-authorization controls must independently be readable, type
+checked, `failurePolicy: Fail`, and `{Audit, Deny}` before any recovery
+mutation.
+
 `Deny` and `Warn` are never combined. `validationActions` is a semantic set:
 order has no meaning and duplicates are invalid. `Audit` remains present in
-enforcing and suspended states. A match condition excludes only the exact current
-break-glass username. Kubernetes evaluates a policy as skipped when any match
-condition is false, so the exception must be an independently tested,
-minimal expression and must not depend on a parameter resource, Argo CD, or a
-protected Namespace.
+enforcing and suspended states. The evidence-protection match condition
+excludes only the exact current break-glass username. Kubernetes evaluates a
+policy as skipped when any match condition is false, so that exception must be
+an independently tested, minimal expression and must not depend on a parameter
+resource, Argo CD, or a protected Namespace.
 
 #### Suspend and exact restore
 
@@ -500,13 +599,16 @@ Binding may exist before the canary has been suspended and restored by the
 escrowed principal.
 
 Session Authorization has an equally isolated Phase-0 canary. Its exact-user
-RBAC and recovery-authorization canary may create and delete only a separately
-named canary Fence and temporary bindings to static, inert canary Roles. It
-cannot select the production Fence, production Recovery Roles, or a production
-temporary-binding name. The canary ceremony exercises CREATE conflicts,
-Admission exactness, `bind`, cleanup, and old-generation denial without
-granting a production Recovery permission. The production Session
-Authorization bindings remain absent until Phase 1C.
+RBAC and four recovery-authorization canary controls may create and delete only
+a separately named canary Fence and temporary bindings to static, inert canary
+Roles. The canary Permission Binding parameterizes only that canary Fence and
+uses `parameterNotFoundAction: Deny`; shape and guard controls mirror the
+production separation. It cannot select the production Fence, production
+Recovery Roles, or a production temporary-binding name. The canary ceremony
+exercises CREATE conflicts, missing-parameter denial, Admission exactness,
+`bind`, cleanup, and old-generation denial without granting a production
+Recovery permission. The production Session Authorization bindings remain
+absent until Phase 1C.
 
 ### Operation Fence and exclusivity
 
@@ -602,6 +704,16 @@ committed. Phase 2 must split current substrate creation from Identity creation
 to preserve this ordering. The host lock is not represented as a cluster-wide
 mutex and never substitutes for the Fence on an existing cluster.
 
+That first API interval is explicitly `FRESH_UNPROTECTED`: the create-only
+Fence provides Kubernetes CAS exclusion between conformant new-cluster
+Bootstrap processes, but the protection and authorization Policies do not yet
+exist and Admission has not validated the CREATE. Bootstrap validates the
+request and CREATE response locally and must not report the Fence as
+Admission-protected. Recovery is unavailable in this state. The state ends only
+after Identity, the protection foundation, all recovery-authorization controls,
+and their negative/positive probes are committed. A Signal cannot be valid
+while the state is `FRESH_UNPROTECTED`.
+
 Recovery order is:
 
 1. the Session Authorizer creates the `recovery` Fence with create-only
@@ -632,6 +744,26 @@ timeout alone.
 `resume` requires the same session, plan, target, Recovery Operator, Session
 Authorizer, Fence UID, and known-good revision. No second plan may reuse an
 existing Fence.
+
+#### Legacy downgrade boundary
+
+An Identity-v1 cluster is never eligible for production recovery under this
+ADR. Receipt-unaware Bootstrap versions, including `783e858`, do not inspect
+the Operation Fence and can still mutate a v1 cluster after their historical
+identity check. The Fence therefore cannot make v1 production recovery
+exclusive.
+
+Phase 2 is capability construction and disposable-drill validation only. Its
+mutating recovery artifact is not enabled for a supported production target;
+it accepts only the isolated drill fixture with an explicitly provisioned v2
+Identity and performs no legacy migration. Every v1 or missing Identity is
+`MIGRATION_REQUIRED` and denied before Fence acquisition.
+
+Production recovery enablement is a separate Phase-3 gate for each supported
+cluster. It requires completed Identity v1-to-v2 migration, a valid protected
+Signal and Receipt, and proof that every supported historical receipt-unaware
+Bootstrap fails before any mutation. A cluster without that exact downgrade
+fence remains ineligible even if the Phase-2 command and drill otherwise pass.
 
 ### Snapshot, hashes, and audit evidence
 
@@ -672,11 +804,14 @@ Before mutation, the snapshot includes:
 
 - cluster version, node readiness, target fingerprint, Identity, Signal,
   Receipt, Operation Fence, and temporary Recovery Permission Bundle;
-- raw and canonical Policy and Binding objects plus type-check status;
+- raw and canonical protection, Fence-authorization, and
+  Permission-authorization Policy and Binding objects, parameter resolution,
+  plus type-check status;
 - effective permission inventories for the read-only identity, Recovery
   Operator, and Session Authorizer, including group-derived permissions;
 - External Root, AppProjects, child control Applications, `argocd-self`, Argo
-  CD workloads, CRDs, and controller configuration;
+  CD workloads, CRDs, controller configuration, `argocd-cm`,
+  `argocd-rbac-cm`, guard ownership, and effective subject inventory;
 - current source revisions, sync policies, health, UIDs, resourceVersions, and
   Argo resource inventory;
 - relevant Events and available Kubernetes API audit records;
@@ -737,6 +872,8 @@ Before approval, the command creates an isolated clean worktree and proves:
 - `task quality` passes at that exact commit;
 - `versions.lock`, the vendored chart archive/tree, image digests, Root,
   AppProjects, and `argocd-self` are internally consistent;
+- Argo admin/default hardening and the guard ownership contract render exactly
+  from the candidate revision;
 - the version-matched Argo CD core-mode client artifact is checksum verified
   and available offline;
 - the Recovery Seed render is deterministic and adoption-compatible;
@@ -753,13 +890,74 @@ state. Control Applications remain frozen and pinned to the approved commit
 until the repaired `main` has passed required checks and its critical-path
 hashes are confirmed.
 
+### Argo authorization and recovery-guard readiness
+
+The current baseline is not ready to claim a complete manual-sync freeze. The
+locked chart defaults `configs.cm.admin.enabled` to `true`; Atlas disables the
+chart-owned `argocd-cm` but its external ConfigMap does not set
+`admin.enabled: "false"`. The current `argocd-self` Application also lacks the
+recovery-key ownership contract below.
+
+Before Phase 1C or any production recovery enablement, a separately activated
+and verified Argo authorization baseline must provide all of the following:
+
+- the live and Git-defined `argocd-cm` explicitly set
+  `admin.enabled: "false"` and `users.anonymous.enabled: "false"`;
+- `policy.default` is empty or names a minimum authenticated role whose full
+  inheritance contains no `applications sync`, `update`, or `override`;
+- every local account, SSO user/group mapping, global role, inherited role, and
+  AppProject role is inventoried, with positive and negative authorization
+  tests for representative real identities;
+- login or API use as the built-in `admin` is rejected, and unknown identities
+  receive no mutation through the default policy;
+- every explicit ordinary subject that can otherwise mutate Applications is
+  matched by the recovery deny fragment.
+
+The built-in `admin` is an unrestricted superuser, and permissions granted by
+`policy.default` are resolved before subject-specific policy and cannot be
+withdrawn by a later deny. Atlas therefore treats the deny fragment only as a
+freeze layer over explicit subject/role grants. It never claims that the
+fragment constrains the built-in administrator or unsafe default permissions.
+
+`argocd-rbac-cm` is managed by `argocd-self`, so the guard key requires a
+permanent ownership contract in the Git-defined `argocd-self` Application:
+
+```yaml
+spec:
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      namespace: argocd
+      name: argocd-rbac-cm
+      jsonPointers:
+        - /data/policy.atlas-recovery-freeze.csv
+  syncPolicy:
+    syncOptions:
+      - RespectIgnoreDifferences=true
+```
+
+The normal desired ConfigMap omits the guard key. The no-parameter Guard
+authorization permits only the exact Recovery Operator to create, change, or
+remove that key; the parameter-bound temporary bundle supplies its RBAC only
+during an active Fence. Ordinary Kubernetes users and Argo CD are denied from
+changing it. `ignoreDifferences` is not itself a security boundary; Admission,
+RBAC, audit, exact hashes, and postflight key removal compensate for the
+intentional GitOps blind spot.
+
+The ignore rule and sync option must be active before a production recovery,
+and the recovery drill must prove an `argocd-self` sync preserves the live key.
+If `argocd-rbac-cm` is missing, the known-good Recovery Seed first creates the
+exact configuration projection plus guard as a configuration prelude, before
+starting the Server or Application Controller. A normal sync may never be the
+operation that first establishes this protection.
+
 ### Recovery sequence
 
 #### 1. Inspect and authorize the session
 
 Read the target with a non-mutating identity. Refuse a missing, foreign, or
-changed substrate fingerprint; unreadable Identity; any Operation Fence or
-temporary Recovery Binding; unavailable audit destination; unverified
+changed substrate fingerprint; any Identity other than valid v2; any Operation
+Fence or temporary Recovery Binding; unavailable audit destination; unverified
 principal generation; or unexpected effective permission for either principal.
 
 Select the known-good revision, build the plan, capture the preflight snapshot,
@@ -782,21 +980,55 @@ fenced; it never authorizes partial recovery.
 
 #### 3. Freeze and pin outside-in
 
-Freeze is more than disabling AutoSync. Before walking the graph, the Recovery
-Operator installs an exact, snapshotted `argocd-rbac-cm` recovery fragment that
-denies `applications sync`, `override`, and `update` to every ordinary Argo CD
-subject. Argo CD deny takes precedence over allow. The Recovery Operator uses
-the version-locked Argo CD client in Kubernetes core mode, so no Argo API token
-or manual-sync exception is introduced. Direct Kubernetes Application writes
-by ordinary credentials must already be denied by effective RBAC checks.
+Freeze is more than disabling AutoSync, and a damaged Argo CD component is
+never required to prove its own readiness before Atlas may repair that
+component. Direct Kubernetes reads classify Argo availability before the
+command chooses a path:
 
-The fragment uses the canonical key
-`policy.atlas-recovery-freeze.csv`. Installation tests ConfigMap UID and
-resourceVersion, waits for Argo CD RBAC reload, and proves with representative
-ordinary identities that sync, override, and update are denied. Removal tests
-the actual recovery value and current resourceVersion, restores the exact
-preflight value or absence, and verifies the canonical ConfigMap projection
-hash. Any failed reload or permission probe leaves Freeze incomplete.
+| Argo state | Required freeze path | Seed-entry state |
+| --- | --- | --- |
+| Server and Controller available | install and verify the guard; terminate through core mode; wait idle and quiet | `FROZEN_VERIFIED` |
+| Server unavailable, Controller available | quiesce Server; guard live; defer reload probe; core terminate; wait quiet | `GUARD_RELOAD_PENDING` |
+| Controller unavailable or unsafe | disable AutoSync; prove Controller quiescence; mark pending termination; install guard | `CONTROLLER_RECOVERY_PENDING` |
+| Controller capability ambiguous or Kubernetes reads unavailable | stop frozen; no Seed mutation | `FREEZE_UNAVAILABLE` |
+
+Controller availability is not inferred from Application health. It requires
+the expected StatefulSet, Pods, readiness, process lifetime, and recent
+managed-resource mutations to be readable and internally consistent. When the
+Controller is unavailable or unsafe, the Recovery Operator snapshots and
+scales every present expected Application Controller StatefulSet to zero with
+UID and resourceVersion preconditions, waits for every old Controller Pod to
+terminate, and proves a bounded interval with no Argo-managed mutation. If the
+StatefulSet itself is absent, Atlas must instead prove from the complete
+known-good label/owner inventory, Pods, leases, and audit stream that no
+Controller process exists. A partially alive or unobservable Controller is
+`FREEZE_UNAVAILABLE`, not degraded-safe.
+
+Likewise, every present unavailable Server workload is snapshotted and scaled
+to zero before Atlas accepts `GUARD_RELOAD_PENDING`. If its Deployment is
+absent, Atlas proves that no Server Pod or endpoint remains. This prevents an
+unverified Server from spontaneously returning with stale RBAC and accepting a
+manual sync. The staged Seed later restores its exact desired replicas only
+after the guard configuration prelude is live.
+
+Before walking the graph, the Recovery Operator installs the exact,
+snapshotted `argocd-rbac-cm` fragment under
+`policy.atlas-recovery-freeze.csv`. It denies `applications sync`, `override`,
+and `update` for every inventoried ordinary explicit subject. Deny precedence
+applies only after the Argo authorization-readiness conditions above have
+removed built-in admin and unsafe default-policy authority. Direct Kubernetes
+Application writes by ordinary credentials must already be denied by effective
+Kubernetes RBAC checks.
+
+Guard installation tests ConfigMap UID and resourceVersion, the no-parameter
+Guard authorization, and the active Fence-bound permission bundle. When the
+Server is available, the command waits for RBAC reload and proves denial with
+representative ordinary identities. When the Server is unavailable, it records
+`GUARD_RELOAD_PENDING`, verifies the live key through Kubernetes, and defers
+only the server-side reload probe until Seed restoration. A missing ConfigMap
+uses the configuration prelude defined above. Removal tests the actual recovery
+value and current resourceVersion, restores the exact preflight value or
+absence, and verifies the canonical ConfigMap projection hash.
 
 Then freeze each layer outside-in without deleting Applications:
 
@@ -811,20 +1043,31 @@ For every Application, the command:
 1. snapshots UID, resourceVersion, automated sync, `.operation`,
    `status.operationState`, and managed-resource versions;
 2. removes automated sync with UID/resourceVersion preconditions;
-3. re-reads operation state, invokes the supported Argo CD terminate operation
-   when `.operation` is present or phase is `Running`, and only waits when it
-   is already `Terminating`;
-4. waits until `.operation` is absent and `status.operationState.phase` is
-   neither `Running` nor `Terminating`;
-5. verifies during a bounded quiet interval that no new Argo-managed mutation
-   occurred;
-6. re-reads and journals final UID and resourceVersion before moving inward.
+3. re-reads operation state and, when the Controller is available, invokes the
+   version-locked `argocd app terminate-op --core` for every present operation
+   or `Running` phase;
+4. when the Controller is quiesced at zero, uses the same core-mode operation
+   API to mark every present `.operation` `Terminating`, records it as pending,
+   and does not wait for the absent Controller to clear it; a `Running` or
+   `Terminating` status with no `.operation` is recorded separately as stale
+   status pending reconciliation, not treated as executable work;
+5. on the available-Controller path, waits until `.operation` is absent and
+   `status.operationState.phase` is neither `Running` nor `Terminating`;
+6. verifies the guard key and a bounded quiet interval, then re-reads and
+   journals final UID and resourceVersion before moving inward.
 
-Termination failure, a new operation, resource mutation, or unavailable state
-stops progress with all already-frozen outer layers left frozen. Removing
-AutoSync alone never satisfies the Freeze gate. The Argo RBAC deny fragment
-remains active until the inside-out resume explicitly reaches the appropriate
-layer and is removed under its own gate.
+The core-mode client talks directly to Kubernetes and does not depend on the
+Argo Server. A failure to mark a present old operation `Terminating`, a new
+operation, guard drift, unexpected resource mutation, or unavailable state
+stops progress with already-frozen outer layers left frozen. The sole deferred
+conditions are Controller completion of an operation already proven
+`Terminating` and reconciliation of recorded stale status while that Controller
+is deliberately at zero.
+
+Removing AutoSync alone never satisfies a completed Freeze gate. The
+`CONTROLLER_RECOVERY_PENDING` state authorizes only the configuration prelude
+and Recovery Seed required to restore the Controller. It does not authorize an
+Application sync, Receipt change, layer resume, or removal of the guard.
 
 Pin the External Root and every recovery-relevant child source to the approved
 full commit while automated sync remains disabled. This is necessary because
@@ -840,6 +1083,11 @@ If the plan needs a mutation that the evidence policy would deny, suspend only
 the canonical Binding to `Audit` using the exact protocol above. If no
 protected object or Namespace mutation is needed, leave admission enforced.
 
+Seed entry is allowed only from `FROZEN_VERIFIED`, `GUARD_RELOAD_PENDING`, or
+`CONTROLLER_RECOVERY_PENDING`. The two pending states authorize only repair of
+the damaged Argo control-plane components and completion of Freeze; they do not
+authorize GitOps reconciliation.
+
 Render only from the approved commit and locked artifacts. The Recovery Seed:
 
 - matches `versions.lock` and the `argocd-self` desired version;
@@ -851,6 +1099,29 @@ Render only from the approved commit and locked artifacts. The Recovery Seed:
   field manager;
 - waits for every Argo CD Seed control-plane workload and CRD required by the
   shared health contract.
+
+Seed application is staged. Configuration, including the exact
+`argocd-rbac-cm` projection and recovery guard, is created or patched and
+re-read first. Server and Controller workloads are applied only after that
+prelude succeeds. A bulk apply whose ordering could start a workload before the
+guard exists is forbidden.
+
+After workload recovery, Atlas completes every deferred Freeze proof before
+any manual sync:
+
+- `GUARD_RELOAD_PENDING` waits for the Server to load the exact guard and runs
+  positive and negative authorization probes;
+- `CONTROLLER_RECOVERY_PENDING` waits for the restored Controller to complete
+  every recorded `Terminating` operation, verifies no new operation appeared,
+  accounts for any termination cleanup mutation, and passes the bounded quiet
+  gate;
+- both paths re-read the guard, every Application UID/resourceVersion, and the
+  managed-resource inventory before transitioning to `FROZEN_VERIFIED`.
+
+Failure to complete a deferred proof leaves the graph frozen and permits only
+another same-plan Seed repair. A damaged Server or Controller is therefore not
+a prerequisite for its own repair, but a recovered component must satisfy the
+full Freeze contract before GitOps ownership can resume.
 
 Seed mutation has its own Human Judgment Gate. A partial apply is corrected
 forward by `resume`; the command never deletes the Argo CD Namespace or rolls
@@ -864,11 +1135,12 @@ object-specific Tier-0 gate. Recreate only an absent or unrecoverable object
 explicitly listed in the plan; otherwise patch the minimum fields with UID and
 resourceVersion preconditions.
 
-Materialize and manually sync the pinned `argocd-self` desired state through
-the version-matched Argo CD client in Kubernetes core mode before other
-platform capabilities. Child automated sync remains disabled. Re-verify the
-manual-sync deny fragment after this sync, then confirm the controller
-inventory and the Signal object created by GitOps.
+Only from `FROZEN_VERIFIED`, materialize and manually sync the pinned
+`argocd-self` desired state through the version-matched Argo CD client in
+Kubernetes core mode before other platform capabilities. Child automated sync
+remains disabled. Verify immediately before and after the sync that the
+ignore-differences ownership contract preserved the exact manual-sync guard,
+then confirm the controller inventory and the Signal object created by GitOps.
 
 If admission was suspended, restore `ENFORCED` and pass all positive, negative,
 type-check, and audit probes before classifying the Signal as protected or
@@ -977,6 +1249,8 @@ Further damage is corrected forward in another explicitly authorized reissue.
 | Fence acquired, bundle absent or partial | Session Authorizer completes or removes bundle under gate | Fence keeps normal mutation denied |
 | Bundle complete, before freeze | resume same session or remove bundle and release Fence under gate | no recovery mutation occurred |
 | Partially frozen | resume freezing from journal | do not auto-resume any layer |
+| Guard installed, Server at zero, reload pending | same-plan Seed repair and deferred guard probe only | guard remains live; no manual sync |
+| Controller quiesced, operations pending | same-plan configuration prelude and Seed repair only | Controller remains at zero until guarded Seed entry |
 | Admission suspended | restore exact Binding first or remain frozen | no other resume while `SUSPENDED` |
 | Seed partially restored | correct forward from the same render | never delete Namespace or apply an unverified older Seed |
 | Root or child UID changed | complete inside-out recovery | old UID cannot be restored |
@@ -1010,6 +1284,7 @@ checkpoint and cannot be reused:
 | Freeze External Root | Tier-0 freeze gate |
 | Freeze each named control layer | layer-specific freeze gate |
 | Terminate an in-flight sync operation | Application-specific termination gate |
+| Scale an unsafe Argo Server or Application Controller to zero | component-quiescence gate |
 | Suspend or restore the production admission Binding | admission gate for each direction |
 | Repair the production Policy or Binding from Git | protection-repair gate |
 | Apply the Recovery Seed | Seed mutation gate |
@@ -1033,30 +1308,38 @@ Implementation is split into independently reviewable phases and PRs:
    Kind target, and disposable protection and recovery-authorization canaries.
    Exercise canary suspend/restore and a canary Fence/Permission Bundle
    ceremony. Session Authorizer authority is canary-scoped; production Session
-   Authorizer RBAC is not active. No production `Deny` exists.
+   Authorizer RBAC is not active. Inventory Argo local/SSO/default authority and
+   record the current built-in-admin and guard-ownership gaps. No production
+   `Deny` exists.
 1. **Protection foundation.** This phase is subdivided:
    - **1A — Resource definitions.** Add VAP, Binding, Signal, Operation Fence
-     contract, Namespace-split RBAC, and tests, but do not reference them from a
-     Kustomization reachable by External Root. Definition paths must fail
-     conformance if accidentally wired.
-   - **1B — Audit/Warn activation.** A separate Human-Gated PR wires only
-     observation mode. Collect real audit evidence before proceeding.
+     contract, Namespace-split RBAC, Argo authorization hardening, guard
+     ownership configuration, and tests, but do not reference them from a
+     Kustomization or Application reachable by External Root. Definition paths
+     must fail conformance if accidentally wired.
+   - **1B — Hardening and Audit/Warn activation.** Separate Human-Gated changes
+     first disable built-in admin, constrain default and explicit Argo
+     authority, and activate the guard ownership contract. After live
+     authorization probes pass, another change wires only admission observation
+     mode. Collect real audit evidence before proceeding.
    - **1C — Fail+Deny and Signal.** Activate `Fail` + `Deny` only after escape
-     revalidation. Activate production Session Authorizer RBAC only after the
-     recovery-authorization Deny is proven. Signal wiring follows in a separate
-     activation change or a deterministic health-gated step after enforcement
-     is proven. The merge that makes each reachable is itself a Human Judgment
-     Gate.
+     revalidation. Activate all four recovery-authorization controls and
+     production Session Authorizer RBAC only after their negative and positive
+     tests pass. Signal wiring follows in a separate activation change
+     or a deterministic health-gated step after enforcement is proven. The
+     merge that makes each reachable is itself a Human Judgment Gate.
 2. **Complete break-glass recovery.** Implement the isolated recovery command,
    shared CAS Operation Fence, Permission Bundle, evidence bundle, exact
    restore, Receipt reissue, runbook, and macOS/OrbStack drill. This ADR must
    already be Accepted. The first independently reviewed Phase-2 change adds
    Fence acquisition/release to normal Bootstrap without changing adoption
    authority; the recovery command remains non-mutating until that exact normal
-   version passes the forced-race tests.
+   version passes the forced-race tests. Mutating execution remains limited to
+   the disposable v2 drill fixture throughout Phase 2.
 3. **Legacy-cluster migration.** Migrate Identity v1 to v2, commit the Receipt,
-   and prove the historical Bootstrap downgrade fence. Normal `apply` cannot
-   perform it.
+   prove the historical Bootstrap downgrade fence, and separately authorize
+   production recovery for each migrated target. Normal `apply` cannot perform
+   the migration or enable recovery.
 4. **Receipt-aware Bootstrap.** Last, enable the ADR-0002 normal state machine,
    retain mandatory Operation Fence acquisition, enable create-once Receipt
    commitment, and enforce the post-adoption read-only matrix.
@@ -1080,16 +1363,30 @@ bundle. It proves at least:
   permission inventories;
 - Namespace-split RoleBindings, cluster-only ClusterRoleBinding, explicit
   top-level-create granularity, and recovery-authorization Admission checks;
+- the no-parameter Fence/shape/guard controls and Fence-parameterized
+  Permission control have only the intended layered matches; a missing
+  parameter denies temporary RBAC;
+- with no Fence, unrelated RBAC operations still work while an unlabelled
+  Session-Authorizer create attempt fails closed;
 - a forced race between normal apply and recovery proves exactly one Fence
   create wins and the loser performs no mutation;
+- first new-cluster Fence creation is classified `FRESH_UNPROTECTED`, gains CAS
+  exclusion without claiming Admission, and cannot authorize recovery;
 - ordinary-principal denial and exact-principal admission exception;
 - canary and production Binding suspend/restore with projection hash parity;
 - both API orders of `{Audit, Deny}` produce the same semantic and canonical
   hash while JSON Patch tests the actual raw order;
 - definition-only resources remain unreachable before their activation PR;
 - snapshot redaction and deterministic hash manifests;
-- freeze order, termination of in-flight operations, manual-sync denial, quiet
-  interval, and exact restoration of sync policies;
+- built-in Argo admin and anonymous access are disabled, default authority has
+  no mutation, and every local/SSO/AppProject subject is inventoried and tested;
+- the Server/Controller available, Server-degraded, and Controller-degraded
+  paths each complete Freeze without requiring a damaged component to prove
+  itself before Seed repair;
+- guard reload deferral, Controller-at-zero proof, pending termination, staged
+  configuration/Seed apply, quiet interval, and exact sync-policy restoration;
+- an `argocd-self` sync with `RespectIgnoreDifferences` preserves the exact
+  recovery guard and unauthorized Kubernetes writes to that key are denied;
 - pinning every `main`-tracking control Application to a full commit;
 - interruption and same-session resume at every checkpoint in the rollback
   table;
@@ -1098,7 +1395,9 @@ bundle. It proves at least:
 - interruption after predecessor Receipt deletion and before successor create;
 - predecessor lineage, successor create-only behavior, and admission protection;
 - rejection of Identity UID changes and foreign recovery targets;
-- the exact receipt-unaware Bootstrap at `783e858` fails before mutation;
+- every Identity-v1 target is rejected before Fence acquisition in Phase 2;
+- after Phase-3 migration, the exact receipt-unaware Bootstrap at `783e858`
+  fails before mutation even while recovery holds the Fence;
 - forward Git repair and health-gated inside-out resume;
 - External Root resumes last;
 - every temporary Recovery Binding is absent before Fence release and both used
@@ -1121,8 +1420,14 @@ authorization. Passing simulated unit tests alone is insufficient evidence.
   mutation journal.
 - The create-only Operation Fence removes the normal/recovery check-then-act
   race and makes interrupted ownership visible.
+- Split authorization makes Fence creation self-contained while every later
+  permission mutation is parameter-bound to the immutable Fence.
 - Namespace-split Roles prevent a cluster-scoped Binding from silently
   broadening namespaced recovery access.
+- Argo authorization hardening and guard ownership become release prerequisites
+  instead of assumptions made during an incident.
+- Degraded Freeze can repair a failed Server or Controller, but it lengthens the
+  workflow with staged Seed entry and mandatory post-repair proofs.
 - Receipt lineage preserves the monotonic trust transition across legitimate
   Signal, Root, or `argocd-self` recreation without pretending Kubernetes UIDs
   are restorable.
@@ -1134,6 +1439,8 @@ authorization. Passing simulated unit tests alone is insufficient evidence.
   but preserves Git as definition authority.
 - ADR-0002 remains an accepted design whose runtime gap is unresolved until all
   release prerequisites and Phase 4 are complete.
+- Phase-2 recovery remains non-production until each target crosses the
+  Identity-v2 downgrade fence in Phase 3.
 
 ## Alternatives considered
 
@@ -1182,6 +1489,27 @@ tests make rotation and revocation auditable.
 Rejected because the Kubernetes API explicitly prevents a
 ValidatingAdmissionPolicy from matching those resources.
 
+### Use one unparameterized recovery-authorization Binding
+
+Rejected because Fence CREATE has no pre-existing session object, while every
+later temporary-RBAC or guard mutation must prove equality with the committed
+Fence. Separate Fence, shape, parameterized Permission, and guard controls make
+that dependency, anti-evasion check, and missing-parameter denial explicit.
+
+### Rely on an Argo deny rule to freeze built-in or default authority
+
+Rejected because the built-in `admin` is unrestricted and a permission granted
+by `policy.default` cannot be withdrawn by subject-specific deny. Atlas first
+disables those authorities and uses the deny fragment only over explicit role
+grants.
+
+### Require healthy Argo CD before repairing the Seed
+
+Rejected because the Server or Application Controller may be the failed
+component. Direct Kubernetes state, Controller quiescence, pending termination,
+and post-Seed proof prevent a damaged component from becoming its own recovery
+prerequisite.
+
 ### Delete the Binding to suspend enforcement
 
 Rejected because deletion changes UID, loses exact restoration evidence, and
@@ -1227,7 +1555,8 @@ prove all of the following:
   when tested with the actual old certificates;
 - Escape RBAC grants exact production and canary Binding patch/update rules;
 - Session Authorizer RBAC has only canonical Fence and temporary-binding
-  lifecycle plus exact `bind`, with no role-definition or recovery mutation;
+  lifecycle, Fence read, and exact `bind`, with no role-definition or recovery
+  mutation;
 - the Permission Bundle uses cluster-only ClusterRoleBinding and one explicit
   RoleBinding per approved Namespace;
 - tests document that RBAC top-level create is kind/Namespace or kind/cluster
@@ -1237,6 +1566,15 @@ prove all of the following:
   cluster-lifecycle, tenant, or data permission is granted;
 - VAP target rules exclude VAP and Binding resources and protect every required
   evidence object and Namespace;
+- Fence authorization has no parameter, Permission authorization uses the
+  canonical Fence as a native ConfigMap `paramKind`/`paramRef`, and
+  `parameterNotFoundAction: Deny` fails closed;
+- Fence, binding-shape, Permission, and guard authorization compose without a
+  label-omission bypass or an unrelated-resource denial;
+- Permission authorization compares every temporary-RBAC session field to the
+  immutable Fence;
+- with no Fence, unrelated RBAC/ConfigMap requests skip the Permission Policy,
+  while any Session-Authorizer RBAC request or guard-key mutation is denied;
 - observation, enforcement, suspension, drift, and unavailable states are
   classified exactly;
 - both API orders of `{Audit, Deny}` compare equal, JSON Patch tests the actual
@@ -1248,6 +1586,8 @@ prove all of the following:
   loser performs no mutation;
 - on a missing-cluster bootstrap, the host lock covers substrate creation and
   the Fence is the first Kubernetes object created after API readiness;
+- that first Fence is classified `FRESH_UNPROTECTED`, makes no Admission claim,
+  and cannot authorize recovery or a valid Signal;
 - a foreign Fence, leftover temporary Binding, or uncertain Fence result denies
   normal and recovery mutation;
 - bundle installation occurs only after Fence acquisition and bundle removal
@@ -1260,9 +1600,16 @@ prove all of the following:
 - journal hashes, pre-mutation anchor, and final bundle hash verify;
 - only full, verified Git commits can become known-good inputs;
 - every `main` source is pinned while the graph is frozen;
-- Freeze disables AutoSync, terminates every running operation, waits for idle,
-  proves a quiet interval, blocks ordinary manual sync, and re-reads each UID
-  and resourceVersion;
+- built-in Argo admin and anonymous access are disabled, default policy grants
+  no mutation, and effective local/SSO/AppProject authority is enumerated;
+- Freeze passes the Server/Controller available, Server-degraded, and
+  Controller-degraded paths, including Server/Controller-at-zero and deferred
+  proofs;
+- the guard key is Admission protected and survives an `argocd-self` sync under
+  `ignoreDifferences` plus `RespectIgnoreDifferences`;
+- staged Seed repair establishes configuration and guard before workloads, and
+  no manual sync occurs before all deferred termination, reload, and quiet
+  gates transition to `FROZEN_VERIFIED`;
 - Seed rendering is deterministic, version locked, and adoption compatible;
 - no recovery operation creates Helm release state;
 - Receipt reissue preserves Identity UID, predecessor lineage, and create-only
@@ -1270,6 +1617,8 @@ prove all of the following:
 - interruption after predecessor deletion resumes the same successor without
   reopening Seed authority;
 - Identity UID change or unverifiable lineage fails as `AMBIGUOUS`;
+- Phase-2 mutation rejects Identity v1 before Fence acquisition, and production
+  recovery stays disabled until the Phase-3 downgrade fence passes;
 - each Human Judgment Gate is action specific and journaled;
 - each rollout phase remains independently reviewable and Phase-1A resources
   are unreachable from the live Root graph;
@@ -1299,12 +1648,20 @@ This ADR remains `Proposed` until reviewers confirm:
 - one create-only Operation Fence removes the normal/recovery TOCTOU and its
   participant boundary is explicit;
 - the absent-cluster exception is limited to host-locked substrate creation and
-  Identity is committed only after acquiring the first cluster Fence;
+  Identity is committed only after acquiring a `FRESH_UNPROTECTED` Fence whose
+  lack of Admission protection is explicit;
+- Fence, binding-shape, parameterized Permission, and guard authorization form
+  an implementable anti-evasion contract with missing parameters denied;
 - normal and recovery command paths are physically isolated;
 - Binding-only suspend and exact restoration cannot create an untracked bypass;
 - set normalization, raw-array patch preconditions, and canonical JSON hashing
   are deterministic;
-- Freeze terminates running operations and prevents new ordinary manual syncs;
+- Argo admin/default/subject authority is hardened before the deny fragment is
+  treated as a manual-sync freeze;
+- Freeze handles Server and Controller failure without requiring a damaged
+  component to prove itself before Seed repair;
+- GitOps ownership and Admission preserve the recovery guard across
+  `argocd-self` sync;
 - snapshots, redaction, hashes, journal, and external anchoring are complete;
 - API audit is a cluster-creation prerequisite and missing audit fails Phase 0;
 - known-good revision selection preserves Git definition authority;
@@ -1313,6 +1670,8 @@ This ADR remains `Proposed` until reviewers confirm:
 - every interruption state has a fail-closed resume and rollback boundary;
 - Human Judgment Gates cover every trust-boundary mutation;
 - definition and activation changes cannot enter the live Root graph together;
+- Identity-v1 clusters cannot use production recovery and Phase 3 proves the
+  historical Bootstrap downgrade fence before per-cluster enablement;
 - the macOS/OrbStack drill is sufficient for the supported environment.
 
 Acceptance will authorize separately reviewed implementation in Phase 0 through
