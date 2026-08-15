@@ -811,7 +811,8 @@ Before mutation, the snapshot includes:
   Operator, and Session Authorizer, including group-derived permissions;
 - External Root, AppProjects, child control Applications, `argocd-self`, Argo
   CD workloads, CRDs, controller configuration, `argocd-cm`,
-  `argocd-rbac-cm`, guard ownership, and effective subject inventory;
+  `argocd-rbac-cm`, guard ownership, effective subject inventory, and the
+  version-locked Argo Freeze Action Inventory and its canonical hash;
 - current source revisions, sync policies, health, UIDs, resourceVersions, and
   Argo resource inventory;
 - relevant Events and available Kubernetes API audit records;
@@ -874,6 +875,8 @@ Before approval, the command creates an isolated clean worktree and proves:
   AppProjects, and `argocd-self` are internally consistent;
 - Argo admin/default hardening and the guard ownership contract render exactly
   from the candidate revision;
+- the Argo Freeze Action Inventory matches the candidate `ARGOCD_VERSION` and
+  has no unclassified resource/action tuple;
 - the version-matched Argo CD core-mode client artifact is checksum verified
   and available offline;
 - the Recovery Seed render is deterministic and adoption-compatible;
@@ -892,9 +895,10 @@ hashes are confirmed.
 
 ### Argo authorization and recovery-guard readiness
 
-The current baseline is not ready to claim a complete manual-sync freeze. The
-locked chart defaults `configs.cm.admin.enabled` to `true`; Atlas disables the
-chart-owned `argocd-cm` but its external ConfigMap does not set
+The current baseline is not ready to claim a complete Argo control-graph and
+managed-resource freeze. The locked chart defaults
+`configs.cm.admin.enabled` to `true`; Atlas disables the chart-owned
+`argocd-cm` but its external ConfigMap does not set
 `admin.enabled: "false"`. The current `argocd-self` Application also lacks the
 recovery-key ownership contract below.
 
@@ -904,20 +908,55 @@ and verified Argo authorization baseline must provide all of the following:
 - the live and Git-defined `argocd-cm` explicitly set
   `admin.enabled: "false"` and `users.anonymous.enabled: "false"`;
 - `policy.default` is empty or names a minimum authenticated role whose full
-  inheritance contains no `applications sync`, `update`, or `override`;
+  inheritance is an explicit read-only allow-list over the complete Argo
+  authorization surface; it contains no wildcard resource or action and no
+  control-graph or managed-resource mutation;
 - every local account, SSO user/group mapping, global role, inherited role, and
-  AppProject role is inventoried, with positive and negative authorization
-  tests for representative real identities;
+  AppProject role is inventoried, and every effective permission has a
+  read-only or side-effecting classification;
+- no ordinary explicit role contains a wildcard allow over resource or action;
+  every side-effecting allow is either removed in Phase 1B or assigned to a
+  role or subject covered by the generated guard during active recovery;
 - login or API use as the built-in `admin` is rejected, and unknown identities
-  receive no mutation through the default policy;
-- every explicit ordinary subject that can otherwise mutate Applications is
-  matched by the recovery deny fragment.
+  receive only the read-only default allow-list;
+- positive read probes and negative probes for every side-effecting action run
+  against representative real identities for every effective role.
+
+Atlas maintains a machine-readable, canonically encoded **Argo Freeze Action
+Inventory** for the exact `ARGOCD_VERSION` in `versions.lock`. Its canonical
+hash is part of the recovery plan, snapshot, guard projection, and evidence
+bundle. For the currently locked Argo CD v3.5.1 surface, the reviewed
+action classification is:
+
+| Argo RBAC resource | Read-only actions | Side-effecting actions and patterns |
+| --- | --- | --- |
+| `applications` | `get` | `create`, `update`, `update/*`, `delete`, `delete/*`, `sync`, `override`, `action/*` |
+| `applicationsets` | `get` | `create`, `update`, `delete` |
+| `clusters`, `projects`, `repositories` | `get` | `create`, `update`, `delete` |
+| `accounts` | `get` | `update` |
+| `certificates`, `gpgkeys` | `get` | `create`, `delete` |
+| `logs` | `get` | none |
+| `exec` | none | `create` |
+| `extensions` | none | `invoke` |
+
+Only actions in the reviewed read-only column may appear in the default role.
+The fine-grained Application inheritance setting and both parent and managed
+resource forms of `update` and `delete` are recorded with the inventory. An
+action, pattern, resource, inheritance mode, or live Argo CD version absent
+from the reviewed inventory is `AUTHORITY_DRIFTED`, never implicitly read-only.
+It prevents guard activation and `FROZEN_VERIFIED` until the version lock,
+inventory, tests, and Human Gate agree.
 
 The built-in `admin` is an unrestricted superuser, and permissions granted by
 `policy.default` are resolved before subject-specific policy and cannot be
 withdrawn by a later deny. Atlas therefore treats the deny fragment only as a
-freeze layer over explicit subject/role grants. It never claims that the
-fragment constrains the built-in administrator or unsafe default permissions.
+freeze layer over explicit subject/role grants. For each inventoried ordinary
+explicit role or direct policy principal, the generated fragment denies `*`
+actions on `*` Argo resources and objects. Recovery uses Kubernetes core mode
+and does not need an Argo API exception. This wildcard deny deliberately
+blocks a version-added action for those principals, while unknown principals
+can inherit only the explicit read-only default. The fragment never claims to
+constrain the built-in administrator or unsafe default permissions.
 
 `argocd-rbac-cm` is managed by `argocd-self`, so the guard key requires a
 permanent ownership contract in the Git-defined `argocd-self` Application:
@@ -1004,31 +1043,60 @@ known-good label/owner inventory, Pods, leases, and audit stream that no
 Controller process exists. A partially alive or unobservable Controller is
 `FREEZE_UNAVAILABLE`, not degraded-safe.
 
+The ApplicationSet Controller is a separate propagation actor and does not use
+Argo Server RBAC when reconciling ApplicationSet resources into Applications.
+The current desired replica count of zero is therefore verified, not assumed.
+Before any quiet gate or Seed entry, Atlas inventories every ApplicationSet,
+expected ApplicationSet Controller Deployment, Pod, owner, lease, and recent
+Application mutation. If a Controller is present or desired above zero, the
+Recovery Operator snapshots it, scales it to zero with UID and resourceVersion
+preconditions under the component-quiescence gate, waits for every old Pod to
+terminate, and proves a bounded interval with no generated-Application
+mutation. An absent workload requires the same complete no-process proof as an
+absent Application Controller. Ambiguous capability is `FREEZE_UNAVAILABLE`.
+The prior replica count is not restored by the Recovery Seed; it is restored
+only at its inside-out layer gate after every ApplicationSet and generated
+Application projection has been revalidated.
+
 Likewise, every present unavailable Server workload is snapshotted and scaled
 to zero before Atlas accepts `GUARD_RELOAD_PENDING`. If its Deployment is
 absent, Atlas proves that no Server Pod or endpoint remains. This prevents an
-unverified Server from spontaneously returning with stale RBAC and accepting a
-manual sync. The staged Seed later restores its exact desired replicas only
+unverified Server from spontaneously returning with stale RBAC and accepting an
+Argo mutation. The staged Seed later restores its exact desired replicas only
 after the guard configuration prelude is live.
 
 Before walking the graph, the Recovery Operator installs the exact,
 snapshotted `argocd-rbac-cm` fragment under
-`policy.atlas-recovery-freeze.csv`. It denies `applications sync`, `override`,
-and `update` for every inventoried ordinary explicit subject. Deny precedence
-applies only after the Argo authorization-readiness conditions above have
-removed built-in admin and unsafe default-policy authority. Direct Kubernetes
-Application writes by ordinary credentials must already be denied by effective
-Kubernetes RBAC checks.
+`policy.atlas-recovery-freeze.csv`. The fragment is generated from the exact
+subject/role inventory and denies every Argo resource, action, and object for
+each inventoried ordinary explicit policy principal. Its canonical projection
+binds the live Argo CD version and Freeze Action Inventory hash. Deny precedence
+applies only after the authorization-readiness conditions above have removed
+built-in admin, unsafe default-policy authority, wildcard allows, and
+unclassified permissions. Direct Kubernetes writes to Applications,
+ApplicationSets, AppProjects, and Argo authorization ConfigMaps by ordinary
+credentials must already be denied by effective Kubernetes RBAC checks.
+
+The desired guard projection is canonical JSON containing the exact Argo CD
+version, fine-grained inheritance mode, action-inventory SHA-256,
+subject/role-inventory SHA-256, ConfigMap namespace/name, guard key, and exact
+CSV bytes. It uses the canonical encoding rules defined for recovery
+projections above. The plan approves this projection hash; the live ConfigMap
+UID and resourceVersion remain separate mutation preconditions.
 
 Guard installation tests ConfigMap UID and resourceVersion, the no-parameter
 Guard authorization, and the active Fence-bound permission bundle. When the
 Server is available, the command waits for RBAC reload and proves denial with
-representative ordinary identities. When the Server is unavailable, it records
+representative ordinary identities across every inventory action, including
+Application parent, managed-resource, custom-action, and ApplicationSet
+mutations. When the Server is unavailable, it records
 `GUARD_RELOAD_PENDING`, verifies the live key through Kubernetes, and defers
 only the server-side reload probe until Seed restoration. A missing ConfigMap
-uses the configuration prelude defined above. Removal tests the actual recovery
-value and current resourceVersion, restores the exact preflight value or
-absence, and verifies the canonical ConfigMap projection hash.
+uses the configuration prelude defined above. A runtime version, effective
+policy, subject set, inheritance mode, or inventory-hash change is
+`AUTHORITY_DRIFTED` and invalidates the guard and quiet gate. Removal tests the
+actual recovery value and current resourceVersion, restores the exact preflight
+value or absence, and verifies the canonical ConfigMap projection hash.
 
 Then freeze each layer outside-in without deleting Applications:
 
@@ -1097,6 +1165,8 @@ Render only from the approved commit and locked artifacts. The Recovery Seed:
 - preserves existing evidence and refuses unplanned UID changes;
 - applies only the reviewed Seed resource inventory with a session-specific
   field manager;
+- keeps the ApplicationSet Controller at zero from a reviewed recovery-safe
+  projection even if its normal desired replica count is nonzero;
 - waits for every Argo CD Seed control-plane workload and CRD required by the
   shared health contract.
 
@@ -1116,7 +1186,8 @@ any manual sync:
   accounts for any termination cleanup mutation, and passes the bounded quiet
   gate;
 - both paths re-read the guard, every Application UID/resourceVersion, and the
-  managed-resource inventory before transitioning to `FROZEN_VERIFIED`.
+  managed-resource inventory, and re-prove that no ApplicationSet Controller
+  process exists before transitioning to `FROZEN_VERIFIED`.
 
 Failure to complete a deferred proof leaves the graph frozen and permits only
 another same-plan Seed repair. A damaged Server or Controller is therefore not
@@ -1136,10 +1207,14 @@ explicitly listed in the plan; otherwise patch the minimum fields with UID and
 resourceVersion preconditions.
 
 Only from `FROZEN_VERIFIED`, materialize and manually sync the pinned
-`argocd-self` desired state through the version-matched Argo CD client in
-Kubernetes core mode before other platform capabilities. Child automated sync
-remains disabled. Verify immediately before and after the sync that the
-ignore-differences ownership contract preserved the exact manual-sync guard,
+`argocd-self` recovery-safe desired projection through the version-matched
+Argo CD client in Kubernetes core mode before other platform capabilities.
+Child automated sync remains disabled and the projection keeps the
+ApplicationSet Controller at zero. Its source and render hashes are approved
+with the plan; a cluster whose normal projection enables ApplicationSet but
+whose approved revision lacks this zero-replica recovery projection is
+`FREEZE_UNAVAILABLE`. Verify immediately before and after the sync that the
+ignore-differences ownership contract preserved the exact Argo recovery guard,
 then confirm the controller inventory and the Signal object created by GitOps.
 
 If admission was suspended, restore `ENFORCED` and pass all positive, negative,
@@ -1171,7 +1246,11 @@ Seed
 Restoring each automated sync policy uses the preflight object and approved Git
 projection as explicit inputs. Failure at any layer refreezes that layer and
 everything outside it. External Root resume is a final, separate Human
-Judgment Gate. The Argo RBAC manual-sync deny is hash-checked throughout resume
+Judgment Gate. If ApplicationSet is normally enabled, its ordinary desired
+projection and replica count are restored only at the Management Capability
+gate, after every ApplicationSet template and generated Application identity,
+project, source, destination, and pinned revision has been approved and
+revalidated. The Argo recovery guard is hash-checked throughout resume
 and removed only under a separate gate immediately before External Root resume,
 after all inner layers and the repaired Git revision are verified.
 
@@ -1249,7 +1328,7 @@ Further damage is corrected forward in another explicitly authorized reissue.
 | Fence acquired, bundle absent or partial | Session Authorizer completes or removes bundle under gate | Fence keeps normal mutation denied |
 | Bundle complete, before freeze | resume same session or remove bundle and release Fence under gate | no recovery mutation occurred |
 | Partially frozen | resume freezing from journal | do not auto-resume any layer |
-| Guard installed, Server at zero, reload pending | same-plan Seed repair and deferred guard probe only | guard remains live; no manual sync |
+| Guard installed, Server at zero, reload pending | same-plan Seed repair and deferred guard probe only | guard remains live; no Argo mutation |
 | Controller quiesced, operations pending | same-plan configuration prelude and Seed repair only | Controller remains at zero until guarded Seed entry |
 | Admission suspended | restore exact Binding first or remain frozen | no other resume while `SUSPENDED` |
 | Seed partially restored | correct forward from the same render | never delete Namespace or apply an unverified older Seed |
@@ -1280,11 +1359,11 @@ checkpoint and cannot be reused:
 | Acquire or release the Operation Fence | Session Authorizer gate for each direction |
 | Install or remove the Recovery Permission Bundle | session authority gate |
 | Select or change the known-good Git commit | revision-selection gate |
-| Install or remove the Argo manual-sync deny | manual-sync freeze gate |
+| Install or remove the Argo recovery guard | Argo mutation-closure gate |
 | Freeze External Root | Tier-0 freeze gate |
 | Freeze each named control layer | layer-specific freeze gate |
 | Terminate an in-flight sync operation | Application-specific termination gate |
-| Scale an unsafe Argo Server or Application Controller to zero | component-quiescence gate |
+| Scale an unsafe Argo Server, Application Controller, or ApplicationSet Controller to zero | component-quiescence gate |
 | Suspend or restore the production admission Binding | admission gate for each direction |
 | Repair the production Policy or Binding from Git | protection-repair gate |
 | Apply the Recovery Seed | Seed mutation gate |
@@ -1308,9 +1387,9 @@ Implementation is split into independently reviewable phases and PRs:
    Kind target, and disposable protection and recovery-authorization canaries.
    Exercise canary suspend/restore and a canary Fence/Permission Bundle
    ceremony. Session Authorizer authority is canary-scoped; production Session
-   Authorizer RBAC is not active. Inventory Argo local/SSO/default authority and
-   record the current built-in-admin and guard-ownership gaps. No production
-   `Deny` exists.
+   Authorizer RBAC is not active. Inventory Argo local/SSO/default authority,
+   create the version-locked Freeze Action Inventory, and record the current
+   built-in-admin and guard-ownership gaps. No production `Deny` exists.
 1. **Protection foundation.** This phase is subdivided:
    - **1A — Resource definitions.** Add VAP, Binding, Signal, Operation Fence
      contract, Namespace-split RBAC, Argo authorization hardening, guard
@@ -1319,9 +1398,12 @@ Implementation is split into independently reviewable phases and PRs:
      must fail conformance if accidentally wired.
    - **1B — Hardening and Audit/Warn activation.** Separate Human-Gated changes
      first disable built-in admin, constrain default and explicit Argo
-     authority, and activate the guard ownership contract. After live
-     authorization probes pass, another change wires only admission observation
-     mode. Collect real audit evidence before proceeding.
+     authority to the reviewed read-only and side-effecting classifications,
+     eliminate ordinary wildcard allows, and activate the guard ownership
+     contract. Every retained side-effecting role must be covered by the
+     generated all-action recovery deny. After complete live authorization
+     probes pass, another change wires only admission observation mode. Collect
+     real audit evidence before proceeding.
    - **1C — Fail+Deny and Signal.** Activate `Fail` + `Deny` only after escape
      revalidation. Activate all four recovery-authorization controls and
      production Session Authorizer RBAC only after their negative and positive
@@ -1378,11 +1460,24 @@ bundle. It proves at least:
   hash while JSON Patch tests the actual raw order;
 - definition-only resources remain unreachable before their activation PR;
 - snapshot redaction and deterministic hash manifests;
-- built-in Argo admin and anonymous access are disabled, default authority has
-  no mutation, and every local/SSO/AppProject subject is inventoried and tested;
+- built-in Argo admin and anonymous access are disabled; default authority is
+  limited to the explicit read-only allow-list; and every effective local,
+  SSO, global-role, inherited-role, and AppProject-role grant is inventoried;
+- the locked Argo version and canonical Freeze Action Inventory hash match,
+  ordinary wildcard allows are absent, and the active guard rejects every
+  inventoried side-effecting action for every effective role, including
+  `applications create/update/update/*/delete/delete/*/sync/override/action/*`
+  and `applicationsets create/update/delete`;
+- an unclassified synthetic action, inventory mismatch, changed inheritance
+  mode, and live Argo version mismatch each fail closed before
+  `FROZEN_VERIFIED`; positive probes retain only approved read operations;
 - the Server/Controller available, Server-degraded, and Controller-degraded
   paths each complete Freeze without requiring a damaged component to prove
   itself before Seed repair;
+- the current disabled ApplicationSet Controller is proven to have zero
+  processes, and a separately enabled drill variant is quiesced before the
+  quiet gate, cannot mutate generated Applications while frozen, remains zero
+  through Seed and `argocd-self` recovery sync, and resumes only at its gate;
 - guard reload deferral, Controller-at-zero proof, pending termination, staged
   configuration/Seed apply, quiet interval, and exact sync-policy restoration;
 - an `argocd-self` sync with `RespectIgnoreDifferences` preserves the exact
@@ -1426,8 +1521,13 @@ authorization. Passing simulated unit tests alone is insufficient evidence.
   broadening namespaced recovery access.
 - Argo authorization hardening and guard ownership become release prerequisites
   instead of assumptions made during an incident.
-- Degraded Freeze can repair a failed Server or Controller, but it lengthens the
-  workflow with staged Seed entry and mandatory post-repair proofs.
+- Each Argo CD version change must update and review the canonical Freeze
+  Action Inventory and authorization probes in the same change; an incomplete
+  inventory makes recovery unavailable.
+- Degraded Freeze can repair a failed Server or Application Controller, while
+  independent ApplicationSet quiescence closes its generated-Application
+  path. These controls lengthen the workflow with staged Seed entry and
+  mandatory post-repair proofs.
 - Receipt lineage preserves the monotonic trust transition across legitimate
   Signal, Root, or `argocd-self` recreation without pretending Kubernetes UIDs
   are restorable.
@@ -1502,6 +1602,15 @@ Rejected because the built-in `admin` is unrestricted and a permission granted
 by `policy.default` cannot be withdrawn by subject-specific deny. Atlas first
 disables those authorities and uses the deny fragment only over explicit role
 grants.
+
+### Deny only Application sync, update, and override
+
+Rejected because Application create/delete, fine-grained managed-resource
+update/delete, resource actions, and ApplicationSet reconciliation can still
+change the control graph or managed resources. Atlas uses an explicit
+version-locked action inventory, an all-resource/all-action deny for every
+ordinary explicit policy principal, and independent ApplicationSet Controller
+quiescence. Unknown action or version drift fails closed.
 
 ### Require healthy Argo CD before repairing the Seed
 
@@ -1601,15 +1710,30 @@ prove all of the following:
 - only full, verified Git commits can become known-good inputs;
 - every `main` source is pinned while the graph is frozen;
 - built-in Argo admin and anonymous access are disabled, default policy grants
-  no mutation, and effective local/SSO/AppProject authority is enumerated;
+  only the explicit read-only allow-list, and effective local/SSO/global,
+  inherited, and AppProject authority is enumerated without ordinary wildcard
+  allows;
+- the live Argo version, fine-grained inheritance mode, and canonical Freeze
+  Action Inventory exactly match `versions.lock` and the approved plan;
+- the guard's all-resource/all-action deny covers every ordinary explicit
+  policy principal, and negative authorization tests exercise every inventory
+  action, including Application parent, managed-resource, custom-action, and
+  ApplicationSet mutations;
+- any version-added or otherwise unclassified action, inventory or policy
+  drift, or live version mismatch prevents `FROZEN_VERIFIED`;
 - Freeze passes the Server/Controller available, Server-degraded, and
   Controller-degraded paths, including Server/Controller-at-zero and deferred
   proofs;
+- the ApplicationSet Controller has no live process during Freeze, remains at
+  zero through Seed and `argocd-self` recovery sync, and an enabled-controller
+  variant resumes only after its ApplicationSet and generated Application
+  projections pass the Management Capability gate;
 - the guard key is Admission protected and survives an `argocd-self` sync under
   `ignoreDifferences` plus `RespectIgnoreDifferences`;
 - staged Seed repair establishes configuration and guard before workloads, and
-  no manual sync occurs before all deferred termination, reload, and quiet
-  gates transition to `FROZEN_VERIFIED`;
+  no Argo API, ApplicationSet, or GitOps reconciliation mutation occurs before
+  all deferred termination, reload, authorization, controller-quiescence, and
+  quiet gates transition to `FROZEN_VERIFIED`;
 - Seed rendering is deterministic, version locked, and adoption compatible;
 - no recovery operation creates Helm release state;
 - Receipt reissue preserves Identity UID, predecessor lineage, and create-only
@@ -1656,10 +1780,17 @@ This ADR remains `Proposed` until reviewers confirm:
 - Binding-only suspend and exact restoration cannot create an untracked bypass;
 - set normalization, raw-array patch preconditions, and canonical JSON hashing
   are deterministic;
-- Argo admin/default/subject authority is hardened before the deny fragment is
-  treated as a manual-sync freeze;
+- Argo admin/default/subject authority is hardened to the complete read-only
+  and side-effecting classification before the deny fragment is treated as a
+  mutation closure;
+- the version-locked Freeze Action Inventory, all-action ordinary-principal
+  guard, negative authorization matrix, and unknown-action failure rule cover
+  Application, managed-resource, custom-action, ApplicationSet, and every
+  other supported side-effecting Argo permission;
 - Freeze handles Server and Controller failure without requiring a damaged
   component to prove itself before Seed repair;
+- ApplicationSet Controller quiescence and guarded resume prevent generated
+  Application mutation throughout Freeze;
 - GitOps ownership and Admission preserve the recovery guard across
   `argocd-self` sync;
 - snapshots, redaction, hashes, journal, and external anchoring are complete;
