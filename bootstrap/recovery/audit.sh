@@ -11,7 +11,7 @@ audit::_canonical_destination() {
     return 1
   }
   audit::_path_bytes_are_safe "$requested" || {
-    recovery::die "--audit-dir must be valid UTF-8 without C0 or C1 control characters"
+    recovery::die "--audit-dir must be valid YAML-printable UTF-8 without C0 or C1 control characters"
     return 1
   }
   [[ -d $requested && ! -L $requested ]] || {
@@ -69,6 +69,8 @@ audit::_path_bytes_are_safe() {
     printf -v third '%d' "'${value:index+2:1}"
     if ((first >= 224 && first <= 239)); then
       ((third >= 128 && third <= 191)) || return 1
+      # YAML 1.2 excludes U+FFFE and U+FFFF despite their valid UTF-8 form.
+      ((first != 239 || second != 191 || third < 190)) || return 1
       if ((first == 224)); then
         ((second >= 160 && second <= 191)) || return 1
       elif ((first == 237)); then

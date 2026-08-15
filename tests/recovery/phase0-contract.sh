@@ -119,9 +119,19 @@ unsafe_byte_sequences=(
   $'\xc2\x80'
   $'\xc2\x9f'
   $'\xe0\x80\x80'
+  $'\xef\xbf\xbe'
+  $'\xef\xbf\xbf'
   $'\xf5\x80\x80\x80'
 )
-path_control_suffixes=($'\x01' $'\x1f' $'\x7f' $'\xc2\x80' $'\xc2\x9f')
+path_rejected_suffixes=(
+  $'\x01'
+  $'\x1f'
+  $'\x7f'
+  $'\xc2\x80'
+  $'\xc2\x9f'
+  $'\xef\xbf\xbe'
+  $'\xef\xbf\xbf'
+)
 for test_locale in C "$utf8_locale"; do
   for sequence in "${unsafe_byte_sequences[@]}"; do
     if LC_ALL="$test_locale" audit::_path_bytes_are_safe "$sequence"; then
@@ -132,22 +142,26 @@ for test_locale in C "$utf8_locale"; do
     LC_ALL="$test_locale" audit::_path_bytes_are_safe "$sequence" || test::fail "valid UTF-8 bytes were rejected under ${test_locale}"
   done
 
-  for suffix in "${path_control_suffixes[@]}"; do
-    control_directory="${test_workspace}/audit-control-${test_locale}-${suffix}"
-    mkdir "$control_directory"
-    if control_output=$(LC_ALL="$test_locale" "$recovery_cli" phase0 audit-config --audit-dir "$control_directory" 2>&1); then
-      test::fail "control-byte audit destination was accepted under ${test_locale}"
+  for suffix in "${path_rejected_suffixes[@]}"; do
+    rejected_directory="${test_workspace}/audit-rejected-${test_locale}-${suffix}"
+    # APFS rejects YAML noncharacters at mkdir; filesystems that permit them
+    # exercise the same CLI boundary with an existing real directory.
+    mkdir "$rejected_directory" 2> /dev/null || true
+    if rejected_output=$(LC_ALL="$test_locale" "$recovery_cli" phase0 audit-config --audit-dir "$rejected_directory" 2>&1); then
+      test::fail "non-YAML-printable audit destination was accepted under ${test_locale}"
     fi
-    grep -Fq 'valid UTF-8 without C0 or C1 control characters' <<< "$control_output" || test::fail "control-byte rejection used the wrong failure boundary under ${test_locale}"
+    grep -Fq 'valid YAML-printable UTF-8 without C0 or C1 control characters' <<< "$rejected_output" || test::fail "path rejection used the wrong failure boundary under ${test_locale}"
   done
 
   for suffix in $'\xc4\x80' $'\xf0\x9f\x98\x80'; do
     unicode_directory="${test_workspace}/audit-unicode-${test_locale}-${suffix}"
+    unicode_render="${test_workspace}/kind-unicode-${test_locale}-${suffix}.yaml"
     mkdir "$unicode_directory"
-    LC_ALL="$test_locale" "$recovery_cli" phase0 audit-config --audit-dir "$unicode_directory" > /dev/null || test::fail "valid Unicode audit destination was rejected under ${test_locale}"
+    LC_ALL="$test_locale" "$recovery_cli" phase0 audit-config --audit-dir "$unicode_directory" > "$unicode_render" || test::fail "valid Unicode audit destination was rejected under ${test_locale}"
+    yq '.' "$unicode_render" > /dev/null || test::fail "rendered Unicode path is not valid YAML under ${test_locale}"
   done
 done
-test::pass "C0, C1, invalid UTF-8, and valid Unicode paths have locale-independent results"
+test::pass "YAML-printable UTF-8 path validation is locale independent"
 
 test::assert_not_found 'bootstrap/recovery|atlas-recovery|recovery-audit-policy' bootstrap/atlas bootstrap/argocd bootstrap/cluster bootstrap/host bootstrap/lib bootstrap/registry
 test::assert_not_found 'recovery-audit-policy' gitops

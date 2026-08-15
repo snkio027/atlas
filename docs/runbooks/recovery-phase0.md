@@ -65,6 +65,6 @@ task quality
 ```
 
 Quality verifies deterministic rendering, path confinement, first-match audit
-semantics, C0/C1 byte rejection under C and UTF-8 locales, physical isolation
-from normal Bootstrap, and the absence of cluster mutation commands. It does
-not replace the macOS/OrbStack runtime drill required by ADR-0003.
+semantics, YAML-printable UTF-8 validation under C and UTF-8 locales, physical
+isolation from normal Bootstrap, and the absence of cluster mutation commands.
+It does not replace the macOS/OrbStack runtime drill required by ADR-0003.
