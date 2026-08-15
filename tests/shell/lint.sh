@@ -7,8 +7,8 @@ IFS=$'\n\t'
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 cd "$ATLAS_TEST_ROOT"
 
-mapfile -t production_shell < <(find bootstrap -type f \( -name '*.sh' -o -name atlas \) | sort)
-mapfile -t all_shell < <(find bootstrap tests -type f \( -name '*.sh' -o -name atlas \) | sort)
+mapfile -t production_shell < <(find bootstrap -type f \( -name '*.sh' -o -name atlas -o -name atlas-recovery \) | sort)
+mapfile -t all_shell < <(find bootstrap tests -type f \( -name '*.sh' -o -name atlas -o -name atlas-recovery \) | sort)
 expected_production_shell=(
   bootstrap/argocd/handoff.sh
   bootstrap/argocd/render.sh
@@ -20,6 +20,8 @@ expected_production_shell=(
   bootstrap/lib/config.sh
   bootstrap/lib/lock.sh
   bootstrap/lib/runtime.sh
+  bootstrap/recovery/atlas-recovery
+  bootstrap/recovery/audit.sh
   bootstrap/registry/local.sh
 )
 

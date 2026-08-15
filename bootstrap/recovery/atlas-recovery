@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+if ((BASH_VERSINFO[0] < 5)); then
+  printf 'Atlas Recovery requires Bash 5.x; found %s\n' "$BASH_VERSION" >&2
+  exit 2
+fi
+
+ATLAS_RECOVERY_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+readonly ATLAS_RECOVERY_ROOT_DIR
+readonly ATLAS_RECOVERY_CLI_VERSION=0.1.0
+
+# Recovery code is intentionally sourced only by this entry point. The normal
+# Bootstrap CLI must remain unable to dispatch recovery behavior.
+# shellcheck source=bootstrap/recovery/audit.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit.sh"
+
+recovery::usage() {
+  cat << 'EOF'
+Usage: bootstrap/recovery/atlas-recovery <command> [options]
+
+Commands:
+  phase0 audit-config  Render a disposable audited Kind configuration
+
+Options for phase0 audit-config:
+  --audit-dir <path>   Existing writable audit directory outside the repository
+
+Global options:
+  -V, --version        Show the Recovery CLI version
+  -h, --help           Show this help
+
+This Phase-0 entry point renders configuration only. It cannot create a
+cluster, issue credentials, install RBAC or Admission resources, or perform
+recovery mutations.
+EOF
+}
+
+recovery::version() {
+  printf 'atlas-recovery %s\n' "$ATLAS_RECOVERY_CLI_VERSION"
+}
+
+recovery::die() {
+  printf 'atlas-recovery: %s\n' "$*" >&2
+  return 1
+}
+
+recovery::main() {
+  local command_name=${1:-}
+  [[ -n $command_name ]] || {
+    recovery::usage >&2
+    return 2
+  }
+  shift
+
+  case "$command_name" in
+    -h | --help | help)
+      (($# == 0)) || recovery::die "help does not accept options"
+      recovery::usage
+      ;;
+    -V | --version | version)
+      (($# == 0)) || recovery::die "version does not accept options"
+      recovery::version
+      ;;
+    phase0)
+      audit::dispatch "$@"
+      ;;
+    *)
+      recovery::usage >&2
+      recovery::die "unknown command: ${command_name}"
+      return 2
+      ;;
+  esac
+}
+
+recovery::main "$@"

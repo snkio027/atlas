@@ -1,0 +1,95 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitManagedFields: true
+omitStages:
+  - RequestReceived
+rules:
+  # First-match privacy fence: credential-bearing API objects remain
+  # metadata-only even if later body-capture rules are broadened.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources:
+          - secrets
+          - serviceaccounts/token
+      - group: authentication.k8s.io
+        resources:
+          - tokenreviews
+      - group: certificates.k8s.io
+        resources:
+          - certificatesigningrequests
+          - certificatesigningrequests/approval
+          - certificatesigningrequests/status
+
+  # Audit policy is selected from request attributes before a collection
+  # CREATE has an object name. Capture every ConfigMap CREATE in the protected
+  # namespaces at Metadata rather than risk logging an unrelated sensitive
+  # ConfigMap body. A named follow-up read supplies recovery evidence.
+  - level: Metadata
+    verbs:
+      - create
+    namespaces:
+      - argocd
+      - kube-system
+    resources:
+      - group: ""
+        resources:
+          - configmaps
+
+  # Recovery and adoption ConfigMaps are safe, schema-constrained evidence.
+  # Named reads and mutations retain detail after CREATE's privacy boundary.
+  - level: RequestResponse
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+    namespaces:
+      - kube-system
+    resources:
+      - group: ""
+        resources:
+          - configmaps
+        resourceNames:
+          - atlas-bootstrap-adoption-receipt
+          - atlas-bootstrap-identity
+          - atlas-bootstrap-operation-fence
+          - atlas-bootstrap-operation-fence-canary
+
+  - level: RequestResponse
+    verbs:
+      - delete
+      - get
+      - patch
+      - update
+    namespaces:
+      - argocd
+    resources:
+      - group: ""
+        resources:
+          - configmaps
+        resourceNames:
+          - argocd-rbac-cm
+          - atlas-bootstrap-adoption-signal
+
+  - level: RequestResponse
+    resources:
+      - group: admissionregistration.k8s.io
+        resources:
+          - validatingadmissionpolicies
+          - validatingadmissionpolicybindings
+      - group: rbac.authorization.k8s.io
+        resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+      - group: argoproj.io
+        resources:
+          - applications
+          - applicationsets
+          - appprojects
+
+  # Preserve an identity and outcome trail for every other request without
+  # recording request or response bodies.
+  - level: Metadata
