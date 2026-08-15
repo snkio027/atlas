@@ -30,8 +30,16 @@ The generated configuration mounts:
 
 The audit policy captures request and response bodies only for the recovery,
 adoption, RBAC, Admission, and Argo control objects needed by ADR-0003.
-Secrets, TokenReviews, and CSRs are matched first at `Metadata` level; the
-catch-all is also `Metadata`.
+Secrets, ServiceAccount token requests, TokenReviews, and CSRs are matched
+first at `Metadata` level; the catch-all is also `Metadata`.
+
+Kubernetes selects the audit rule from request attributes. A collection
+`CREATE` does not provide the new ConfigMap name at that decision point, so all
+ConfigMap creates in `argocd` and `kube-system` remain `Metadata` rather than
+risk capturing an unrelated sensitive body. Named follow-up reads and later
+mutations of the canonical recovery objects use `RequestResponse`; the future
+evidence journal must bind that read to the CREATE response UID and
+resourceVersion.
 
 ## Human-gated boundary
 
@@ -56,7 +64,7 @@ Root or another live Kustomization.
 task quality
 ```
 
-Quality verifies deterministic rendering, path confinement, audit redaction
-ordering, physical isolation from normal Bootstrap, and the absence of cluster
-mutation commands. It does not replace the macOS/OrbStack runtime drill
-required by ADR-0003.
+Quality verifies deterministic rendering, path confinement, first-match audit
+semantics, C0/C1 byte rejection under C and UTF-8 locales, physical isolation
+from normal Bootstrap, and the absence of cluster mutation commands. It does
+not replace the macOS/OrbStack runtime drill required by ADR-0003.

@@ -10,8 +10,8 @@ audit::_canonical_destination() {
     recovery::die "--audit-dir must be an absolute path"
     return 1
   }
-  [[ $requested != *$'\n'* && $requested != *$'\r'* && $requested != *$'\t'* ]] || {
-    recovery::die "--audit-dir must not contain control characters"
+  audit::_path_bytes_are_safe "$requested" || {
+    recovery::die "--audit-dir must be valid UTF-8 without C0 or C1 control characters"
     return 1
   }
   [[ -d $requested && ! -L $requested ]] || {
@@ -35,6 +35,63 @@ audit::_canonical_destination() {
   }
 
   printf '%s\n' "$canonical"
+}
+
+audit::_path_bytes_are_safe() {
+  local value=$1
+  local LC_ALL=C
+  local index=0 length first second third fourth
+
+  # Bash arguments cannot contain NUL. Decode every other byte under the C
+  # locale so the result does not depend on the caller's character locale.
+  length=${#value}
+  while ((index < length)); do
+    printf -v first '%d' "'${value:index:1}"
+    if ((first <= 31 || first == 127)); then
+      return 1
+    fi
+    if ((first <= 127)); then
+      ((index += 1))
+      continue
+    fi
+
+    ((index + 1 < length)) || return 1
+    printf -v second '%d' "'${value:index+1:1}"
+    if ((first >= 194 && first <= 223)); then
+      ((second >= 128 && second <= 191)) || return 1
+      # U+0080 through U+009F encode as C2 80 through C2 9F.
+      ((first != 194 || second >= 160)) || return 1
+      ((index += 2))
+      continue
+    fi
+
+    ((index + 2 < length)) || return 1
+    printf -v third '%d' "'${value:index+2:1}"
+    if ((first >= 224 && first <= 239)); then
+      ((third >= 128 && third <= 191)) || return 1
+      if ((first == 224)); then
+        ((second >= 160 && second <= 191)) || return 1
+      elif ((first == 237)); then
+        ((second >= 128 && second <= 159)) || return 1
+      else
+        ((second >= 128 && second <= 191)) || return 1
+      fi
+      ((index += 3))
+      continue
+    fi
+
+    ((first >= 240 && first <= 244 && index + 3 < length)) || return 1
+    printf -v fourth '%d' "'${value:index+3:1}"
+    ((third >= 128 && third <= 191 && fourth >= 128 && fourth <= 191)) || return 1
+    if ((first == 240)); then
+      ((second >= 144 && second <= 191)) || return 1
+    elif ((first == 244)); then
+      ((second >= 128 && second <= 143)) || return 1
+    else
+      ((second >= 128 && second <= 191)) || return 1
+    fi
+    ((index += 4))
+  done
 }
 
 audit::_yaml_scalar() {
