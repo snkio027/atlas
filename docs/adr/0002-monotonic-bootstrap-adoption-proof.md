@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-15
 - Deciders: repository owner and required CODEOWNERS
+- Clarified by: [ADR-0003](0003-bootstrap-break-glass-recovery.md)
 - Supersedes: none
 - Superseded by: none
 
@@ -306,21 +307,29 @@ protection mechanism.
 Before a Signal can be valid, Atlas must install and verify fail-closed
 `ValidatingAdmissionPolicy` and `ValidatingAdmissionPolicyBinding` controls.
 Kubernetes provides Validating Admission Policy as a stable, in-process CEL
-admission mechanism. The Atlas controls must deny unauthorized update or delete
-operations against:
+admission mechanism. Kubernetes does not permit a
+`ValidatingAdmissionPolicy` to match either `ValidatingAdmissionPolicy` or
+`ValidatingAdmissionPolicyBinding` resources. The Atlas admission controls
+therefore deny unauthorized update or delete operations against:
 
 - Identity v2;
 - GitOps Signal;
 - Adoption Receipt;
-- their protection policy and binding;
 - the `argocd` and `kube-system` namespaces where deletion would remove the
   protected records.
 
-Self-protecting enforcement is enabled only after an independent break-glass
-principal exists and has successfully exercised the exact policy suspend and
-restore path against an isolated canary policy. The principal and its credential
-must not depend on Argo CD, the protected namespaces, or the policy objects it
-may need to suspend.
+The protection Policy and Binding are outside their own admission match scope.
+They are protected instead by exact, minimal RBAC; Git prune/delete protection;
+exact-object and hash verification; and a Human Judgment Gate for every
+authorized change. Ordinary principals and Argo CD have no mutation authority
+over them. [ADR-0003](0003-bootstrap-break-glass-recovery.md) defines the
+canonical split protection, admission escape, and recovery authority model.
+
+Combined evidence enforcement and Policy/Binding protection are enabled only
+after an independent break-glass principal exists and has successfully
+exercised the exact Binding suspend and restore path against an isolated canary
+policy. The principal and its credential must not depend on Argo CD, the
+protected namespaces, or the policy objects it may need to suspend.
 
 Production admission activation is staged:
 
@@ -356,14 +365,15 @@ the threat model and must fail closed.
 Atlas distinguishes a minimal admission escape path from complete Seed
 recovery.
 
-Before any self-protecting `Deny` Binding is enabled, the minimal admission
-escape capability must already provide:
+Before any production evidence `Deny` Binding and its separate RBAC/Git/Human
+protection are enabled, the minimal admission escape capability must already
+provide:
 
 - an independently authenticated and securely escrowed break-glass principal;
 - exact target confirmation and human authorization;
 - auditable Policy and Binding suspend/restore operations;
-- a tested canary proving the principal can escape a defective self-protecting
-  rule and restore enforcement;
+- a tested canary proving the principal can suspend a defective enforcing rule
+  and restore enforcement;
 - a procedure that does not depend on Argo CD or either protected namespace.
 
 This minimal capability prevents admission self-lock. It does not authorize
@@ -393,8 +403,9 @@ Rollout uses independently reviewable phases:
 
 0. **Admission escape readiness.** Establish the independent break-glass
    principal, authorization and audit path. Exercise Policy and Binding
-   suspend/restore using a disposable self-protection canary. No production
-   self-protecting `Deny` Binding exists before this phase succeeds.
+   suspend/restore using a disposable admission-escape canary. No production
+   evidence `Deny` Binding or separate Policy/Binding protection is activated
+   before this phase succeeds.
 1. **Protection foundation.** Deploy the production admission controls first in
    `Audit` and/or `Warn` mode, validate type checking and audit evidence, then
    switch to fail-closed `Deny`. Re-verify the break-glass exception, and only
@@ -437,8 +448,9 @@ disposition.
 - `platform-project` must gain only the explicit admission resource kinds
   required for the protection foundation. This is a Tier-1 permission change
   and requires conformance review.
-- Admission enforcement cannot become self-protecting until its independent
-  escape principal and suspend/restore procedure have been exercised.
+- Production evidence enforcement and the separate Policy/Binding protections
+  cannot activate until the independent escape principal and suspend/restore
+  procedure have been exercised.
 - Rollback after Identity v2 or Receipt creation cannot restore the previous
   heuristic. Defects are corrected forward or handled through approved
   break-glass recovery.
@@ -498,7 +510,9 @@ Implementation is conformant only when it proves all of the following:
 - admission protection is active before the Signal is accepted;
 - production admission policy passes an `Audit`/`Warn` observation phase before
   `Deny`, and the independent escape principal can suspend and restore the
-  self-protecting policy before enforcement;
+  enforcing Binding before enforcement;
+- exact minimal RBAC, Git prune/delete protection, object/hash checks, and Human
+  Gates protect the Policy and Binding that VAP cannot match;
 - deleting or updating Identity, Signal, Receipt, or their protection controls
   is denied to every normal principal;
 - a valid Signal immediately denies Seed and triggers Receipt creation without
@@ -544,7 +558,8 @@ This ADR remains `Proposed` until reviewers confirm all of the following:
 - Identity v2 reliably fences all supported receipt-unaware Bootstrap versions;
 - the truth tables and authority matrix are complete;
 - all indeterminate evidence reads map to `UNAVAILABLE` and fail closed;
-- the minimum admission escape capability precedes self-protecting `Deny`;
+- the minimum admission escape capability precedes production evidence `Deny`
+  and separate Policy/Binding protection;
 - exact Signal, Receipt, admission, threat-model, and migration contracts are
   acceptable;
 - the dependency on an accepted and implemented break-glass design is explicit.
