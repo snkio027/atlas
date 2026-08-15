@@ -101,11 +101,12 @@ registry::_load_node_image() {
 }
 
 registry::_preload_seed_images() {
-  local node image
+  local node image nodes_output
   local -a nodes=()
-  mapfile -t nodes < <(kind get nodes --name "$(config::get ATLAS_CLUSTER_NAME)")
+  nodes_output=$(cluster::list_kind_node_containers) || return 1
+  mapfile -t nodes <<< "$nodes_output"
   ((${#nodes[@]} > 0)) || {
-    runtime::die "Kind returned no nodes while preloading images"
+    runtime::die "Kind returned no Kubernetes nodes while preloading images"
     return 1
   }
 
@@ -122,7 +123,7 @@ registry::_preload_seed_images() {
 
 registry::ensure_local() {
   runtime::phase registry
-  local name image port cluster node
+  local name image port cluster node nodes_output
   local -a nodes=()
   name=$(config::get ATLAS_REGISTRY_NAME)
   image=$(config::version REGISTRY_IMAGE)
@@ -158,9 +159,10 @@ registry::ensure_local() {
     fi
   fi
 
-  mapfile -t nodes < <(kind get nodes --name "$cluster")
+  nodes_output=$(cluster::list_kind_node_containers) || return 1
+  mapfile -t nodes <<< "$nodes_output"
   ((${#nodes[@]} > 0)) || {
-    runtime::die "Kind returned no nodes for ${cluster}"
+    runtime::die "Kind returned no Kubernetes nodes for ${cluster}"
     return 1
   }
   for node in "${nodes[@]}"; do

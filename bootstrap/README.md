@@ -87,6 +87,24 @@ the checked-in AppProjects and Applications. The resolved maps become read-only
 before command execution. Help, version, and argument errors do not load a
 Profile.
 
+## Kind topology contract
+
+Normal Bootstrap accepts a canonical Kind topology with exactly one explicit
+`control-plane` entry and any non-negative number of explicit `worker` entries.
+Multiple control planes are rejected because Kind then creates an implicit
+Envoy load balancer outside Atlas's locked node-image supply chain. The drill
+cluster remains independently constrained to its single-node audit topology.
+
+The Shell parser intentionally supports only Atlas's normalized `nodes:` YAML
+subset. It rejects duplicate or flow-style declarations, omitted or unknown
+roles, aliases, tabs, and node-level `image:` overrides before cluster discovery
+or creation. Nested labels, mounts, and kubeadm patch literals remain Kind-owned
+content. Runtime validation compares declared role counts with running Docker
+containers, proves the exact Docker/Kubernetes Node name sets and control-plane
+labels, requires every Node to be Ready, and rejects auxiliary or unknown Kind
+container roles. Registry configuration and image preloading consume only this
+validated Kubernetes Node set.
+
 ## Supply-chain contract
 
 `versions.lock` contains exact tool, chart, and image versions. Bootstrap never
