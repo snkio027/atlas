@@ -102,7 +102,7 @@ state.
 ## Verification
 
 `task quality` runs non-mutating Shell, configuration, Bootstrap, render,
-GitOps, supply-chain, and mocked drill cluster-create contracts. The drill tests do
-not create a cluster. `task integration` is separate because it performs two
-explicitly approved applies against the `test` Kind profile and verifies stable
-resource identities after adoption.
+GitOps, supply-chain, and mocked drill cluster-creation contracts. The drill
+tests do not create a cluster. `task integration` is separate because it
+performs two explicitly approved applies against the `test` Kind profile and
+verifies stable resource identities after a Healthy GitOps handoff.
