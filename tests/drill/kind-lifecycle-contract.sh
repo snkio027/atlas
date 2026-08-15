@@ -277,6 +277,11 @@ drill::die() {
 drill::_human_gate() {
   printf 'GATE\t%s\n' "$1" >> "$ATLAS_TEST_COMMAND_LOG"
 }
+# The production path still enforces versions.lock. The mocked lifecycle must
+# not depend on the CI runner's Bash package while exercising later boundaries.
+drill::_version_triplet() {
+  drill::target BASH_VERSION
+}
 
 drill::create_cluster "$cluster_four" "$context_four" "$kubeconfig_four" "$audit_four" > /dev/null
 [[ -s $kubeconfig_four && $(stat -f '%Lp' "$kubeconfig_four") == 600 ]] || test::fail "isolated kubeconfig was not created with mode 0600"
