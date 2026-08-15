@@ -47,6 +47,8 @@ Relevant upstream semantics are:
 - [Argo CD terminate operation](https://argo-cd.readthedocs.io/en/stable/faq/#how-can-i-terminate-a-sync)
 - [Argo CD terminate-op command](https://argo-cd.readthedocs.io/en/stable/user-guide/commands/argocd_app_terminate-op/)
 - [Argo CD RBAC](https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/)
+- [Argo CD ApplicationSet-managed AutoSync](https://argo-cd.readthedocs.io/en/release-3.5/user-guide/auto_sync/#temporarily-toggling-auto-sync-for-applications-managed-by-applicationsets)
+- [Argo CD ApplicationSet resource modification](https://argo-cd.readthedocs.io/en/release-3.5/operator-manual/applicationset/Controlling-Resource-Modification/)
 - [Argo CD RespectIgnoreDifferences](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#respect-ignore-differences-configs)
 - [kind audit logging](https://kind.sigs.k8s.io/docs/user/auditing/)
 
@@ -813,6 +815,8 @@ Before mutation, the snapshot includes:
   CD workloads, CRDs, controller configuration, `argocd-cm`,
   `argocd-rbac-cm`, guard ownership, effective subject inventory, and the
   version-locked Argo Freeze Action Inventory and its canonical hash;
+- every ApplicationSet, generator input, generated Application ownership and
+  DAG-layer map, normal and recovery-safe projections, and projection hashes;
 - current source revisions, sync policies, health, UIDs, resourceVersions, and
   Argo resource inventory;
 - relevant Events and available Kubernetes API audit records;
@@ -1055,8 +1059,46 @@ terminate, and proves a bounded interval with no generated-Application
 mutation. An absent workload requires the same complete no-process proof as an
 absent Application Controller. Ambiguous capability is `FREEZE_UNAVAILABLE`.
 The prior replica count is not restored by the Recovery Seed; it is restored
-only at its inside-out layer gate after every ApplicationSet and generated
-Application projection has been revalidated.
+only through the layer-aware protocol below. Directly changing
+`spec.syncPolicy.automated` on a generated Application is defense in depth
+while the ApplicationSet Controller is at zero; it is never the authoritative
+freeze because the parent template may overwrite that child field.
+
+For every ApplicationSet, the approved plan contains both the normal projection
+and a create/update-only **recovery-safe projection**. Atlas resolves generators,
+`template`, `templatePatch`, and every source before mutation and proves that
+the recovery-safe projection:
+
+- produces exactly the approved generated-Application identity and owner set;
+- pins every source in the resolved generated projection to its approved
+  immutable revision, writes
+  `spec.template.spec.syncPolicy.automated.enabled: false` in the parent as an
+  explicit non-null value, and proves the generated child contains
+  `spec.syncPolicy.automated.enabled: false`;
+- sets `spec.syncPolicy.applicationsSync: create-update`, while the recovery
+  Controller process uses an equally restrictive `--policy create-update` and
+  disables per-ApplicationSet policy override;
+- contains no generator input or patch whose output can change without an
+  approved immutable input;
+- assigns each ApplicationSet a `resumeLayer` equal to the latest, outermost
+  Gate among every generated Application and its controlled descendants.
+
+The recovery-safe projection, resolved generated Application projections,
+layer map, and their canonical hashes are part of the Human-approved plan.
+Each named parent projection is staged while the Controller is at zero under
+its owning layer's outside-in Freeze Gate, with UID and resourceVersion
+preconditions. The Management Gate may verify these objects but cannot first
+create or broaden their layer authority.
+`ignoreApplicationDifferences` may add defense in depth only after its exact
+JSON pointers and resulting MergePatch are tested against the locked version.
+It never substitutes for the recovery-safe template, especially for
+multi-source lists whose replacement can restore an ignored revision.
+
+If any generator cannot be resolved deterministically, any generated
+Application or descendant cannot be assigned to exactly one known DAG layer,
+or any recovery-safe projection cannot guarantee the immutable source and
+explicit disabled AutoSync fields, Atlas keeps the ApplicationSet Controller at
+zero. Any recovery path that requires restarting it is `FREEZE_UNAVAILABLE`.
 
 Likewise, every present unavailable Server workload is snapshotted and scaled
 to zero before Atlas accepts `GUARD_RELOAD_PENDING`. If its Deployment is
@@ -1123,6 +1165,13 @@ For every Application, the command:
    `status.operationState.phase` is neither `Running` nor `Terminating`;
 6. verifies the guard key and a bounded quiet interval, then re-reads and
    journals final UID and resourceVersion before moving inward.
+
+Before step 2, Atlas resolves every Application ownerReference and
+ApplicationSet-generated identity. For a standalone Application, the guarded
+child patch is authoritative. For a generated Application, the patch is only a
+temporary duplicate control: Freeze additionally requires the ApplicationSet
+Controller at zero and the matching Human-approved recovery-safe parent
+projection staged and hash-verified before that Controller may restart.
 
 The core-mode client talks directly to Kubernetes and does not depend on the
 Argo Server. A failure to mark a present old operation `Terminating`, a new
@@ -1246,19 +1295,47 @@ Seed
 Restoring each automated sync policy uses the preflight object and approved Git
 projection as explicit inputs. Failure at any layer refreezes that layer and
 everything outside it. External Root resume is a final, separate Human
-Judgment Gate. If ApplicationSet is normally enabled, its ordinary desired
-projection and replica count are restored only at the Management Capability
-gate, after every ApplicationSet template and generated Application identity,
-project, source, destination, and pinned revision has been approved and
-revalidated. The Argo recovery guard is hash-checked throughout resume
-and removed only under a separate gate immediately before External Root resume,
-after all inner layers and the repaired Git revision are verified.
+Judgment Gate.
+
+The Management Capability Gate never restores an ordinary ApplicationSet
+template or ordinary Controller projection. It may start the ApplicationSet
+Controller only in recovery mode, with the create/update-only process policy,
+after every live ApplicationSet has its exact recovery-safe projection staged
+and hash-verified. Atlas then waits for at least one complete reconciliation
+interval and proves that every generated Application still has the approved
+identity, immutable source revision, and
+`spec.syncPolicy.automated.enabled: false`; no `.operation`, operation-state
+transition, or managed-resource mutation may appear. Failure returns the
+Controller to zero and refreezes the layer.
+
+Each ApplicationSet's ordinary template is restored only at its recorded
+`resumeLayer` Gate. A set spanning more than one layer uses the latest,
+outermost of those Gates. The Gate revalidates the generated identity set,
+projects, sources, destinations, descendant closure, and currently healthy
+inner layers before restoring the preflight or repaired normal projection with
+UID/resourceVersion preconditions. Re-enabling AutoSync through that template
+is therefore a mutation authorized by that layer's Gate, not by the earlier
+Management Gate.
+
+The ordinary global Controller projection and any policy broader than
+`create-update` remain deferred until the latest `resumeLayer` among all
+ApplicationSets. If the single global Controller cannot reconcile a mixture of
+normal projections for already-gated layers and recovery-safe projections for
+not-yet-gated layers without touching the latter, Atlas keeps it at zero. It
+may stage each normal template at its own Gate but starts the Controller only
+after the outermost relevant Gate. If this prevents a required layer health
+proof, the layer map is incomplete, or isolation remains ambiguous, the target
+is `FREEZE_UNAVAILABLE` rather than resuming early.
+
+The Argo recovery guard is hash-checked throughout resume and removed only
+under a separate gate immediately before External Root resume, after all inner
+layers and the repaired Git revision are verified.
 
 #### 8. Close the session
 
 Capture postflight evidence, verify the Receipt and protected Signal, verify
-admission enforcement, verify normal-principal denial, and verify the manual-
-sync guard was removed only at its approved checkpoint.
+admission enforcement, verify normal-principal denial, and verify the Argo
+recovery guard was removed only at its approved checkpoint.
 
 The Session Authorizer then removes every temporary RoleBinding and
 ClusterRoleBinding and proves with the actual Recovery Operator credential that
@@ -1330,6 +1407,9 @@ Further damage is corrected forward in another explicitly authorized reissue.
 | Partially frozen | resume freezing from journal | do not auto-resume any layer |
 | Guard installed, Server at zero, reload pending | same-plan Seed repair and deferred guard probe only | guard remains live; no Argo mutation |
 | Controller quiesced, operations pending | same-plan configuration prelude and Seed repair only | Controller remains at zero until guarded Seed entry |
+| Recovery-safe ApplicationSets staged, Controller at zero | revalidate every parent/child projection and either start recovery mode under its Gate or remain at zero | no ordinary template is eligible |
+| ApplicationSet recovery mode running | repeat the full reconciliation and no-operation proof before continuing the same layer | not-yet-gated templates remain recovery-safe |
+| Ordinary ApplicationSet templates partially staged, global Controller at zero | resume staging only at each recorded layer Gate; start only at the outermost relevant Gate | never start against an early ordinary template |
 | Admission suspended | restore exact Binding first or remain frozen | no other resume while `SUSPENDED` |
 | Seed partially restored | correct forward from the same render | never delete Namespace or apply an unverified older Seed |
 | Root or child UID changed | complete inside-out recovery | old UID cannot be restored |
@@ -1364,6 +1444,10 @@ checkpoint and cannot be reused:
 | Freeze each named control layer | layer-specific freeze gate |
 | Terminate an in-flight sync operation | Application-specific termination gate |
 | Scale an unsafe Argo Server, Application Controller, or ApplicationSet Controller to zero | component-quiescence gate |
+| Stage a named recovery-safe ApplicationSet projection | its owning layer's freeze gate |
+| Start the ApplicationSet Controller in recovery mode | Management Capability gate |
+| Restore a named ordinary ApplicationSet template | its recorded `resumeLayer` gate |
+| Restore the ordinary global ApplicationSet Controller projection | outermost ApplicationSet layer gate |
 | Suspend or restore the production admission Binding | admission gate for each direction |
 | Repair the production Policy or Binding from Git | protection-repair gate |
 | Apply the Recovery Seed | Seed mutation gate |
@@ -1393,7 +1477,8 @@ Implementation is split into independently reviewable phases and PRs:
 1. **Protection foundation.** This phase is subdivided:
    - **1A — Resource definitions.** Add VAP, Binding, Signal, Operation Fence
      contract, Namespace-split RBAC, Argo authorization hardening, guard
-     ownership configuration, and tests, but do not reference them from a
+     ownership configuration, the ApplicationSet recovery-safe projection and
+     layer-map contract, and tests, but do not reference them from a
      Kustomization or Application reachable by External Root. Definition paths
      must fail conformance if accidentally wired.
    - **1B — Hardening and Audit/Warn activation.** Separate Human-Gated changes
@@ -1475,9 +1560,19 @@ bundle. It proves at least:
   paths each complete Freeze without requiring a damaged component to prove
   itself before Seed repair;
 - the current disabled ApplicationSet Controller is proven to have zero
-  processes, and a separately enabled drill variant is quiesced before the
-  quiet gate, cannot mutate generated Applications while frozen, remains zero
-  through Seed and `argocd-self` recovery sync, and resumes only at its gate;
+  processes, while a separately enabled drill variant starts with a normal
+  template that enables AutoSync and follows a mutable revision;
+- that enabled variant is quiesced, its generated child is directly frozen,
+  and its recovery-safe parent projection is staged before the Controller is
+  restarted in recovery mode at the Management Gate;
+- after a complete ApplicationSet reconciliation interval, the generated child
+  remains at the approved immutable revision with
+  `automated.enabled: false`, has no `.operation`, and causes no managed-resource
+  mutation; restoring the normal template before its `resumeLayer` fails the
+  test;
+- a cross-layer ApplicationSet retains recovery-safe templates, or the global
+  Controller remains zero, until its outermost Gate; a multi-source
+  `ignoreApplicationDifferences`-only fixture is rejected as insufficient;
 - guard reload deferral, Controller-at-zero proof, pending termination, staged
   configuration/Seed apply, quiet interval, and exact sync-policy restoration;
 - an `argocd-self` sync with `RespectIgnoreDifferences` preserves the exact
@@ -1528,6 +1623,10 @@ authorization. Passing simulated unit tests alone is insufficient evidence.
   independent ApplicationSet quiescence closes its generated-Application
   path. These controls lengthen the workflow with staged Seed entry and
   mandatory post-repair proofs.
+- Enabled ApplicationSets add a reviewed recovery-safe parent projection and
+  layer map for every generated Application. Cross-layer sets may keep the
+  single global Controller at zero until a later Gate; unavailable isolation
+  makes recovery unavailable rather than weakening resume order.
 - Receipt lineage preserves the monotonic trust transition across legitimate
   Signal, Root, or `argocd-self` recreation without pretending Kubernetes UIDs
   are restorable.
@@ -1611,6 +1710,15 @@ change the control graph or managed resources. Atlas uses an explicit
 version-locked action inventory, an all-resource/all-action deny for every
 ordinary explicit policy principal, and independent ApplicationSet Controller
 quiescence. Unknown action or version drift fails closed.
+
+### Freeze only the generated Application or rely on ignored differences
+
+Rejected because the ApplicationSet Controller can restore its template over a
+direct child edit. `ignoreApplicationDifferences` also uses MergePatch and can
+lose ignored fields when another change replaces a list such as `sources`.
+Atlas makes the immutable revision and explicit disabled AutoSync part of the
+recovery-safe parent template, keeps the Controller in create/update-only mode,
+and restores the normal template only at its recorded DAG-layer Gate.
 
 ### Require healthy Argo CD before repairing the Seed
 
@@ -1724,10 +1832,19 @@ prove all of the following:
 - Freeze passes the Server/Controller available, Server-degraded, and
   Controller-degraded paths, including Server/Controller-at-zero and deferred
   proofs;
-- the ApplicationSet Controller has no live process during Freeze, remains at
-  zero through Seed and `argocd-self` recovery sync, and an enabled-controller
-  variant resumes only after its ApplicationSet and generated Application
-  projections pass the Management Capability gate;
+- the ApplicationSet Controller has no live process during Freeze and remains
+  at zero through Seed and `argocd-self` recovery sync;
+- every generated Application is mapped to its parent and DAG layer, and a
+  direct child AutoSync patch alone never satisfies Freeze;
+- an enabled-controller variant starts at the Management Gate only with all
+  recovery-safe templates, immutable generated revisions,
+  `automated.enabled: false`, and create/update-only global policy; a complete
+  reconcile produces no operation or managed-resource mutation;
+- each ordinary ApplicationSet template returns only at its `resumeLayer`, a
+  cross-layer set uses its outermost Gate, and inability to isolate remaining
+  layers keeps the global Controller at zero or fails `FREEZE_UNAVAILABLE`;
+- `ignoreApplicationDifferences` alone, including its multi-source MergePatch
+  limitation, cannot satisfy the recovery-safe projection contract;
 - the guard key is Admission protected and survives an `argocd-self` sync under
   `ignoreDifferences` plus `RespectIgnoreDifferences`;
 - staged Seed repair establishes configuration and guard before workloads, and
@@ -1789,8 +1906,15 @@ This ADR remains `Proposed` until reviewers confirm:
   other supported side-effecting Argo permission;
 - Freeze handles Server and Controller failure without requiring a damaged
   component to prove itself before Seed repair;
-- ApplicationSet Controller quiescence and guarded resume prevent generated
-  Application mutation throughout Freeze;
+- ApplicationSet Controller quiescence, recovery-safe parent templates,
+  explicit disabled generated AutoSync, and immutable revisions prevent
+  generated Application reconciliation from bypassing Freeze;
+- the Management Capability Gate can start only the create/update-only
+  recovery Controller against fully staged recovery-safe parents; it cannot
+  restore an ordinary ApplicationSet template or Controller projection;
+- ordinary ApplicationSet templates and the global Controller policy resume at
+  their recorded outermost DAG-layer Gates, with zero replicas or
+  `FREEZE_UNAVAILABLE` as the failure-closed fallback;
 - GitOps ownership and Admission preserve the recovery guard across
   `argocd-self` sync;
 - snapshots, redaction, hashes, journal, and external anchoring are complete;
