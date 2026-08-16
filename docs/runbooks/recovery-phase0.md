@@ -42,6 +42,45 @@ mutations of the canonical recovery objects use `RequestResponse`; the future
 evidence journal must bind that read to the CREATE response UID and
 resourceVersion.
 
+## Render the admission escape canary definitions
+
+The first canary definition bundle is intentionally limited to the Recovery
+Operator admission-escape boundary. Supply the planned exact X.509 username;
+the command accepts only the ADR-0003 form containing a lowercase
+`kube-system` Namespace UID and a positive generation:
+
+```bash
+recovery_operator=atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
+./bootstrap/recovery/atlas-recovery phase0 admission-canary-manifests \
+  --recovery-operator "$recovery_operator" \
+  > .state/recovery-phase0-admission-canary.yaml
+```
+
+Rendering is deterministic and performs no API call. The five-document bundle
+contains:
+
+- one inert `kube-system` ConfigMap canary fixture;
+- the `atlas-bootstrap-admission-escape-canary` Policy and Binding using
+  `failurePolicy: Fail` and the semantic action set `{Audit, Deny}`;
+- the canonical Escape ClusterRole restricted to canary reads plus exact-name
+  Binding `patch`/`update`; and
+- one exact-user ClusterRoleBinding with no group subject.
+
+The Policy denies matched fixture mutation by every username except the exact
+rendered Recovery Operator. The Escape role cannot create or delete resources,
+read Secrets, mutate the canary fixture, or target production evidence. Its
+standing mutation authority is limited to suspending and restoring the canary
+Binding; the future ceremony must constrain that operation to the exact
+UID/resourceVersion and `validationActions` JSON Patch defined by ADR-0003.
+
+This command does not authorize applying the bundle. Activation requires an
+audited disposable target, a separately issued and escrowed Recovery Operator
+credential, an authority-specific Human Judgment Gate, server-side CEL type
+checking, effective-permission probes, and retained audit evidence. The current
+implementation has no apply, suspend, restore, or cleanup command. Session
+Authorizer RBAC and the Fence/Permission canary are a separate future permission
+boundary; production Session Authorization and production `Deny` remain absent.
+
 ## Drill-cluster lifecycle boundary
 
 The rendered file remains an offline definition. Cluster creation is a separate

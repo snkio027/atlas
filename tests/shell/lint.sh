@@ -25,6 +25,7 @@ expected_production_shell=(
   bootstrap/lib/config.sh
   bootstrap/lib/lock.sh
   bootstrap/lib/runtime.sh
+  bootstrap/recovery/admission-canary/render.sh
   bootstrap/recovery/atlas-recovery
   bootstrap/recovery/audit-config.sh
   bootstrap/registry/local.sh

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-bootstrap-admission-escape-canary
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/recovery-scope: canary
+data:
+  sentinel: admission-escape-canary

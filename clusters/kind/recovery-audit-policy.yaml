@@ -51,6 +51,7 @@ rules:
         resources:
           - configmaps
         resourceNames:
+          - atlas-bootstrap-admission-escape-canary
           - atlas-bootstrap-adoption-receipt
           - atlas-bootstrap-identity
           - atlas-bootstrap-operation-fence
