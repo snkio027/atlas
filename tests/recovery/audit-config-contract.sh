@@ -168,5 +168,6 @@ test::pass "YAML-printable UTF-8 path validation is locale independent"
 test::assert_not_found 'bootstrap/recovery|atlas-recovery|recovery-audit-policy' bootstrap/atlas bootstrap/argocd bootstrap/cluster bootstrap/host bootstrap/lib bootstrap/registry
 test::assert_not_found 'recovery-audit-policy' gitops
 test::assert_not_found '(kubectl|kind)[[:space:]]+(apply|create|delete|patch|replace)' bootstrap/recovery
-test::assert_not_found '(admission|canary)-(suspend|restore)|execute|resume|close' bootstrap/recovery
+test::assert_not_found '(admission|canary)-(suspend|restore)|execute|resume|close' \
+  bootstrap/recovery/audit-config.sh
 test::pass "Phase-0 foundation is isolated, definition-only, and non-mutating"

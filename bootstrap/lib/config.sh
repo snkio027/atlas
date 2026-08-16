@@ -30,6 +30,8 @@ readonly -a ATLAS_VERSION_KEYS=(
   BASH_VERSION
   KIND_VERSION
   KUBECTL_VERSION
+  OPENSSL_VERSION
+  YQ_VERSION
   HELM_VERSION
   KUBERNETES_VERSION
   KIND_NODE_IMAGE
@@ -287,6 +289,8 @@ config::_validate_versions() {
   local digest_pattern='@sha256:[0-9a-f]{64}$'
 
   config::_matches BASH_VERSION "${ATLAS_VERSIONS[BASH_VERSION]}" '^5\.[0-9]+\.[0-9]+$' || return 1
+  config::_matches OPENSSL_VERSION "${ATLAS_VERSIONS[OPENSSL_VERSION]}" '^[0-9]+\.[0-9]+\.[0-9]+$' || return 1
+  config::_matches YQ_VERSION "${ATLAS_VERSIONS[YQ_VERSION]}" '^[0-9]+\.[0-9]+\.[0-9]+$' || return 1
   for image_key in KIND_NODE_IMAGE REGISTRY_IMAGE ARGOCD_IMAGE REDIS_IMAGE; do
     config::_matches "$image_key" "${ATLAS_VERSIONS[$image_key]}" "$digest_pattern" || return 1
   done
