@@ -53,8 +53,7 @@ phase0_ceremony::_wait_for_certificate() {
 }
 
 phase0_ceremony::_write_principal_kubeconfig() {
-  local username=$1 key=$2 certificate=$3 destination=$4 ca_file context
-  ca_file=$(phase0_session::operation ca_file) || return 1
+  local username=$1 key=$2 certificate=$3 ca_file=$4 destination=$5 context
   context=$(phase0_session::target context) || return 1
   [[ ! -e $destination && ! -L $destination ]] || return 1
   phase0_session::kubectl_config "$destination" config set-cluster phase0-drill \
@@ -78,12 +77,13 @@ phase0_ceremony::_write_principal_kubeconfig() {
 }
 
 phase0_ceremony::_issue_principal() {
-  local role=$1 username=$2 csr_name key csr certificate kubeconfig csr_manifest csr_snapshot certificate_data
+  local role=$1 username=$2 csr_name=$3 directory=$4 ca_file=$5
+  local key csr certificate kubeconfig csr_manifest csr_snapshot certificate_data
   local metadata_file subject serial fingerprint not_before not_after
-  key="$(phase0_session::target credential_directory)/${role}.key"
-  csr="$(phase0_session::target credential_directory)/${role}.csr"
-  certificate="$(phase0_session::target credential_directory)/${role}.crt"
-  kubeconfig="$(phase0_session::target credential_directory)/${role}.kubeconfig"
+  key="${directory}/${role}.key"
+  csr="${directory}/${role}.csr"
+  certificate="${directory}/${role}.crt"
+  kubeconfig="${directory}/${role}.kubeconfig"
   csr_manifest="$(phase0_ceremony::_evidence_file "authorization/${role}-csr.yaml")"
   csr_snapshot="$(phase0_ceremony::_evidence_file "authorization/${role}-csr-issued.json")"
   metadata_file="$(phase0_ceremony::_evidence_file "authorization/${role}-certificate.json")"
@@ -131,7 +131,7 @@ phase0_ceremony::_issue_principal() {
     "$ATLAS_PHASE0_CERTIFICATE_SECONDS" > "$metadata_file" || return 1
   chmod 0400 "$metadata_file" || return 1
 
-  phase0_ceremony::_write_principal_kubeconfig "$username" "$key" "$certificate" "$kubeconfig" || return 1
+  phase0_ceremony::_write_principal_kubeconfig "$username" "$key" "$certificate" "$ca_file" "$kubeconfig" || return 1
   phase0_ceremony::_delete_with_preconditions "$(phase0_session::target admin_kubeconfig)" \
     "/apis/certificates.k8s.io/v1/certificatesigningrequests/${csr_name}" "$csr_snapshot" "${role}-csr" || return 1
   ATLAS_PHASE0_OPERATION["${role}_key"]=$key
@@ -143,17 +143,187 @@ phase0_ceremony::_issue_principal() {
 }
 
 phase0_ceremony::_issue_credentials() {
-  local ca_file prefix
-  ca_file="$(phase0_session::target credential_directory)/cluster-ca.crt"
-  printf '%s' "$(phase0_session::operation ca_data)" | base64 -D > "$ca_file" || return 1
-  chmod 0600 "$ca_file" || return 1
-  openssl x509 -in "$ca_file" -noout > /dev/null || return 1
-  ATLAS_PHASE0_OPERATION[ca_file]=$ca_file
+  local root recovery_directory authorizer_directory recovery_ca authorizer_ca prefix
+  root=$(phase0_session::target credential_directory) || return 1
+  recovery_directory="${root}/recovery-operator"
+  authorizer_directory="${root}/session-authorizer"
+  mkdir -m 0700 "$recovery_directory" "$authorizer_directory" || return 1
+  phase0_session::assert_directory "$recovery_directory" "Recovery Operator credential directory" || return 1
+  phase0_session::assert_directory "$authorizer_directory" "Session Authorizer credential directory" || return 1
+  recovery_ca="${recovery_directory}/cluster-ca.crt"
+  authorizer_ca="${authorizer_directory}/cluster-ca.crt"
+  printf '%s' "$(phase0_session::operation ca_data)" | base64 -D > "$recovery_ca" || return 1
+  install -m 0600 "$recovery_ca" "$authorizer_ca" || return 1
+  chmod 0600 "$recovery_ca" || return 1
+  openssl x509 -in "$recovery_ca" -noout > /dev/null || return 1
+  openssl x509 -in "$authorizer_ca" -noout > /dev/null || return 1
+  ATLAS_PHASE0_OPERATION["recovery_credential_directory"]=$recovery_directory
+  ATLAS_PHASE0_OPERATION["authorizer_credential_directory"]=$authorizer_directory
+  ATLAS_PHASE0_OPERATION["recovery_ca_file"]=$recovery_ca
+  ATLAS_PHASE0_OPERATION["authorizer_ca_file"]=$authorizer_ca
   prefix=${ATLAS_PHASE0_OPERATION[session_id]:0:12}
   phase0_ceremony::_issue_principal recovery "$(phase0_session::operation recovery_principal)" \
-    "atlas-bg-recovery-${prefix}" || return 1
+    "atlas-bg-recovery-g2-${prefix}" "$recovery_directory" "$recovery_ca" || return 1
+  phase0_ceremony::_issue_principal previous_recovery "$(phase0_session::operation previous_recovery_principal)" \
+    "atlas-bg-recovery-g1-${prefix}" "$recovery_directory" "$recovery_ca" || return 1
   phase0_ceremony::_issue_principal authorizer "$(phase0_session::operation authorizer_principal)" \
-    "atlas-bg-authorizer-${prefix}"
+    "atlas-bg-authorizer-g2-${prefix}" "$authorizer_directory" "$authorizer_ca" || return 1
+  phase0_ceremony::_issue_principal previous_authorizer "$(phase0_session::operation previous_authorizer_principal)" \
+    "atlas-bg-authorizer-g1-${prefix}" "$authorizer_directory" "$authorizer_ca" || return 1
+  phase0_ceremony::_capture_permission_baseline
+}
+
+phase0_ceremony::_permission_inventory() {
+  local kubeconfig=$1 destination=$2 temporary namespace line namespaces listing
+  temporary="${destination}.tmp"
+  namespaces=$(phase0_session::operation permission_namespaces) || return 1
+  : > "$temporary" || return 1
+  while IFS= read -r namespace || [[ -n $namespace ]]; do
+    [[ -n $namespace ]] || return 1
+    listing=$(phase0_session::principal "$kubeconfig" auth can-i --list \
+      --namespace="$namespace" --no-headers) || return 1
+    while IFS= read -r line || [[ -n $line ]]; do
+      [[ -n $line ]] || continue
+      printf '%s\t%s\n' "$namespace" "$line" >> "$temporary" || return 1
+    done <<< "$listing"
+  done < "$namespaces"
+  LC_ALL=C sort -u "$temporary" -o "$temporary" || return 1
+  [[ -s $temporary ]] || return 1
+  mv "$temporary" "$destination" || return 1
+  chmod 0400 "$destination" || return 1
+}
+
+phase0_ceremony::_snapshot_permission_namespaces() {
+  local destination=$1 temporary
+  temporary="${destination}.tmp"
+  phase0_session::admin get namespaces -o json |
+    yq -r '.items[].metadata.name' | LC_ALL=C sort -u > "$temporary" || return 1
+  [[ -s $temporary ]] || return 1
+  mv "$temporary" "$destination" || return 1
+  chmod 0400 "$destination" || return 1
+}
+
+phase0_ceremony::_assert_permission_inventory_non_mutating() {
+  local inventory=$1 line rule resource verbs verb
+  local -a verb_list
+  while IFS= read -r line || [[ -n $line ]]; do
+    rule=${line#*$'\t'}
+    resource=${rule%%[[:space:]]*}
+    verbs=${rule##*[}
+    verbs=${verbs%]}
+    IFS=' ' read -r -a verb_list <<< "$verbs"
+    for verb in "${verb_list[@]}"; do
+      case "$verb" in
+        create)
+          case "$resource" in
+            selfsubjectaccessreviews.authorization.k8s.io | \
+              selfsubjectrulesreviews.authorization.k8s.io | \
+              selfsubjectreviews.authentication.k8s.io) ;;
+            *)
+              recovery::die "credential baseline contains a state-changing permission: ${resource} ${verb}"
+              return 1
+              ;;
+          esac
+          ;;
+        update | patch | delete | deletecollection | impersonate | bind | escalate | approve | sign | use)
+          recovery::die "credential baseline contains a state-changing permission: ${resource} ${verb}"
+          return 1
+          ;;
+      esac
+    done
+  done < "$inventory"
+}
+
+phase0_ceremony::_assert_can_i() {
+  local kubeconfig=$1 expected=$2 output status
+  shift 2
+  if output=$(phase0_session::principal "$kubeconfig" auth can-i "$@"); then
+    status=0
+  else
+    status=$?
+  fi
+  case "$expected" in
+    yes) [[ $status == 0 && $output == yes ]] ;;
+    no) [[ $status == 1 && $output == no ]] ;;
+    *) return 1 ;;
+  esac
+}
+
+phase0_ceremony::_assert_mutation_denied() {
+  local kubeconfig=$1 label=$2 verb resource namespace
+  while IFS=$'\t' read -r verb resource namespace; do
+    if [[ $namespace == cluster ]]; then
+      phase0_ceremony::_assert_can_i "$kubeconfig" no "$verb" "$resource" || {
+        recovery::die "credential unexpectedly retains mutation permission: ${label} ${verb} ${resource} ${namespace}"
+        return 1
+      }
+    else
+      phase0_ceremony::_assert_can_i "$kubeconfig" no "$verb" "$resource" -n "$namespace" || {
+        recovery::die "credential unexpectedly retains mutation permission: ${label} ${verb} ${resource} ${namespace}"
+        return 1
+      }
+    fi
+  done << 'EOF'
+patch	validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary	cluster
+create	configmaps	kube-system
+create	rolebindings.rbac.authorization.k8s.io	kube-system
+patch	configmaps/atlas-bootstrap-recovery-guard-canary	kube-system
+create	secrets	kube-system
+delete	namespaces	cluster
+create	certificatesigningrequests.certificates.k8s.io	cluster
+EOF
+}
+
+phase0_ceremony::_capture_permission_baseline() {
+  local role kubeconfig inventory reference=''
+  ATLAS_PHASE0_OPERATION["permission_namespaces"]=$(phase0_ceremony::_evidence_file \
+    authorization/permission-namespaces-before.txt) || return 1
+  phase0_ceremony::_snapshot_permission_namespaces \
+    "$(phase0_session::operation permission_namespaces)" || return 1
+  for role in recovery previous_recovery authorizer previous_authorizer; do
+    kubeconfig=$(phase0_session::operation "${role}_kubeconfig") || return 1
+    inventory=$(phase0_ceremony::_evidence_file "authorization/${role}-permissions-before.txt") || return 1
+    phase0_ceremony::_permission_inventory "$kubeconfig" "$inventory" || return 1
+    phase0_ceremony::_assert_permission_inventory_non_mutating "$inventory" || return 1
+    phase0_ceremony::_assert_can_i "$kubeconfig" yes get /api || {
+      recovery::die "credential lacks the expected authenticated discovery permission: ${role}"
+      return 1
+    }
+    phase0_ceremony::_assert_mutation_denied "$kubeconfig" "$role-before" || return 1
+    if [[ -z $reference ]]; then
+      reference=$inventory
+    else
+      cmp -s "$reference" "$inventory" || {
+        recovery::die "unbound credential effective permissions differ before activation"
+        return 1
+      }
+    fi
+  done
+  phase0_session::journal_append CREDENTIALS BASELINE \
+    "four g1/g2 credentials have identical namespace-complete non-mutating permission baselines" || return 1
+}
+
+phase0_ceremony::_verify_active_permissions() {
+  local role kubeconfig baseline active
+  phase0_ceremony::_assert_can_i "$(phase0_session::operation recovery_kubeconfig)" yes \
+    patch validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary || return 1
+  phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" yes \
+    create configmaps -n kube-system || return 1
+  phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" yes \
+    create rolebindings.rbac.authorization.k8s.io -n kube-system || return 1
+  for role in previous_recovery previous_authorizer; do
+    kubeconfig=$(phase0_session::operation "${role}_kubeconfig") || return 1
+    baseline=$(phase0_ceremony::_evidence_file "authorization/${role}-permissions-before.txt") || return 1
+    active=$(phase0_ceremony::_evidence_file "authorization/${role}-permissions-active.txt") || return 1
+    phase0_ceremony::_permission_inventory "$kubeconfig" "$active" || return 1
+    cmp -s "$baseline" "$active" || {
+      recovery::die "old-generation effective permissions changed during activation: ${role}"
+      return 1
+    }
+    phase0_ceremony::_assert_mutation_denied "$kubeconfig" "${role}-active" || return 1
+  done
+  phase0_session::journal_append CREDENTIALS ACTIVE \
+    "current grants verified; both old-generation credentials remain mutation-denied" || return 1
 }
 
 phase0_ceremony::_wait_policy_typecheck() {
@@ -177,11 +347,103 @@ phase0_ceremony::_wait_policy_typecheck() {
   recovery::die "VAP type checking did not complete: ${name}"
 }
 
+phase0_ceremony::_definition_inventory() {
+  cat << 'EOF'
+admission	kube-system	configmap	ConfigMap	atlas-bootstrap-admission-escape-canary	admission-fixture
+admission	cluster	clusterrole	ClusterRole	atlas-bootstrap-break-glass-escape	escape-role
+admission	cluster	clusterrolebinding	ClusterRoleBinding	atlas-bootstrap-break-glass-escape	escape-binding
+admission	cluster	validatingadmissionpolicy	ValidatingAdmissionPolicy	atlas-bootstrap-admission-escape-canary	admission-policy
+admission	cluster	validatingadmissionpolicybinding	ValidatingAdmissionPolicyBinding	atlas-bootstrap-admission-escape-canary	admission-binding
+static	kube-system	role	Role	atlas-bootstrap-recovery-canary	recovery-role
+static	kube-system	role	Role	atlas-bootstrap-recovery-authorizer-canary	authorizer-role
+activation	kube-system	rolebinding	RoleBinding	atlas-bootstrap-recovery-authorizer-canary	authorizer-binding
+static	cluster	validatingadmissionpolicy	ValidatingAdmissionPolicy	atlas-bootstrap-recovery-fence-authorization-canary	fence-policy
+static	cluster	validatingadmissionpolicybinding	ValidatingAdmissionPolicyBinding	atlas-bootstrap-recovery-fence-authorization-canary	fence-binding
+static	cluster	validatingadmissionpolicy	ValidatingAdmissionPolicy	atlas-bootstrap-recovery-binding-shape-authorization-canary	shape-policy
+static	cluster	validatingadmissionpolicybinding	ValidatingAdmissionPolicyBinding	atlas-bootstrap-recovery-binding-shape-authorization-canary	shape-binding
+static	cluster	validatingadmissionpolicy	ValidatingAdmissionPolicy	atlas-bootstrap-recovery-permission-authorization-canary	permission-policy
+static	cluster	validatingadmissionpolicybinding	ValidatingAdmissionPolicyBinding	atlas-bootstrap-recovery-permission-authorization-canary	permission-binding-definition
+static	kube-system	configmap	ConfigMap	atlas-bootstrap-recovery-guard-canary	guard-fixture
+static	cluster	validatingadmissionpolicy	ValidatingAdmissionPolicy	atlas-bootstrap-recovery-guard-authorization-canary	guard-policy
+static	cluster	validatingadmissionpolicybinding	ValidatingAdmissionPolicyBinding	atlas-bootstrap-recovery-guard-authorization-canary	guard-binding
+EOF
+}
+
+phase0_ceremony::_normalize_definition() {
+  yq -o=json -I=0 '
+    del(.metadata.uid, .metadata.resourceVersion, .metadata.generation,
+      .metadata.creationTimestamp, .metadata.managedFields, .status) |
+    (select(.spec.matchConstraints.matchPolicy == "Equivalent") |
+      .spec.matchConstraints) |= del(.matchPolicy) |
+    (select(.spec.matchResources.matchPolicy == "Equivalent") |
+      .spec.matchResources) |= del(.matchPolicy) |
+    (select(.kind == "ValidatingAdmissionPolicyBinding") |
+      .spec.validationActions) |= sort |
+    sort_keys(..)
+  ' "$1"
+}
+
+phase0_ceremony::_desired_definition() {
+  local bundle=$1 kind=$2 namespace=$3 name=$4 destination=$5
+  KIND=$kind NAMESPACE=$namespace NAME=$name yq ea -o=json -I=0 '
+    select(.kind == env(KIND) and .metadata.name == env(NAME) and
+      (.metadata.namespace // "cluster") == env(NAMESPACE))
+  ' "$bundle" > "$destination" || return 1
+  [[ $(wc -l < "$destination" | tr -d ' ') == 1 ]] || return 1
+  phase0_ceremony::_normalize_definition "$destination" > "${destination}.normalized" || return 1
+  mv "${destination}.normalized" "$destination" || return 1
+  chmod 0400 "$destination" || return 1
+}
+
+phase0_ceremony::_verify_live_definitions() {
+  local scope=$1 phase namespace resource kind name label bundle desired live hash_file count=0 expected
+  local -a arguments
+  hash_file=$(phase0_ceremony::_evidence_file "authorization/${scope}-live-projections.sha256") || return 1
+  : > "$hash_file" || return 1
+  while IFS=$'\t' read -r phase namespace resource kind name label; do
+    [[ $scope == full || $phase != activation ]] || continue
+    if [[ $phase == admission ]]; then
+      bundle=$(phase0_session::operation admission_bundle) || return 1
+    else
+      bundle=$(phase0_session::operation session_bundle) || return 1
+    fi
+    desired=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-desired.json") || return 1
+    live=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-live.json") || return 1
+    phase0_ceremony::_desired_definition "$bundle" "$kind" "$namespace" "$name" "$desired" || return 1
+    arguments=(get "$resource" "$name" -o json)
+    [[ $namespace == cluster ]] || arguments+=(-n "$namespace")
+    phase0_session::admin "${arguments[@]}" > "${live}.raw" || return 1
+    phase0_ceremony::_normalize_definition "${live}.raw" > "$live" || return 1
+    rm -f -- "${live}.raw" || return 1
+    chmod 0400 "$live" || return 1
+    cmp -s "$desired" "$live" || {
+      recovery::die "live canary projection differs from the approved bundle: ${label}"
+      return 1
+    }
+    printf '%s  %s\n' "$(phase0_session::_sha256 "$live")" "$label" >> "$hash_file" || return 1
+    ((count += 1))
+  done < <(phase0_ceremony::_definition_inventory)
+  expected=17
+  [[ $scope == full ]] || expected=16
+  ((count == expected)) || return 1
+  chmod 0400 "$hash_file" || return 1
+}
+
+phase0_ceremony::_activate_authorizer() {
+  phase0_session::journal_append AUTHORIZER STARTED "activating Session Authorizer after static controls verified" || return 1
+  phase0_session::admin create --validate=strict \
+    -f "$(phase0_session::operation authorizer_activation_bundle)" > /dev/null || return 1
+  phase0_ceremony::_verify_live_definitions full || return 1
+  phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" yes \
+    create configmaps -n kube-system || return 1
+  phase0_session::journal_append AUTHORIZER ACTIVE "all 17 live projections match approval; authorizer grant is effective" || return 1
+}
+
 phase0_ceremony::_install_definitions() {
   local policy destination hash_file name
   phase0_session::journal_append DEFINITIONS STARTED "creating reviewed canary bundles" || return 1
   phase0_session::admin create --validate=strict -f "$(phase0_session::operation admission_bundle)" > /dev/null || return 1
-  phase0_session::admin create --validate=strict -f "$(phase0_session::operation session_bundle)" > /dev/null || return 1
+  phase0_session::admin create --validate=strict -f "$(phase0_session::operation session_static_bundle)" > /dev/null || return 1
   hash_file="$(phase0_ceremony::_evidence_file authorization/policy-projections.sha256)"
   : > "$hash_file" || return 1
   for name in \
@@ -196,7 +458,9 @@ phase0_ceremony::_install_definitions() {
     printf '%s  %s\n' "$(printf '%s' "$policy" | shasum -a 256 | awk '{print $1}')" "${name}/spec" >> "$hash_file" || return 1
   done
   chmod 0400 "$hash_file" || return 1
-  phase0_session::journal_append DEFINITIONS READY "five Policies type checked without warnings; four controls enforced" || return 1
+  phase0_ceremony::_verify_live_definitions static || return 1
+  phase0_session::journal_append DEFINITIONS READY "16 static definitions match approval; five Policies type checked" || return 1
+  phase0_ceremony::_activate_authorizer
 }
 
 phase0_ceremony::_expect_rejected() {
@@ -433,6 +697,17 @@ phase0_ceremony::_snapshot_for_delete() {
 phase0_ceremony::_cleanup_cluster_resources() {
   local namespace resource name uri label snapshot output
   local -a arguments
+  snapshot=$(phase0_ceremony::_snapshot_for_delete rolebinding \
+    atlas-bootstrap-recovery-authorizer-canary authorizer-binding) || return 1
+  phase0_ceremony::_delete_with_preconditions "$(phase0_session::target admin_kubeconfig)" \
+    /apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bootstrap-recovery-authorizer-canary \
+    "$snapshot" authorizer-binding || return 1
+  output=$(phase0_session::admin get rolebinding atlas-bootstrap-recovery-authorizer-canary \
+    --ignore-not-found -o name -n kube-system) || return 1
+  [[ -z $output ]] || return 1
+  phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" no \
+    create configmaps -n kube-system || return 1
+  phase0_session::journal_append AUTHORIZER REVOKED "authorizer RoleBinding removed before protected controls" || return 1
   while IFS=$'\t' read -r namespace resource name uri label; do
     snapshot=$(phase0_ceremony::_snapshot_for_delete "$resource" "$name" "$label") || return 1
     phase0_ceremony::_delete_with_preconditions "$(phase0_session::target admin_kubeconfig)" \
@@ -450,7 +725,6 @@ cluster	validatingadmissionpolicy	atlas-bootstrap-recovery-guard-authorization-c
 cluster	validatingadmissionpolicy	atlas-bootstrap-recovery-permission-authorization-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-permission-authorization-canary	permission-policy
 cluster	validatingadmissionpolicy	atlas-bootstrap-recovery-binding-shape-authorization-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-binding-shape-authorization-canary	shape-policy
 cluster	validatingadmissionpolicy	atlas-bootstrap-recovery-fence-authorization-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-fence-authorization-canary	fence-policy
-kube-system	rolebinding	atlas-bootstrap-recovery-authorizer-canary	/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bootstrap-recovery-authorizer-canary	authorizer-binding
 kube-system	role	atlas-bootstrap-recovery-authorizer-canary	/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/roles/atlas-bootstrap-recovery-authorizer-canary	authorizer-role
 kube-system	role	atlas-bootstrap-recovery-canary	/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/roles/atlas-bootstrap-recovery-canary	recovery-role
 kube-system	configmap	atlas-bootstrap-recovery-guard-canary	/api/v1/namespaces/kube-system/configmaps/atlas-bootstrap-recovery-guard-canary	guard-fixture
@@ -464,18 +738,40 @@ EOF
 }
 
 phase0_ceremony::_cleanup_credentials() {
-  local key path directory
+  local role key path directory baseline after directory_key namespace_after
   directory=$(phase0_session::target credential_directory) || return 1
-  [[ $(phase0_session::principal "$(phase0_session::operation recovery_kubeconfig)" \
-    auth can-i patch configmaps -n kube-system) == no ]] || return 1
-  [[ $(phase0_session::principal "$(phase0_session::operation authorizer_kubeconfig)" \
-    auth can-i create configmaps -n kube-system) == no ]] || return 1
-  phase0_session::journal_append CREDENTIALS REVOKED "both principals authenticate without retained mutation grants" || return 1
+  namespace_after=$(phase0_ceremony::_evidence_file postflight/permission-namespaces-after.txt) || return 1
+  phase0_ceremony::_snapshot_permission_namespaces "$namespace_after" || return 1
+  cmp -s "$(phase0_session::operation permission_namespaces)" "$namespace_after" || {
+    recovery::die "the namespace set changed during credential permission verification"
+    return 1
+  }
+  for role in recovery previous_recovery authorizer previous_authorizer; do
+    path=$(phase0_session::operation "${role}_kubeconfig") || return 1
+    phase0_ceremony::_assert_mutation_denied "$path" "${role}-after" || return 1
+    baseline=$(phase0_ceremony::_evidence_file "authorization/${role}-permissions-before.txt") || return 1
+    after=$(phase0_ceremony::_evidence_file "postflight/${role}-permissions-after.txt") || return 1
+    phase0_ceremony::_permission_inventory "$path" "$after" || return 1
+    cmp -s "$baseline" "$after" || {
+      recovery::die "credential permissions did not return to the authenticated baseline: ${role}"
+      return 1
+    }
+  done
+  phase0_session::journal_append CREDENTIALS REVOKED \
+    "g1/g2 credentials returned exactly to their discovery-only baseline" || return 1
   for key in recovery_key recovery_csr recovery_certificate recovery_kubeconfig \
-    authorizer_key authorizer_csr authorizer_certificate authorizer_kubeconfig ca_file; do
+    previous_recovery_key previous_recovery_csr previous_recovery_certificate previous_recovery_kubeconfig \
+    authorizer_key authorizer_csr authorizer_certificate authorizer_kubeconfig \
+    previous_authorizer_key previous_authorizer_csr previous_authorizer_certificate previous_authorizer_kubeconfig \
+    recovery_ca_file authorizer_ca_file; do
     path=$(phase0_session::operation "$key") || return 1
     [[ $path == "${directory}/"* && -f $path && ! -L $path ]] || return 1
     rm -f -- "$path" || return 1
+  done
+  for directory_key in recovery_credential_directory authorizer_credential_directory; do
+    path=$(phase0_session::operation "$directory_key") || return 1
+    [[ $path == "${directory}/"* ]] || return 1
+    rmdir "$path" || return 1
   done
   phase0_session::_directory_empty "$directory" || return 1
   phase0_session::journal_append CREDENTIALS REMOVED "materialized keys, certificates, CSRs, and kubeconfigs removed" || return 1
@@ -505,13 +801,83 @@ phase0_ceremony::_snapshot_audit_log() {
   recovery::die "API audit snapshot contains an incomplete or malformed event"
 }
 
+phase0_ceremony::_capture_audit_boundary() {
+  local snapshot record line_count source_identity
+  snapshot=$(phase0_ceremony::_evidence_file audit/pre-mutation.jsonl) || return 1
+  record=$(phase0_ceremony::_evidence_file audit/pre-mutation-boundary.json) || return 1
+  phase0_ceremony::_snapshot_audit_log "$snapshot" || return 1
+  line_count=$(wc -l < "$snapshot" | tr -d ' ') || return 1
+  [[ $line_count =~ ^[0-9]+$ && $line_count -gt 0 ]] || return 1
+  source_identity=$(phase0_session::_path_identity "$(phase0_session::target audit_log)") || return 1
+  ATLAS_PHASE0_OPERATION["audit_boundary_lines"]=$line_count
+  ATLAS_PHASE0_OPERATION["audit_boundary_sha"]=$(phase0_session::_sha256 "$snapshot") || return 1
+  ATLAS_PHASE0_OPERATION["audit_log_identity"]=$source_identity
+  printf '{"sourceIdentity":"%s","lineCount":%s,"prefixSHA256":"%s"}\n' \
+    "$source_identity" "$line_count" "$(phase0_session::operation audit_boundary_sha)" > "$record" || return 1
+  chmod 0400 "$record" || return 1
+  phase0_session::journal_append AUDIT_BOUNDARY RECORDED \
+    "pre-mutation lines=${line_count} sha256=$(phase0_session::operation audit_boundary_sha)" || return 1
+}
+
+phase0_ceremony::_verify_audit_delta() {
+  local delta=$1 line username code
+  local session_id binding_name recovery_principal authorizer_principal
+  local recovery_allowed=false recovery_denied=false authorizer_allowed=false authorizer_denied=false annotation=false
+  session_id=$(phase0_session::operation session_id) || return 1
+  binding_name="atlas-bg-canary-${session_id}"
+  recovery_principal=$(phase0_session::operation recovery_principal) || return 1
+  authorizer_principal=$(phase0_session::operation authorizer_principal) || return 1
+  [[ -s $delta ]] || {
+    recovery::die "API audit delta is empty; stale evidence cannot satisfy this ceremony"
+    return 1
+  }
+  grep -Fq "$session_id" "$delta" || return 1
+  grep -Fq "$binding_name" "$delta" || return 1
+  while IFS= read -r line || [[ -n $line ]]; do
+    username=$(yq -r '.user.username // ""' <<< "$line") || return 1
+    code=$(yq -r '.responseStatus.code // 200' <<< "$line") || return 1
+    [[ $code =~ ^[0-9]+$ ]] || return 1
+    if grep -Fq 'validation.policy.admission.k8s.io/' <<< "$line"; then
+      annotation=true
+    fi
+    case "$username" in
+      "$recovery_principal")
+        if ((code >= 200 && code < 300)); then recovery_allowed=true; fi
+        if ((code >= 400)); then recovery_denied=true; fi
+        ;;
+      "$authorizer_principal")
+        if ((code >= 200 && code < 300)); then authorizer_allowed=true; fi
+        if ((code >= 400)); then authorizer_denied=true; fi
+        ;;
+    esac
+  done < "$delta"
+  [[ $recovery_allowed == true && $recovery_denied == true &&
+    $authorizer_allowed == true && $authorizer_denied == true && $annotation == true ]] || {
+    recovery::die "current-session audit delta lacks principal outcomes or VAP Audit annotation"
+    return 1
+  }
+}
+
 phase0_ceremony::_finalize_evidence() {
-  local session audit_copy result manifest file relative
+  local session audit_copy audit_prefix audit_delta result manifest file relative boundary_lines
   session=$(phase0_session::operation evidence_session) || return 1
   audit_copy="${session}/audit/kube-apiserver-audit.log"
+  audit_prefix="${session}/audit/verified-pre-mutation-prefix.jsonl"
+  audit_delta="${session}/audit/current-session.jsonl"
+  [[ $(phase0_session::_path_identity "$(phase0_session::target audit_log)") == "$(phase0_session::operation audit_log_identity)" ]] || {
+    recovery::die "API audit log identity changed during the ceremony"
+    return 1
+  }
   phase0_ceremony::_snapshot_audit_log "$audit_copy" || return 1
-  grep -Fq 'atlas-bootstrap-operation-fence-canary' "$audit_copy" || return 1
-  grep -Fq 'atlas-bootstrap-admission-escape-canary' "$audit_copy" || return 1
+  boundary_lines=$(phase0_session::operation audit_boundary_lines) || return 1
+  sed -n "1,${boundary_lines}p" "$audit_copy" > "$audit_prefix" || return 1
+  [[ $(phase0_session::_sha256 "$audit_prefix") == "$(phase0_session::operation audit_boundary_sha)" ]] || {
+    recovery::die "API audit prefix changed after the pre-mutation boundary"
+    return 1
+  }
+  sed -n "$((boundary_lines + 1)),\$p" "$audit_copy" > "$audit_delta" || return 1
+  chmod 0400 "$audit_prefix" "$audit_delta" || return 1
+  phase0_ceremony::_verify_audit_delta "$audit_delta" || return 1
   if grep -ERq 'BEGIN ([A-Z ]+)?PRIVATE KEY|client-key-data|bearerToken|"token"[[:space:]]*:' "$session"; then
     recovery::die "credential material was detected in Phase-0 evidence"
     return 1
@@ -533,8 +899,10 @@ phase0_ceremony::_finalize_evidence() {
 }
 
 phase0_ceremony::_run() {
+  phase0_ceremony::_capture_audit_boundary || return 1
   phase0_ceremony::_issue_credentials || return 1
   phase0_ceremony::_install_definitions || return 1
+  phase0_ceremony::_verify_active_permissions || return 1
   phase0_ceremony::_admission_escape_drill || return 1
   phase0_ceremony::_session_authorization_drill || return 1
   phase0_ceremony::_cleanup_cluster_resources || return 1

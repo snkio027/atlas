@@ -175,7 +175,7 @@ directories with mode `0700` and no extended ACL:
   policy, Kind configuration, versions snapshot, pre-mutation manifest, and
   hash-chained `VERIFY/READY` journal;
 - a separate runtime evidence root; and
-- an empty short-lived credential directory.
+- an empty short-lived credential root.
 
 All four directories must be outside the repository, filesystem root, and
 shared temporary directories. The isolated admin kubeconfig must be a regular
@@ -210,23 +210,42 @@ an owner-only plan and pre-mutation hash. It then requires the exact, displayed
 `RUN PHASE0 <cluster> <approval-sha>` challenge and revalidates every approved
 input before the first CSR is created.
 
+The disposable Phase-0 ceremony uses one approved operator process, but keeps
+Recovery Operator and Session Authorizer material in separate owner-only
+subdirectories. The plan records this explicitly as
+`separate-principal-subdirectories-single-operator-drill`. This is the narrow
+single-person exception allowed by ADR-0003 for a disposable drill; it is not
+evidence of production independent custody. Production activation still
+requires independently escrowed principals and separate operators.
+
 An approved ceremony executes this fixed sequence:
 
-1. issue two one-hour, exact-username client certificates with no Organization,
-   verify their subjects and key pairs, and delete each CSR with UID and
-   resourceVersion preconditions;
-2. install the 17 canary definitions and require all five Policies to complete
-   API-server CEL type checking without warnings;
-3. prove ordinary mutation denial, suspend only the canary admission Binding to
+1. record the audit log's exact pre-mutation line offset, prefix hash, and file
+   identity;
+2. issue current `g2` and unbound previous `g1` one-hour certificates for both
+   principals with no Organization, verify subjects and key pairs, delete each
+   CSR with UID/resourceVersion preconditions, and prove all four credentials
+   share the same namespace-complete effective-permission baseline. Only
+   discovery and non-persistent self-access review creation may remain;
+3. install the 16 non-Authorizer definitions, require all five Policies to
+   complete API-server CEL type checking without warnings, and compare every
+   normalized live projection with the approved bundles;
+4. create the Session Authorizer RoleBinding last, compare all 17 live
+   projections, verify the current grants, and prove both `g1` credentials still
+   deny the complete mutation matrix;
+5. prove ordinary mutation denial, suspend only the canary admission Binding to
    `{Audit}`, exercise and restore the fixture, restore `{Audit, Deny}`, and
    prove the canonical Binding projection plus denial again;
-4. exercise positive and negative Fence, Binding Shape, Permission, and Guard
+6. exercise positive and negative Fence, Binding Shape, Permission, and Guard
    paths, including missing-Fence and wrong-lineage denial;
-5. delete the temporary permission Binding before the Fence, then delete every
-   canary definition using captured UID/resourceVersion preconditions;
-6. prove both credentials retain no mutation grants, remove their local key,
-   certificate, CSR, kubeconfig, and CA files, and seal the audit copy, result,
-   journal tip, and bundle hashes.
+7. delete the temporary permission Binding before the Fence, revoke and verify
+   the Session Authorizer before deleting any control, then delete the remaining
+   definitions using captured UID/resourceVersion preconditions;
+8. prove all four credentials returned byte-for-byte to their pre-activation
+   effective-permission baseline, remove their local material, and seal only the
+   audit delta after the recorded boundary. The delta must contain this exact
+   session ID and temporary Binding, both current principals, allowed and denied
+   outcomes, and a VAP Audit annotation.
 
 Success retains the disposable cluster but leaves no canary resource or local
 credential material. Failure stops immediately and intentionally retains the

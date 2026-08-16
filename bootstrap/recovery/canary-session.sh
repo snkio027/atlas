@@ -52,6 +52,10 @@ phase0_session::_path_mode() {
   stat -f '%Lp' "$1"
 }
 
+phase0_session::_path_identity() {
+  stat -f '%d:%i' "$1"
+}
+
 phase0_session::_path_has_extended_acl() {
   local listing permissions
   listing=$(LC_ALL=C ls -ld "$1") || return 2
@@ -192,6 +196,7 @@ phase0_session::resolve_target() {
   local creation_evidence=$5 evidence_root=$6 credential_directory=$7
   local storage_assertion=$8 known_good_revision=$9
   local expected_context resolved_admin resolved_audit resolved_creation resolved_evidence resolved_credentials key
+  local admin_parent
 
   [[ $cluster_name =~ ^atlas-recovery-drill-[0-9]{8}t[0-9]{6}z-[0-9a-f]{8}$ ]] || {
     recovery::die "--cluster-name is not a canonical disposable drill name"
@@ -245,9 +250,12 @@ phase0_session::resolve_target() {
   phase0_session::_paths_disjoint "$resolved_creation" "$resolved_credentials" || return 1
   phase0_session::_paths_disjoint "$resolved_evidence" "$resolved_credentials" || return 1
 
+  admin_parent=$(dirname "$resolved_admin") || return 1
+
   ATLAS_PHASE0_TARGET[cluster_name]=$cluster_name
   ATLAS_PHASE0_TARGET[context]=$context
   ATLAS_PHASE0_TARGET[admin_kubeconfig]=$resolved_admin
+  ATLAS_PHASE0_TARGET[admin_parent]=$admin_parent
   ATLAS_PHASE0_TARGET[audit_directory]=$resolved_audit
   ATLAS_PHASE0_TARGET[audit_log]="${resolved_audit}/kube-apiserver-audit.log"
   ATLAS_PHASE0_TARGET[creation_evidence]=$resolved_creation
@@ -255,6 +263,12 @@ phase0_session::resolve_target() {
   ATLAS_PHASE0_TARGET[credential_directory]=$resolved_credentials
   ATLAS_PHASE0_TARGET[storage_assertion]=$storage_assertion
   ATLAS_PHASE0_TARGET[known_good_revision]=$known_good_revision
+  ATLAS_PHASE0_TARGET[admin_kubeconfig_identity]=$(phase0_session::_path_identity "$resolved_admin") || return 1
+  ATLAS_PHASE0_TARGET[admin_parent_identity]=$(phase0_session::_path_identity "$admin_parent") || return 1
+  ATLAS_PHASE0_TARGET[audit_directory_identity]=$(phase0_session::_path_identity "$resolved_audit") || return 1
+  ATLAS_PHASE0_TARGET[creation_evidence_identity]=$(phase0_session::_path_identity "$resolved_creation") || return 1
+  ATLAS_PHASE0_TARGET[evidence_root_identity]=$(phase0_session::_path_identity "$resolved_evidence") || return 1
+  ATLAS_PHASE0_TARGET[credential_directory_identity]=$(phase0_session::_path_identity "$resolved_credentials") || return 1
   for key in BASH_VERSION KUBECTL_VERSION KUBERNETES_VERSION KIND_NODE_IMAGE OPENSSL_VERSION YQ_VERSION; do
     ATLAS_PHASE0_TARGET[$key]=$(phase0_session::_locked_value "$key") || return 1
   done
@@ -297,7 +311,7 @@ phase0_session::_tool_preflight() {
     recovery::die "Phase-0 runtime drills require Darwin arm64"
     return 1
   }
-  for tool in awk base64 chmod cmp cut date env find git grep id install ls mkdir mktemp openssl rm rmdir sed shasum sleep sort stat tr wc kubectl yq; do
+  for tool in awk base64 cat chmod cmp cut date dirname env find git grep id install ls mkdir mktemp mv openssl rm rmdir sed shasum sleep sort stat tr wc kubectl yq; do
     command -v "$tool" > /dev/null 2>&1 || {
       recovery::die "required Phase-0 command is missing: ${tool}"
       return 1
@@ -523,6 +537,61 @@ phase0_session::_audit_ready() {
   }
 }
 
+phase0_session::revalidate_target_paths() {
+  local resolved_admin resolved_audit resolved_creation resolved_evidence resolved_credentials
+  local session path key expected_identity first second
+  local -a directories
+
+  resolved_admin=$(phase0_session::_canonical_file "$(phase0_session::target admin_kubeconfig)" 600 "--admin-kubeconfig") || return 1
+  resolved_audit=$(phase0_session::_canonical_directory "$(phase0_session::target audit_directory)" "--audit-dir") || return 1
+  resolved_creation=$(phase0_session::_canonical_directory "$(phase0_session::target creation_evidence)" "--creation-evidence") || return 1
+  resolved_evidence=$(phase0_session::_canonical_directory "$(phase0_session::target evidence_root)" "--evidence-root") || return 1
+  resolved_credentials=$(phase0_session::_canonical_directory "$(phase0_session::target credential_directory)" "--credential-dir") || return 1
+
+  [[ $resolved_admin == "$(phase0_session::target admin_kubeconfig)" &&
+  $(dirname "$resolved_admin") == "$(phase0_session::target admin_parent)" &&
+  $resolved_audit == "$(phase0_session::target audit_directory)" &&
+  $resolved_creation == "$(phase0_session::target creation_evidence)" &&
+  $resolved_evidence == "$(phase0_session::target evidence_root)" &&
+  $resolved_credentials == "$(phase0_session::target credential_directory)" ]] || {
+    recovery::die "a managed Phase-0 path changed after approval"
+    return 1
+  }
+
+  for key in admin_kubeconfig admin_parent audit_directory creation_evidence evidence_root credential_directory; do
+    path=$(phase0_session::target "$key") || return 1
+    expected_identity=$(phase0_session::target "${key}_identity") || return 1
+    [[ $(phase0_session::_path_identity "$path") == "$expected_identity" ]] || {
+      recovery::die "managed Phase-0 path identity changed after approval: ${key}"
+      return 1
+    }
+  done
+
+  phase0_session::_reject_shared_temporary_path "$resolved_audit" "--audit-dir" || return 1
+  phase0_session::_reject_shared_temporary_path "$resolved_creation" "--creation-evidence" || return 1
+  phase0_session::_reject_shared_temporary_path "$resolved_evidence" "--evidence-root" || return 1
+  phase0_session::_reject_shared_temporary_path "$resolved_credentials" "--credential-dir" || return 1
+  phase0_session::_directory_empty "$resolved_credentials" || {
+    recovery::die "--credential-dir changed or is no longer empty after approval"
+    return 1
+  }
+
+  directories=("$resolved_audit" "$resolved_creation" "$resolved_evidence" "$resolved_credentials")
+  for ((first = 0; first < ${#directories[@]}; first++)); do
+    phase0_session::_paths_disjoint "$resolved_admin" "${directories[first]}" || return 1
+    for ((second = first + 1; second < ${#directories[@]}; second++)); do
+      phase0_session::_paths_disjoint "${directories[first]}" "${directories[second]}" || return 1
+    done
+  done
+
+  session=$(phase0_session::operation evidence_session) || return 1
+  [[ $session == "${resolved_evidence}/"* ]] || return 1
+  phase0_session::assert_directory "$session" "runtime evidence session" || return 1
+  for path in authorization audit postflight; do
+    phase0_session::assert_directory "${session}/${path}" "runtime evidence ${path} directory" || return 1
+  done
+}
+
 phase0_session::_create_evidence_session() {
   local fingerprint=$1 start=$2 session_id=$3 root fingerprint_dir session_dir
   root=$(phase0_session::target evidence_root) || return 1
@@ -541,7 +610,7 @@ phase0_session::_create_evidence_session() {
 phase0_session::_write_plan() {
   local plan=$1 json
   printf -v json '%s' \
-    "{\"schemaVersion\":1,\"action\":\"phase0.canary-drill\",\"actionId\":\"$(phase0_session::_json_escape "$(phase0_session::operation action_id)")\",\"actor\":\"$(phase0_session::_json_escape "$(phase0_session::operation actor)")\",\"preparedAt\":\"$(phase0_session::operation prepared_at)\",\"clusterName\":\"$(phase0_session::target cluster_name)\",\"context\":\"$(phase0_session::target context)\",\"apiServer\":\"$(phase0_session::_json_escape "$(phase0_session::operation api_server)")\",\"namespaceUID\":\"$(phase0_session::operation namespace_uid)\",\"adminKubeconfig\":\"$(phase0_session::_json_escape "$(phase0_session::target admin_kubeconfig)")\",\"auditDirectory\":\"$(phase0_session::_json_escape "$(phase0_session::target audit_directory)")\",\"creationEvidence\":\"$(phase0_session::_json_escape "$(phase0_session::target creation_evidence)")\",\"evidenceSession\":\"$(phase0_session::_json_escape "$(phase0_session::operation evidence_session)")\",\"credentialDirectory\":\"$(phase0_session::_json_escape "$(phase0_session::target credential_directory)")\",\"targetFingerprintSHA256\":\"$(phase0_session::operation target_fingerprint)\",\"sessionID\":\"$(phase0_session::operation session_id)\",\"operationID\":\"$(phase0_session::operation operation_id)\",\"recoveryPrincipal\":\"$(phase0_session::operation recovery_principal)\",\"authorizerPrincipal\":\"$(phase0_session::operation authorizer_principal)\",\"knownGoodRevision\":\"$(phase0_session::target known_good_revision)\",\"gitTree\":\"$(phase0_session::operation git_tree)\",\"creationPlanSHA256\":\"$(phase0_session::operation creation_plan_sha)\",\"creationJournalTipSHA256\":\"$(phase0_session::operation creation_journal_tip)\",\"admissionBundleSHA256\":\"$(phase0_session::operation admission_bundle_sha)\",\"sessionBundleSHA256\":\"$(phase0_session::operation session_bundle_sha)\",\"versionsLockSHA256\":\"$(phase0_session::operation versions_sha)\",\"auditPolicySHA256\":\"$(phase0_session::operation audit_policy_sha)\",\"adminKubeconfigSHA256\":\"$(phase0_session::operation admin_kubeconfig_sha)\",\"storageAssertion\":\"$(phase0_session::target storage_assertion)\"}"
+    "{\"schemaVersion\":1,\"action\":\"phase0.canary-drill\",\"actionId\":\"$(phase0_session::_json_escape "$(phase0_session::operation action_id)")\",\"actor\":\"$(phase0_session::_json_escape "$(phase0_session::operation actor)")\",\"preparedAt\":\"$(phase0_session::operation prepared_at)\",\"clusterName\":\"$(phase0_session::target cluster_name)\",\"context\":\"$(phase0_session::target context)\",\"apiServer\":\"$(phase0_session::_json_escape "$(phase0_session::operation api_server)")\",\"namespaceUID\":\"$(phase0_session::operation namespace_uid)\",\"adminKubeconfig\":\"$(phase0_session::_json_escape "$(phase0_session::target admin_kubeconfig)")\",\"auditDirectory\":\"$(phase0_session::_json_escape "$(phase0_session::target audit_directory)")\",\"creationEvidence\":\"$(phase0_session::_json_escape "$(phase0_session::target creation_evidence)")\",\"evidenceSession\":\"$(phase0_session::_json_escape "$(phase0_session::operation evidence_session)")\",\"credentialDirectory\":\"$(phase0_session::_json_escape "$(phase0_session::target credential_directory)")\",\"credentialCustody\":\"separate-principal-subdirectories-single-operator-drill\",\"targetFingerprintSHA256\":\"$(phase0_session::operation target_fingerprint)\",\"sessionID\":\"$(phase0_session::operation session_id)\",\"operationID\":\"$(phase0_session::operation operation_id)\",\"recoveryPrincipal\":\"$(phase0_session::operation recovery_principal)\",\"authorizerPrincipal\":\"$(phase0_session::operation authorizer_principal)\",\"previousRecoveryPrincipal\":\"$(phase0_session::operation previous_recovery_principal)\",\"previousAuthorizerPrincipal\":\"$(phase0_session::operation previous_authorizer_principal)\",\"knownGoodRevision\":\"$(phase0_session::target known_good_revision)\",\"gitTree\":\"$(phase0_session::operation git_tree)\",\"creationPlanSHA256\":\"$(phase0_session::operation creation_plan_sha)\",\"creationJournalTipSHA256\":\"$(phase0_session::operation creation_journal_tip)\",\"admissionBundleSHA256\":\"$(phase0_session::operation admission_bundle_sha)\",\"sessionBundleSHA256\":\"$(phase0_session::operation session_bundle_sha)\",\"versionsLockSHA256\":\"$(phase0_session::operation versions_sha)\",\"auditPolicySHA256\":\"$(phase0_session::operation audit_policy_sha)\",\"adminKubeconfigSHA256\":\"$(phase0_session::operation admin_kubeconfig_sha)\",\"storageAssertion\":\"$(phase0_session::target storage_assertion)\"}"
   printf '%s\n' "$json" > "$plan" || return 1
   chmod 0400 "$plan" || return 1
 }
@@ -569,7 +638,8 @@ phase0_session::journal_append() {
 
 phase0_session::prepare() {
   local authority commit tree namespace_uid fingerprint_payload fingerprint start_utc start_compact
-  local session_id operation_id session admission_bundle session_bundle versions_snapshot plan pre_manifest
+  local session_id operation_id session admission_bundle session_bundle session_static authorizer_activation
+  local versions_snapshot plan pre_manifest
   local plan_sha pre_sha approval_sha journal actor
 
   phase0_session::_verify_creation_evidence || return 1
@@ -594,12 +664,20 @@ phase0_session::prepare() {
 
   admission_bundle="${session}/authorization/admission-canary.yaml"
   session_bundle="${session}/authorization/session-authorization-canary.yaml"
+  session_static="${session}/authorization/session-authorization-static.yaml"
+  authorizer_activation="${session}/authorization/authorizer-activation.yaml"
   versions_snapshot="${session}/versions.lock"
-  admission_canary::render_manifests "atlas:break-glass:${namespace_uid}:g1" > "$admission_bundle" || return 1
-  session_canary::render_manifests "atlas:break-glass:${namespace_uid}:g1" \
-    "atlas:recovery-authorizer:${namespace_uid}:g1" > "$session_bundle" || return 1
+  admission_canary::render_manifests "atlas:break-glass:${namespace_uid}:g2" > "$admission_bundle" || return 1
+  session_canary::render_manifests "atlas:break-glass:${namespace_uid}:g2" \
+    "atlas:recovery-authorizer:${namespace_uid}:g2" > "$session_bundle" || return 1
+  yq ea 'select(.kind != "RoleBinding" or .metadata.name != "atlas-bootstrap-recovery-authorizer-canary")' \
+    "$session_bundle" > "$session_static" || return 1
+  yq ea 'select(.kind == "RoleBinding" and .metadata.name == "atlas-bootstrap-recovery-authorizer-canary")' \
+    "$session_bundle" > "$authorizer_activation" || return 1
+  [[ $(yq ea '[select(true)] | length' "$session_static") == 11 &&
+  $(yq ea '[select(true)] | length' "$authorizer_activation") == 1 ]] || return 1
   install -m 0400 "${ATLAS_RECOVERY_ROOT_DIR}/versions.lock" "$versions_snapshot" || return 1
-  chmod 0400 "$admission_bundle" "$session_bundle" || return 1
+  chmod 0400 "$admission_bundle" "$session_bundle" "$session_static" "$authorizer_activation" || return 1
 
   actor="$(id -u):$(id -un)" || return 1
   ATLAS_PHASE0_OPERATION[actor]=$actor
@@ -610,11 +688,15 @@ phase0_session::prepare() {
   ATLAS_PHASE0_OPERATION[target_fingerprint]=$fingerprint
   ATLAS_PHASE0_OPERATION[git_commit]=$commit
   ATLAS_PHASE0_OPERATION[git_tree]=$tree
-  ATLAS_PHASE0_OPERATION[recovery_principal]="atlas:break-glass:${namespace_uid}:g1"
-  ATLAS_PHASE0_OPERATION[authorizer_principal]="atlas:recovery-authorizer:${namespace_uid}:g1"
+  ATLAS_PHASE0_OPERATION[recovery_principal]="atlas:break-glass:${namespace_uid}:g2"
+  ATLAS_PHASE0_OPERATION[authorizer_principal]="atlas:recovery-authorizer:${namespace_uid}:g2"
+  ATLAS_PHASE0_OPERATION[previous_recovery_principal]="atlas:break-glass:${namespace_uid}:g1"
+  ATLAS_PHASE0_OPERATION[previous_authorizer_principal]="atlas:recovery-authorizer:${namespace_uid}:g1"
   ATLAS_PHASE0_OPERATION[evidence_session]=$session
   ATLAS_PHASE0_OPERATION[admission_bundle]=$admission_bundle
   ATLAS_PHASE0_OPERATION[session_bundle]=$session_bundle
+  ATLAS_PHASE0_OPERATION[session_static_bundle]=$session_static
+  ATLAS_PHASE0_OPERATION[authorizer_activation_bundle]=$authorizer_activation
   ATLAS_PHASE0_OPERATION[admission_bundle_sha]=$(phase0_session::_sha256 "$admission_bundle") || return 1
   ATLAS_PHASE0_OPERATION[session_bundle_sha]=$(phase0_session::_sha256 "$session_bundle") || return 1
   ATLAS_PHASE0_OPERATION[versions_snapshot]=$versions_snapshot
@@ -667,8 +749,11 @@ phase0_session::human_gate() {
     printf 'knownGoodRevision=%s\n' "$(phase0_session::target known_good_revision)"
     printf 'recoveryPrincipal=%s\n' "$(phase0_session::operation recovery_principal)"
     printf 'authorizerPrincipal=%s\n' "$(phase0_session::operation authorizer_principal)"
+    printf 'previousRecoveryPrincipal=%s\n' "$(phase0_session::operation previous_recovery_principal)"
+    printf 'previousAuthorizerPrincipal=%s\n' "$(phase0_session::operation previous_authorizer_principal)"
     printf 'evidenceSession=%s\n' "$(phase0_session::operation evidence_session)"
     printf 'credentialDirectory=%s\n' "$(phase0_session::target credential_directory)"
+    printf 'credentialCustody=separate-principal-subdirectories-single-operator-drill\n'
     printf 'planSHA256=%s\n' "$(phase0_session::operation plan_sha)"
     printf 'preMutationSHA256=%s\n' "$(phase0_session::operation pre_mutation_sha)"
     printf 'Type exactly: %s\n> ' "$expected"
@@ -691,6 +776,7 @@ phase0_session::revalidate() {
   expected_namespace_uid=$(phase0_session::operation namespace_uid) || return 1
   expected_api_server=$(phase0_session::operation api_server) || return 1
   expected_ca_data=$(phase0_session::operation ca_data) || return 1
+  phase0_session::revalidate_target_paths || return 1
   authority=$(phase0_session::_git_authority) || return 1
   IFS=$'\t' read -r commit tree <<< "$authority"
   [[ $commit == "$(phase0_session::operation git_commit)" && $tree == "$(phase0_session::operation git_tree)" ]] || return 1
@@ -698,10 +784,15 @@ phase0_session::revalidate() {
   [[ $(phase0_session::_sha256 "$(phase0_session::target admin_kubeconfig)") == "$(phase0_session::operation admin_kubeconfig_sha)" ]] || return 1
   [[ $(phase0_session::_sha256 "$(phase0_session::operation admission_bundle)") == "$(phase0_session::operation admission_bundle_sha)" ]] || return 1
   [[ $(phase0_session::_sha256 "$(phase0_session::operation session_bundle)") == "$(phase0_session::operation session_bundle_sha)" ]] || return 1
+  cmp -s "$(phase0_session::operation session_static_bundle)" \
+    <(yq ea 'select(.kind != "RoleBinding" or .metadata.name != "atlas-bootstrap-recovery-authorizer-canary")' \
+      "$(phase0_session::operation session_bundle)") || return 1
+  cmp -s "$(phase0_session::operation authorizer_activation_bundle)" \
+    <(yq ea 'select(.kind == "RoleBinding" and .metadata.name == "atlas-bootstrap-recovery-authorizer-canary")' \
+      "$(phase0_session::operation session_bundle)") || return 1
   [[ $(phase0_session::_sha256 "$(phase0_session::operation versions_snapshot)") == "$(phase0_session::operation versions_sha)" ]] || return 1
   [[ $(phase0_session::_sha256 "$(phase0_session::operation plan_file)") == "$(phase0_session::operation plan_sha)" ]] || return 1
   [[ $(phase0_session::_sha256 "$(phase0_session::operation pre_mutation_file)") == "$(phase0_session::operation pre_mutation_sha)" ]] || return 1
-  phase0_session::_directory_empty "$(phase0_session::target credential_directory)" || return 1
   phase0_session::_verify_creation_evidence || return 1
   [[ $(phase0_session::operation creation_plan_sha) == "$expected_creation_plan" &&
   $(phase0_session::operation creation_journal_tip) == "$expected_creation_journal" &&
