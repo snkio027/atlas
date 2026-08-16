@@ -17,24 +17,31 @@ readonly ATLAS_RECOVERY_CLI_VERSION=0.1.0
 # Bootstrap CLI must remain unable to dispatch recovery behavior.
 # shellcheck source=bootstrap/recovery/audit-config.sh
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit-config.sh"
+# shellcheck source=bootstrap/recovery/admission-canary/render.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/admission-canary/render.sh"
 
 recovery::usage() {
   cat << 'EOF'
 Usage: bootstrap/recovery/atlas-recovery <command> [options]
 
 Commands:
-  phase0 audit-config  Render a disposable audited Kind configuration
+  phase0 audit-config                 Render an audited Kind configuration
+  phase0 admission-canary-manifests  Render the admission escape canary bundle
 
 Options for phase0 audit-config:
-  --audit-dir <path>   Existing writable audit directory outside the repository
+  --audit-dir <path>  Existing writable audit directory outside the repository
+
+Options for phase0 admission-canary-manifests:
+  --recovery-operator <username>
+                      Exact atlas:break-glass:<kube-system-UID>:g<N> username
 
 Global options:
   -V, --version        Show the Recovery CLI version
   -h, --help           Show this help
 
-This Phase-0 entry point renders configuration only. It cannot create a
-cluster, issue credentials, install RBAC or Admission resources, or perform
-recovery mutations.
+This Phase-0 entry point renders definitions only. It cannot create a cluster,
+issue credentials, install RBAC or Admission resources, or perform recovery
+mutations.
 EOF
 }
 
@@ -45,6 +52,28 @@ recovery::version() {
 recovery::die() {
   printf 'atlas-recovery: %s\n' "$*" >&2
   return 1
+}
+
+recovery::dispatch_phase0() {
+  local action=${1:-}
+  [[ -n $action ]] || {
+    recovery::die "phase0 requires an action"
+    return 2
+  }
+  shift
+
+  case "$action" in
+    audit-config)
+      audit::dispatch "$action" "$@"
+      ;;
+    admission-canary-manifests)
+      admission_canary::dispatch "$@"
+      ;;
+    *)
+      recovery::die "unknown phase0 action: ${action}"
+      return 2
+      ;;
+  esac
 }
 
 recovery::main() {
@@ -65,7 +94,7 @@ recovery::main() {
       recovery::version
       ;;
     phase0)
-      audit::dispatch "$@"
+      recovery::dispatch_phase0 "$@"
       ;;
     *)
       recovery::usage >&2

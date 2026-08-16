@@ -100,6 +100,7 @@ phase0::assert_audit_level Metadata "TokenReview CREATE" create authentication.k
 phase0::assert_audit_level Metadata "CSR CREATE" create certificates.k8s.io certificatesigningrequests "" ""
 phase0::assert_audit_level Metadata "named Fence CREATE" create "" configmaps kube-system atlas-bootstrap-operation-fence-canary
 phase0::assert_audit_level Metadata "collection Fence CREATE" create "" configmaps kube-system ""
+phase0::assert_audit_level RequestResponse "admission canary UPDATE" update "" configmaps kube-system atlas-bootstrap-admission-escape-canary
 phase0::assert_audit_level RequestResponse "named Fence UPDATE" update "" configmaps kube-system atlas-bootstrap-operation-fence-canary
 phase0::assert_audit_level Metadata "unrelated ConfigMap UPDATE" update "" configmaps kube-system unrelated
 phase0::assert_audit_level RequestResponse "RBAC CREATE" create rbac.authorization.k8s.io rolebindings kube-system ""
