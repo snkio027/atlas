@@ -73,7 +73,9 @@ bootstrap/
     │   ├── rbac.yaml.tpl
     │   ├── fence-authorization.yaml.tpl
     │   ├── binding-shape-authorization.yaml.tpl
-    │   └── permission-authorization.yaml.tpl
+    │   ├── permission-authorization.yaml.tpl
+    │   ├── guard-fixture.yaml
+    │   └── guard-authorization.yaml.tpl
     └── audit-config.sh
 ```
 
@@ -84,12 +86,13 @@ actions such as `cluster::ensure_kind`, `registry::ensure_local`,
 
 `bootstrap/recovery/atlas-recovery` is a physically separate entry point
 governed by ADR-0003. Its current Phase-0 surface renders an audited Kind
-configuration plus isolated admission-escape and Session Authorization canary
-bundles. Neither bundle is reachable from GitOps or grants production
-protection or recovery authority. The entry point cannot create a cluster,
-issue credentials, install RBAC or Admission, suspend a Binding, acquire a
-Fence, or dispatch recovery. The normal `bootstrap/atlas` command never imports
-it.
+configuration plus isolated admission-escape and four-control Session
+Authorization canary bundles. The latter defines Fence, Binding Shape,
+Permission, and Guard authorization around inert canary targets. Neither bundle
+is reachable from GitOps or grants production protection or recovery authority.
+The entry point cannot create a cluster, issue credentials, install RBAC or
+Admission, suspend a Binding, acquire a Fence, or dispatch recovery. The normal
+`bootstrap/atlas` command never imports it.
 
 `bootstrap/drill/atlas-kind-drill` is the separately gated cluster-lifecycle
 entry point. It can create one uniquely named audited Kind drill cluster, but

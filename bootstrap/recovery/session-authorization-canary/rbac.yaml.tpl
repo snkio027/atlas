@@ -15,6 +15,16 @@ rules:
       - atlas-bootstrap-admission-escape-canary
     verbs:
       - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - atlas-bootstrap-recovery-guard-canary
+    verbs:
+      - get
+      - patch
+      - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

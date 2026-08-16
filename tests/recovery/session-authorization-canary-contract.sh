@@ -31,7 +31,7 @@ render_bundle > "$second_bundle"
 cmp -s "$first_bundle" "$second_bundle" || test::fail "Session Authorization canary rendering is not deterministic"
 
 document_count=$(yq ea '[.] | length' "$first_bundle")
-((document_count == 9)) || test::fail "Session Authorization canary bundle does not contain exactly nine resources"
+((document_count == 12)) || test::fail "Phase-0 Definition Closure bundle does not contain exactly twelve resources"
 
 assert_resource_projection() {
   local kind=$1 name=$2 expected_sha=$3 actual_sha
@@ -47,7 +47,7 @@ assert_resource_projection() {
 }
 
 assert_resource_projection Role atlas-bootstrap-recovery-canary \
-  156787fddd10b4bde47262ae2ffc3f27660ee90b74ff70ad6336bb7863db1496
+  5a234d0d0e2afb86789fef5beed1a7342284d93ddcc889ed59025a599932f8fc
 assert_resource_projection Role atlas-bootstrap-recovery-authorizer-canary \
   bad62a23878e69e0b15682a35663135bbbaff549a3362fd2da21ce2068b8dd89
 assert_resource_projection RoleBinding atlas-bootstrap-recovery-authorizer-canary \
@@ -64,17 +64,26 @@ assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-pe
   03d39c71233c0e5136325c39294a2e2e718f8644a4655bab47a0755a9f103dbd
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-permission-authorization-canary \
   2877b4638b8453a809e0a0bee591cffcd888f72de4e5295fe58bdfd4c0cf98f7
-test::pass "all Session Authorization canary resources have exact complete projections"
+assert_resource_projection ConfigMap atlas-bootstrap-recovery-guard-canary \
+  ad3974aa428d29a7b882fde39f480527da09603fa5e73e6cb5e003d35f7dfc02
+assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-guard-authorization-canary \
+  0c2808a7034ab0882ee2cfcfefdd06c50fc31f8076ff25f6bad74f1af17297f5
+assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-guard-authorization-canary \
+  07674f6d9d9c8fb0409d7ce9f048ebb60221cdf1dcb39748473620be4a6af774
+test::pass "all Phase-0 Session Authorization definitions have exact complete projections"
 
 permission_role=$(RESOURCE_NAME=atlas-bootstrap-recovery-canary yq ea \
   'select(.kind == "Role" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
 [[ $(yq '.metadata.name' <<< "$permission_role") == atlas-bootstrap-recovery-canary &&
 $(yq '.metadata.namespace' <<< "$permission_role") == kube-system ]] ||
   test::fail "canary permission Role is not namespace confined"
-expected_permission_rule='{"apiGroups":[""],"resources":["configmaps"],"resourceNames":["atlas-bootstrap-admission-escape-canary"],"verbs":["get"]}'
-[[ $(yq -o=json -I=0 '.rules[0]' <<< "$permission_role") == "$expected_permission_rule" ]] ||
+expected_fixture_rule='{"apiGroups":[""],"resources":["configmaps"],"resourceNames":["atlas-bootstrap-admission-escape-canary"],"verbs":["get"]}'
+expected_guard_rule='{"apiGroups":[""],"resources":["configmaps"],"resourceNames":["atlas-bootstrap-recovery-guard-canary"],"verbs":["get","patch","update"]}'
+[[ $(yq -o=json -I=0 '.rules[0]' <<< "$permission_role") == "$expected_fixture_rule" ]] ||
   test::fail "canary permission Role does not grant only the exact fixture read"
-[[ $(yq '.rules | length' <<< "$permission_role") -eq 1 ]] ||
+[[ $(yq -o=json -I=0 '.rules[1]' <<< "$permission_role") == "$expected_guard_rule" ]] ||
+  test::fail "canary permission Role does not confine guard mutation to the exact fixture"
+[[ $(yq '.rules | length' <<< "$permission_role") -eq 2 ]] ||
   test::fail "canary permission Role contains an additional rule"
 
 authorizer_role=$(RESOURCE_NAME=atlas-bootstrap-recovery-authorizer-canary yq ea \
@@ -120,7 +129,8 @@ test::pass "fixture read and Session Authorizer lifecycle authority are namespac
 for policy_name in \
   atlas-bootstrap-recovery-fence-authorization-canary \
   atlas-bootstrap-recovery-binding-shape-authorization-canary \
-  atlas-bootstrap-recovery-permission-authorization-canary; do
+  atlas-bootstrap-recovery-permission-authorization-canary \
+  atlas-bootstrap-recovery-guard-authorization-canary; do
   policy=$(RESOURCE_NAME=$policy_name yq ea \
     'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME))' \
     "$first_bundle")
@@ -136,6 +146,18 @@ for policy_name in \
   [[ $(yq -o=json -I=0 '.spec.validationActions' <<< "$binding") == "$expected_binding_actions" ]] ||
     test::fail "${policy_name} Binding is not canonical Audit+Deny"
 done
+policy_count=$(yq ea '[select(.kind == "ValidatingAdmissionPolicy")] | length' "$first_bundle")
+binding_count=$(yq ea '[select(.kind == "ValidatingAdmissionPolicyBinding")] | length' "$first_bundle")
+((policy_count == 4 && binding_count == 4)) || test::fail "four-control Policy/Binding closure is incomplete"
+parameterized_policy_count=$(yq ea \
+  '[select(.kind == "ValidatingAdmissionPolicy" and (.spec | has("paramKind")))] | length' \
+  "$first_bundle")
+parameterized_binding_count=$(yq ea \
+  '[select(.kind == "ValidatingAdmissionPolicyBinding" and (.spec | has("paramRef")))] | length' \
+  "$first_bundle")
+((parameterized_policy_count == 1 && parameterized_binding_count == 1)) ||
+  test::fail "only Permission authorization may be Fence parameterized"
+test::pass "all four authorization controls share Fail and canonical Audit+Deny enforcement"
 
 fence_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-fence-authorization-canary yq ea \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
@@ -186,9 +208,55 @@ for required_lineage in \
   grep -Fq "$required_lineage" <<< "$permission_expressions" ||
     test::fail "Permission authorization omits Fence lineage: ${required_lineage}"
 done
-configmap_count=$(yq ea '[select(.kind == "ConfigMap")] | length' "$first_bundle")
-((configmap_count == 0)) || test::fail "definition bundle creates a canary or production Fence"
+fence_instance_count=$(yq ea \
+  '[select(.kind == "ConfigMap" and (.metadata.name == "atlas-bootstrap-operation-fence-canary" or .metadata.name == "atlas-bootstrap-operation-fence"))] | length' \
+  "$first_bundle")
+((fence_instance_count == 0)) || test::fail "definition bundle creates a canary or production Fence"
 test::pass "Fence, Binding Shape, and Permission controls compose and missing Fence fails closed"
+
+guard_fixture=$(RESOURCE_NAME=atlas-bootstrap-recovery-guard-canary yq ea \
+  'select(.kind == "ConfigMap" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
+[[ $(yq '.metadata.namespace' <<< "$guard_fixture") == kube-system &&
+$(yq -o=json -I=0 '.data' <<< "$guard_fixture") == '{"sentinel":"recovery-guard-canary"}' ]] ||
+  test::fail "Guard fixture is not inert and namespace confined"
+guard_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-guard-authorization-canary yq ea \
+  'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
+[[ $(yq '.spec | has("paramKind")' <<< "$guard_policy") == false ]] ||
+  test::fail "Guard authorization incorrectly depends on the Fence parameter"
+guard_expressions=$(yq -r '.spec.matchConditions[].expression, .spec.validations[].expression' <<< "$guard_policy")
+guard_match=$(yq -r '.spec.matchConditions[0].expression' <<< "$guard_policy")
+for guard_contract in \
+  "$recovery_operator" atlas-bootstrap-recovery-guard-canary policy.atlas-recovery-freeze.csv \
+  'request.operation != '\''DELETE'\''' 'object.metadata.labels == oldObject.metadata.labels' \
+  'variables.oldGuardValue != variables.newGuardValue'; do
+  grep -Fq "$guard_contract" <<< "$guard_expressions" ||
+    test::fail "Guard authorization omits contract: ${guard_contract}"
+done
+test::pass "Guard authorization protects exact add/remove projection and denies destructive drift"
+
+# Static routing matrix. Full projection hashes above bind these assertions to
+# the reviewed CEL; server-side type checking and request probes belong to the
+# separately authorized disposable-cluster runtime drill.
+[[ $fence_match == *"request.userInfo.username == '${session_authorizer}'"* &&
+  $fence_match == *"object.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* &&
+  $fence_match == *"oldObject.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* ]] ||
+  test::fail "Fence routing does not cover the authorizer and canonical old/new target"
+[[ $shape_match == *"oldObject.metadata.labels"* &&
+  $shape_match == *"object.metadata.labels"* &&
+  $shape_match == *"atlas.io/recovery-session"* ]] ||
+  test::fail "Binding Shape routing does not cover session-label add/remove"
+[[ $(yq '.spec.paramRef.parameterNotFoundAction' <<< "$permission_binding") == Deny &&
+$(yq '.spec.matchResources.objectSelector.matchExpressions[0].operator' <<< "$permission_binding") == Exists ]] ||
+  test::fail "Permission routing does not deny a selected Binding when the Fence is absent"
+[[ $guard_match == *"request.operation != 'CREATE'"* &&
+  $guard_match == *"oldObject.data"* &&
+  $guard_match == *"request.operation != 'DELETE'"* &&
+  $guard_match == *"object.data"* &&
+  $guard_match == *"policy.atlas-recovery-freeze.csv"* ]] ||
+  test::fail "Guard routing does not cover key add, change, and removal through old/new objects"
+[[ $(yq -r '.spec.validations[1].expression' <<< "$guard_policy") == "request.operation != 'DELETE'" ]] ||
+  test::fail "Guard routing permits fixture deletion while the guard is selected"
+test::pass "four-control static routing truth table is complete and fail closed"
 
 assert_render_rejected() {
   local recovery=$1 authorizer=$2
@@ -233,4 +301,12 @@ production_role_ref_count=$(yq ea \
 ((production_role_ref_count == 0)) || test::fail "canary bundle selects a production Recovery Role"
 ! grep -Fq 'atlas-bootstrap-evidence-protection' "$first_bundle" ||
   test::fail "canary bundle contains production evidence protection"
+for control_name in \
+  atlas-bootstrap-recovery-fence-authorization-canary \
+  atlas-bootstrap-recovery-binding-shape-authorization-canary \
+  atlas-bootstrap-recovery-permission-authorization-canary \
+  atlas-bootstrap-recovery-guard-authorization-canary; do
+  grep -Fq "$control_name" docs/adr/0003-bootstrap-break-glass-recovery.md ||
+    test::fail "canary control is not mapped by ADR-0003: ${control_name}"
+done
 test::pass "Session Authorization definitions remain render-only and production-isolated"

@@ -88,6 +88,10 @@ session_canary::render_manifests() {
   session_canary::_render_template binding-shape-authorization.yaml.tpl "$recovery_operator" "$authorizer" 1 2
   printf '%s\n' '---'
   session_canary::_render_template permission-authorization.yaml.tpl "$recovery_operator" "$authorizer" 1 1
+  printf '%s\n' '---'
+  session_canary::_render_template guard-fixture.yaml "$recovery_operator" "$authorizer" 0 0
+  printf '%s\n' '---'
+  session_canary::_render_template guard-authorization.yaml.tpl "$recovery_operator" "$authorizer" 2 0
 }
 
 session_canary::dispatch() {
