@@ -33,14 +33,6 @@ cmp -s "$first_bundle" "$second_bundle" || test::fail "Session Authorization can
 document_count=$(yq ea '[.] | length' "$first_bundle")
 ((document_count == 9)) || test::fail "Session Authorization canary bundle does not contain exactly nine resources"
 
-assert_one_resource() {
-  local kind=$1 name=$2 count
-  count=$(RESOURCE_KIND=$kind RESOURCE_NAME=$name yq ea \
-    '[select(.kind == strenv(RESOURCE_KIND) and .metadata.name == strenv(RESOURCE_NAME))] | length' \
-    "$first_bundle")
-  ((count == 1)) || test::fail "expected exactly one ${kind}/${name}"
-}
-
 assert_resource_projection() {
   local kind=$1 name=$2 expected_sha=$3 actual_sha
   actual_sha=$(
@@ -65,11 +57,11 @@ assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-fe
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-fence-authorization-canary \
   efb401217069eb264239bf58996c2e13f60045743f4216ea4e78c05fb65d25fc
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-binding-shape-authorization-canary \
-  b06e3f02e7916cffbf0a42ae212b4328df1207004bfb4fd1bb2e1fe73d44f5ea
+  327e7b2726efdc931d9b566b1cb37543621b82b10a9fd90a19951e1973a7b4ed
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-binding-shape-authorization-canary \
   3d09d0dcc836ccd65195a853b51105044da9e4dbd056e95cdf9decf4b5f103a2
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-permission-authorization-canary \
-  53464f3953eb0a2a82e9d48b5a0229a657ab8bc62dc5ed68c0dffb2eba3d53a2
+  03d39c71233c0e5136325c39294a2e2e718f8644a4655bab47a0755a9f103dbd
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-permission-authorization-canary \
   2877b4638b8453a809e0a0bee591cffcd888f72de4e5295fe58bdfd4c0cf98f7
 test::pass "all Session Authorization canary resources have exact complete projections"
@@ -161,11 +153,12 @@ shape_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorizatio
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
 [[ $(yq '.spec | has("paramKind")' <<< "$shape_policy") == false ]] ||
   test::fail "Binding Shape authorization incorrectly depends on a parameter"
-shape_match=$(yq -r '.spec.matchConditions[0].expression' <<< "$shape_policy")
-[[ $shape_match == *"request.userInfo.username == '${session_authorizer}'"* ]] ||
-  test::fail "Binding Shape authorization permits a label-omission bypass"
-[[ $shape_match == *"atlas-bg-canary-"* && $shape_match == *"atlas.io/recovery-session"* ]] ||
-  test::fail "Binding Shape authorization does not select canonical temporary bindings"
+shape_match=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorization-canary yq ea -r \
+  'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME)) | .spec.matchConditions[0].expression' \
+  "$first_bundle")
+expected_shape_match=$'request.userInfo.username == \'atlas:recovery-authorizer:12345678-1234-1234-1234-123456789abc:g4\' || (request.namespace == \'kube-system\' &&\n  ((request.operation != \'CREATE\' &&\n    (oldObject.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(oldObject.metadata.labels) &&\n        \'atlas.io/recovery-session\' in oldObject.metadata.labels))) ||\n  (request.operation != \'DELETE\' &&\n    (object.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(object.metadata.labels) &&\n        \'atlas.io/recovery-session\' in object.metadata.labels))))'
+[[ $shape_match == "$expected_shape_match" ]] ||
+  test::fail "Binding Shape authorization does not select the exact old/new target union"
 
 permission_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-permission-authorization-canary yq ea \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME))' "$first_bundle")
@@ -173,6 +166,8 @@ permission_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-permission-authorizat
   test::fail "Permission authorization does not use a native ConfigMap parameter"
 [[ $(yq -r '.spec.validations[0].expression' <<< "$permission_policy") == 'params != null' ]] ||
   test::fail "Permission authorization does not explicitly require the canary Fence parameter"
+[[ $(yq -r '.spec.matchConditions[0].expression' <<< "$permission_policy") == "request.namespace == 'kube-system'" ]] ||
+  test::fail "Permission authorization overrides the Binding old/new objectSelector"
 permission_binding=$(RESOURCE_NAME=atlas-bootstrap-recovery-permission-authorization-canary yq ea \
   'select(.kind == "ValidatingAdmissionPolicyBinding" and .metadata.name == strenv(RESOURCE_NAME))' \
   "$first_bundle")
@@ -182,6 +177,7 @@ expected_param_ref='{"name":"atlas-bootstrap-operation-fence-canary","namespace"
 expected_selector='{"matchLabels":{"atlas.io/recovery-scope":"canary"},"matchExpressions":[{"key":"atlas.io/recovery-session","operator":"Exists"}]}'
 [[ $(yq -o=json -I=0 '.spec.matchResources.objectSelector' <<< "$permission_binding") == "$expected_selector" ]] ||
   test::fail "Permission authorization object selector drifted"
+test::pass "UPDATE label removal remains selected through oldObject and fails closed"
 
 permission_expressions=$(yq -r '.spec.validations[].expression' <<< "$permission_policy")
 for required_lineage in \

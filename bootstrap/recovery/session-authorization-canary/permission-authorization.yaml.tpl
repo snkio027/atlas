@@ -25,15 +25,7 @@ spec:
         scope: Namespaced
   matchConditions:
     - name: canary-session-binding
-      expression: >-
-        request.namespace == 'kube-system' &&
-        (request.operation == 'DELETE'
-          ? has(oldObject.metadata.labels) &&
-            oldObject.metadata.labels['atlas.io/recovery-scope'] == 'canary' &&
-            'atlas.io/recovery-session' in oldObject.metadata.labels
-          : has(object.metadata.labels) &&
-            object.metadata.labels['atlas.io/recovery-scope'] == 'canary' &&
-            'atlas.io/recovery-session' in object.metadata.labels)
+      expression: "request.namespace == 'kube-system'"
   variables:
     - name: binding
       expression: "request.operation == 'DELETE' ? oldObject : object"
