@@ -47,6 +47,7 @@ tasks:
       - ./tests/recovery/audit-config-contract.sh
       - ./tests/recovery/admission-canary-contract.sh
       - ./tests/recovery/session-authorization-canary-contract.sh
+      - ./tests/recovery/canary-ceremony-contract.sh
       - ./tests/drill/kind-create-contract.sh
 
   conformance:

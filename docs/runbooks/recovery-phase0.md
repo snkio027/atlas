@@ -1,10 +1,12 @@
 # Phase-0 Recovery Authority Preparation
 
-This runbook covers the audited Kind definition and the isolated drill-cluster
-lifecycle implemented for ADR-0003 Phase 0. It does not declare Phase 0
-complete. Reading this runbook, merging the implementation, or running Quality
-does not authorize cluster creation, credential issuance, RBAC or Admission
-activation, canary mutation, recovery execution, teardown, or Tier-0 changes.
+This runbook covers the audited Kind definition, isolated drill-cluster
+lifecycle, and canary-only runtime ceremony implemented for ADR-0003 Phase 0.
+It does not declare Phase 0 complete. Reading this runbook, merging the
+implementation, or running Quality does not authorize cluster creation,
+credential issuance, RBAC or Admission activation, canary mutation, recovery
+execution, teardown, or Tier-0 changes. A real ceremony requires its own exact
+Human Judgment Gate after the code has been reviewed and merged.
 
 ## Render the audited drill-cluster configuration
 
@@ -73,18 +75,17 @@ read Secrets or ConfigMaps in any Namespace, mutate the canary fixture, or
 target production evidence. Fixture reads are deliberately absent rather than
 granted cluster-wide; any future namespaced read requires a separately reviewed
 `Role` and `RoleBinding` decision. Standing mutation authority is limited to
-suspending and restoring the canary Binding; the future ceremony must constrain
-that operation to the exact UID/resourceVersion and `validationActions` JSON
-Patch defined by ADR-0003.
+suspending and restoring the canary Binding; the runtime ceremony constrains
+that operation to the exact UID/resourceVersion and raw `validationActions`
+JSON Patch defined by ADR-0003.
 
-This command does not authorize applying the bundle. Activation requires an
+This render command does not authorize applying the bundle. Activation requires an
 audited disposable target, a separately issued and escrowed Recovery Operator
 credential, an authority-specific Human Judgment Gate, server-side CEL type
 checking, effective-permission probes, and retained audit evidence. The current
-implementation has no apply, suspend, restore, or cleanup command. Session
-Authorizer activation and the Fence/Permission ceremony remain separate future
-permission boundaries; production Session Authorization and production `Deny`
-remain absent.
+runtime ceremony implements those actions only for the reviewed canary names on
+the disposable target described below. Production Session Authorization and
+production `Deny` remain absent.
 
 ## Render the Session Authorization canary definitions
 
@@ -155,12 +156,84 @@ The static authorization routing contract is:
 the exact operation. Complete normalized projections and the routing matrix are
 checked by Quality. API-server CEL type checking, positive and negative
 permission probes, resource installation, Fence creation, temporary
-RoleBinding creation, cleanup, and ceremony evidence belong to the separately
-authorized Phase-0 runtime milestone.
+RoleBinding creation, cleanup, and evidence collection occur only inside the
+separately authorized runtime ceremony.
 
 This render command performs no API call and is not an activation mechanism.
 The definitions are absent from all Kustomizations and must not be applied to
 the existing four-node normal Bootstrap cluster.
+
+## Runtime canary ceremony
+
+The runtime command operates only on a disposable cluster previously created
+by `bootstrap/drill/atlas-kind-drill create`. It does not create, reuse, or
+delete a cluster. Prepare four existing, mutually disjoint, current-UID-owned
+directories with mode `0700` and no extended ACL:
+
+- the cluster's audit directory;
+- the exact cluster-creation evidence session containing its sealed plan,
+  policy, Kind configuration, versions snapshot, pre-mutation manifest, and
+  hash-chained `VERIFY/READY` journal;
+- a separate runtime evidence root; and
+- an empty short-lived credential directory.
+
+All four directories must be outside the repository, filesystem root, and
+shared temporary directories. The isolated admin kubeconfig must be a regular
+mode-`0600` file named `<cluster-name>.kubeconfig`; its parent must also be
+owner-only. The runtime evidence root must not contain the creation evidence.
+Use the reviewed, clean commit that contains the ceremony implementation as the
+known-good revision:
+
+```bash
+cluster=atlas-recovery-drill-YYYYMMDDtHHMMSSz-0123abcd
+reviewed_revision=0000000000000000000000000000000000000000
+
+./bootstrap/recovery/atlas-recovery phase0 canary-drill \
+  --cluster-name "$cluster" \
+  --context "kind-${cluster}" \
+  --admin-kubeconfig "/absolute/owner-only/${cluster}.kubeconfig" \
+  --audit-dir "/absolute/encrypted/audit/${cluster}" \
+  --creation-evidence "/absolute/encrypted/creation-evidence/session" \
+  --evidence-root "/absolute/encrypted/runtime-evidence" \
+  --credential-dir "/absolute/encrypted/runtime-credentials" \
+  --storage-assertion encrypted-owner-controlled \
+  --known-good-revision "$reviewed_revision"
+```
+
+The placeholder revision deliberately cannot authorize a real run. Before the
+interactive prompt, the command proves a clean exact Git authority, validates
+the complete cluster-creation evidence chain, matches its audit-policy snapshot
+to the reviewed revision, verifies the isolated single Ready node and loopback
+API endpoint, confirms Kubernetes and tool versions, checks that every canary
+object is absent, and binds the rendered bundles plus all authority inputs into
+an owner-only plan and pre-mutation hash. It then requires the exact, displayed
+`RUN PHASE0 <cluster> <approval-sha>` challenge and revalidates every approved
+input before the first CSR is created.
+
+An approved ceremony executes this fixed sequence:
+
+1. issue two one-hour, exact-username client certificates with no Organization,
+   verify their subjects and key pairs, and delete each CSR with UID and
+   resourceVersion preconditions;
+2. install the 17 canary definitions and require all five Policies to complete
+   API-server CEL type checking without warnings;
+3. prove ordinary mutation denial, suspend only the canary admission Binding to
+   `{Audit}`, exercise and restore the fixture, restore `{Audit, Deny}`, and
+   prove the canonical Binding projection plus denial again;
+4. exercise positive and negative Fence, Binding Shape, Permission, and Guard
+   paths, including missing-Fence and wrong-lineage denial;
+5. delete the temporary permission Binding before the Fence, then delete every
+   canary definition using captured UID/resourceVersion preconditions;
+6. prove both credentials retain no mutation grants, remove their local key,
+   certificate, CSR, kubeconfig, and CA files, and seal the audit copy, result,
+   journal tip, and bundle hashes.
+
+Success retains the disposable cluster but leaves no canary resource or local
+credential material. Failure stops immediately and intentionally retains the
+observable cluster objects, credential directory, audit log, and evidence
+session for human review; there is no automatic rollback, retry, production
+fallback, or teardown path. Any retained-state disposition requires a new
+authorization.
 
 ## Drill-cluster lifecycle boundary
 
@@ -229,13 +302,10 @@ non-symlink kubeconfig and audit-log files with mode `0600`, the approved policy
 hash inside the node, an exact context, a Ready node, and a recorded `/readyz`
 audit event.
 
-Cluster lifecycle approval is not reusable for later Phase-0 gates. The
-following remain separately reviewed and unauthorized:
-
-- Recovery Operator and Session Authorizer credential ceremonies;
-- persistent Escape and canary-scoped Session Authorizer RBAC activation;
-- disposable protection and recovery-authorization canaries; and
-- canary suspend/restore and Fence/Permission Bundle exercises.
+Cluster lifecycle approval is not reusable for the runtime ceremony. The
+runtime command always creates a new plan-bound Human Gate. Its canary-only
+credentials, RBAC, Admission, suspend/restore, Fence, and Permission exercise
+remain unauthorized until that exact challenge is independently approved.
 
 Production Session Authorizer RBAC and production `Deny` remain forbidden in
 Phase 0. No file introduced by this foundation is referenced by the External
@@ -247,6 +317,12 @@ Kind is always invoked with `--retain`. A create or verification failure keeps
 the evidence session, policy snapshot, exact Kind configuration, plan, journal,
 audit directory, generated kubeconfig, and any discovered node names. The
 journal records the observable retained-state inventory.
+
+A runtime ceremony failure follows the same preserve-first rule. Do not delete
+remaining canary objects, CSR-derived credential files, the runtime journal, or
+the audit log. The command has no retry, resume, implicit cleanup, or cluster
+delete mode; cleanup after a failed runtime ceremony requires a separate plan
+and Human Judgment Gate.
 
 After failure:
 
@@ -272,6 +348,8 @@ Quality verifies deterministic rendering, path confinement, first-match audit
 semantics, YAML-printable UTF-8 validation, owner-only custody, provider
 pinning, lifecycle locking, plan-bound approval, post-Gate hash revalidation,
 journaling with independently recomputed entry digests, retained-state evidence,
-physical isolation from normal Bootstrap, and a fully mocked create/verify path.
-It does not run Kind and does not replace the separately authorized
-macOS/OrbStack runtime drill required by ADR-0003.
+physical isolation from normal Bootstrap, a fully mocked create/verify path,
+and the runtime ceremony's exact inventory, projections, probe ordering, cleanup
+preconditions, and credential revocation contract. It does not run Kind or
+contact a cluster and does not replace the separately authorized macOS/OrbStack
+runtime ceremony required by ADR-0003.

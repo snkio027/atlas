@@ -76,6 +76,8 @@ bootstrap/
     │   ├── permission-authorization.yaml.tpl
     │   ├── guard-fixture.yaml
     │   └── guard-authorization.yaml.tpl
+    ├── canary-session.sh
+    ├── canary-ceremony.sh
     └── audit-config.sh
 ```
 
@@ -85,14 +87,16 @@ actions such as `cluster::ensure_kind`, `registry::ensure_local`,
 `argocd::inspect_status`; `reconcile` is not used as a generic workflow name.
 
 `bootstrap/recovery/atlas-recovery` is a physically separate entry point
-governed by ADR-0003. Its current Phase-0 surface renders an audited Kind
-configuration plus isolated admission-escape and four-control Session
-Authorization canary bundles. The latter defines Fence, Binding Shape,
-Permission, and Guard authorization around inert canary targets. Neither bundle
-is reachable from GitOps or grants production protection or recovery authority.
-The entry point cannot create a cluster, issue credentials, install RBAC or
-Admission, suspend a Binding, acquire a Fence, or dispatch recovery. The normal
-`bootstrap/atlas` command never imports it.
+governed by ADR-0003. Its Phase-0 surface renders an audited Kind configuration
+plus isolated admission-escape and four-control Session Authorization canary
+bundles. It also exposes one plan-bound `canary-drill` ceremony for an already
+created, audited, single-node disposable cluster. The ceremony issues
+short-lived exact-user credentials, installs only the canary definitions,
+exercises Admission escape and the Fence/Shape/Permission/Guard matrix, then
+removes the temporary grants and definitions while retaining evidence and the
+cluster. It cannot create or delete a cluster, use normal Atlas cluster names,
+activate production objects, modify GitOps or Tier-0, or perform Receipt
+recovery. The normal `bootstrap/atlas` command never imports it.
 
 `bootstrap/drill/atlas-kind-drill` is the separately gated cluster-lifecycle
 entry point. It can create one uniquely named audited Kind drill cluster, but
@@ -173,7 +177,8 @@ state.
 ## Verification
 
 `task quality` runs non-mutating Shell, configuration, Bootstrap, render,
-GitOps, supply-chain, and mocked drill cluster-creation contracts. The drill
-tests do not create a cluster. `task integration` is separate because it
+GitOps, supply-chain, mocked cluster-creation, and mocked Phase-0 ceremony
+contracts. The drill tests do not create or contact a cluster. `task
+integration` is separate because it
 performs two explicitly approved applies against the `test` Kind profile and
 verifies stable resource identities after a Healthy GitOps handoff.

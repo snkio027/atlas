@@ -28,6 +28,8 @@ expected_production_shell=(
   bootstrap/recovery/admission-canary/render.sh
   bootstrap/recovery/atlas-recovery
   bootstrap/recovery/audit-config.sh
+  bootstrap/recovery/canary-ceremony.sh
+  bootstrap/recovery/canary-session.sh
   bootstrap/recovery/session-authorization-canary/render.sh
   bootstrap/registry/local.sh
   bootstrap/status/report.sh

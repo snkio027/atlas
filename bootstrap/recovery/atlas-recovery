@@ -11,7 +11,7 @@ fi
 
 ATLAS_RECOVERY_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 readonly ATLAS_RECOVERY_ROOT_DIR
-readonly ATLAS_RECOVERY_CLI_VERSION=0.1.0
+readonly ATLAS_RECOVERY_CLI_VERSION=0.2.0
 
 # Recovery code is intentionally sourced only by this entry point. The normal
 # Bootstrap CLI must remain unable to dispatch recovery behavior.
@@ -21,6 +21,10 @@ source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit-config.sh"
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/admission-canary/render.sh"
 # shellcheck source=bootstrap/recovery/session-authorization-canary/render.sh
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/session-authorization-canary/render.sh"
+# shellcheck source=bootstrap/recovery/canary-session.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/canary-session.sh"
+# shellcheck source=bootstrap/recovery/canary-ceremony.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/canary-ceremony.sh"
 
 recovery::usage() {
   cat << 'EOF'
@@ -31,6 +35,7 @@ Commands:
   phase0 admission-canary-manifests  Render the admission escape canary bundle
   phase0 session-authorization-canary-manifests
                                       Render the Fence/Permission canary bundle
+  phase0 canary-drill                Run the gated disposable-cluster ceremony
 
 Options for phase0 audit-config:
   --audit-dir <path>  Existing writable audit directory outside the repository
@@ -45,13 +50,25 @@ Options for phase0 session-authorization-canary-manifests:
   --session-authorizer <username>
                       Exact atlas:recovery-authorizer:<kube-system-UID>:g<N>
 
+Options for phase0 canary-drill (all required):
+  --cluster-name <name>               Canonical disposable drill cluster
+  --context <context>                 Exact kind-<cluster-name> context
+  --admin-kubeconfig <path>           Isolated cluster-admin kubeconfig
+  --audit-dir <path>                  Cluster audit directory
+  --creation-evidence <path>          Reviewed cluster-creation evidence
+  --evidence-root <path>              Empty-session runtime evidence root
+  --credential-dir <path>             Empty short-lived credential directory
+  --storage-assertion <value>         encrypted-owner-controlled
+  --known-good-revision <commit>      Full reviewed clean Git commit
+
 Global options:
   -V, --version        Show the Recovery CLI version
   -h, --help           Show this help
 
-This Phase-0 entry point renders definitions only. It cannot create a cluster,
-issue credentials, install RBAC or Admission resources, or perform recovery
-mutations.
+The canary drill can mutate only an independently created, audited disposable
+cluster after an exact interactive Human Judgment Gate. It cannot create or
+delete a cluster, target the normal Atlas cluster, activate production names,
+modify GitOps or Tier-0, or perform Receipt recovery.
 EOF
 }
 
@@ -62,6 +79,67 @@ recovery::version() {
 recovery::die() {
   printf 'atlas-recovery: %s\n' "$*" >&2
   return 1
+}
+
+recovery::dispatch_canary_drill() {
+  local option key
+  declare -A values=() seen=()
+  readonly -A option_names=(
+    [cluster_name]=--cluster-name
+    [context]=--context
+    [admin_kubeconfig]=--admin-kubeconfig
+    [audit_directory]=--audit-dir
+    [creation_evidence]=--creation-evidence
+    [evidence_root]=--evidence-root
+    [credential_directory]=--credential-dir
+    [storage_assertion]=--storage-assertion
+    [known_good_revision]=--known-good-revision
+  )
+  while (($# > 0)); do
+    option=$1
+    case "$option" in
+      --cluster-name) key=cluster_name ;;
+      --context) key=context ;;
+      --admin-kubeconfig) key=admin_kubeconfig ;;
+      --audit-dir) key=audit_directory ;;
+      --creation-evidence) key=creation_evidence ;;
+      --evidence-root) key=evidence_root ;;
+      --credential-dir) key=credential_directory ;;
+      --storage-assertion) key=storage_assertion ;;
+      --known-good-revision) key=known_good_revision ;;
+      *)
+        recovery::die "unknown canary-drill option: ${option}"
+        return 2
+        ;;
+    esac
+    [[ -z ${seen[$key]+present} ]] || {
+      recovery::die "duplicate canary-drill option: ${option}"
+      return 2
+    }
+    (($# >= 2)) || {
+      recovery::die "${option} requires a value"
+      return 2
+    }
+    [[ -n $2 && $2 != --* ]] || {
+      recovery::die "${option} requires a non-option value"
+      return 2
+    }
+    seen[$key]=1
+    values[$key]=$2
+    shift 2
+  done
+  for key in cluster_name context admin_kubeconfig audit_directory creation_evidence \
+    evidence_root credential_directory storage_assertion known_good_revision; do
+    [[ -n ${values[$key]+present} ]] || {
+      recovery::die "canary-drill requires ${option_names[$key]}"
+      return 2
+    }
+  done
+  phase0_ceremony::run "${values[cluster_name]}" "${values[context]}" \
+    "${values[admin_kubeconfig]}" "${values[audit_directory]}" \
+    "${values[creation_evidence]}" "${values[evidence_root]}" \
+    "${values[credential_directory]}" "${values[storage_assertion]}" \
+    "${values[known_good_revision]}"
 }
 
 recovery::dispatch_phase0() {
@@ -81,6 +159,9 @@ recovery::dispatch_phase0() {
       ;;
     session-authorization-canary-manifests)
       session_canary::dispatch "$@"
+      ;;
+    canary-drill)
+      recovery::dispatch_canary_drill "$@"
       ;;
     *)
       recovery::die "unknown phase0 action: ${action}"
