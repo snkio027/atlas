@@ -10,6 +10,7 @@ business workloads, Gateway resources, Operators, or application secrets.
 ./bootstrap/atlas doctor
 ./bootstrap/atlas render
 ./bootstrap/atlas status
+./bootstrap/atlas status --check
 ./bootstrap/atlas apply --approve-tier0
 ./bootstrap/atlas --help
 ./bootstrap/atlas --version
@@ -22,6 +23,16 @@ the ignored `.state/rendered/` directory. `apply` creates the Kind substrate,
 local Registry, adoption-compatible Argo CD Seed, `atlas-bootstrap` AppProject,
 and External Root Anchor. It returns success only after the Git-managed
 `argocd-self` Application is Synced and Healthy.
+
+Plain `status` is observational: component health does not change its compatible
+zero exit code. Automation must use `status --check`, which validates one report
+containing exactly `cluster`, `registry`, `argocd`, `root`, and `argocd-self`.
+It returns `0` only when all five are ready or Synced/Healthy, `1` for a known
+absent, drifted, degraded, or unhealthy state, and `2` for unavailable,
+unrecognized, incomplete, duplicate, or malformed status data. Unknown states
+therefore fail closed instead of being treated as healthy. The Application
+status classifier is bound to the `ARGOCD_VERSION` in `versions.lock`; a version
+change also returns `2` until its Sync and Health enumerations are reviewed.
 
 The `--approve-tier0` flag is mandatory for `apply`. An existing External Root
 is compared but never overwritten by the normal Bootstrap path. Root repair is
@@ -43,6 +54,7 @@ bootstrap/
 ├── cluster/kind.sh
 ├── registry/local.sh
 ├── argocd/{render,seed,handoff,status}.sh
+├── status/report.sh
 ├── drill/
 │   ├── atlas-kind-drill
 │   ├── contract.sh

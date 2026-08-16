@@ -43,6 +43,7 @@ tasks:
       - ./tests/bootstrap/registry-node-contract.sh
       - ./tests/bootstrap/safety-contract.sh
       - ./tests/bootstrap/status-contract.sh
+      - ./tests/bootstrap/status-exit-contract.sh
       - ./tests/recovery/audit-config-contract.sh
       - ./tests/drill/kind-create-contract.sh
 
