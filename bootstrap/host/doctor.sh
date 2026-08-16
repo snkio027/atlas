@@ -56,16 +56,20 @@ host::doctor() {
     fi
   done
 
-  if ((failures == 0)); then
-    runtime::assert_docker_authority || ((failures += 1))
+  if ((failures > 0)); then
+    runtime::error "doctor failed: ${failures} host preflight check(s) require attention"
+    return 1
   fi
 
-  if ((failures == 0)); then
-    host::_tool_version bash "$(config::version BASH_VERSION)" || ((failures += 1))
-    host::_tool_version kind "$(config::version KIND_VERSION)" || ((failures += 1))
-    host::_tool_version kubectl "$(config::version KUBECTL_VERSION)" || ((failures += 1))
-    host::_tool_version helm "$(config::version HELM_VERSION)" || ((failures += 1))
-  fi
+  runtime::assert_docker_authority || {
+    runtime::error "doctor failed: Docker authority could not be established"
+    return 1
+  }
+
+  host::_tool_version bash "$(config::version BASH_VERSION)" || ((failures += 1))
+  host::_tool_version kind "$(config::version KIND_VERSION)" || ((failures += 1))
+  host::_tool_version kubectl "$(config::version KUBECTL_VERSION)" || ((failures += 1))
+  host::_tool_version helm "$(config::version HELM_VERSION)" || ((failures += 1))
 
   if runtime::docker info > /dev/null 2>&1; then
     runtime::ok "Docker daemon is available"

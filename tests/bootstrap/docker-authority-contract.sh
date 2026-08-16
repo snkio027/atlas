@@ -9,6 +9,8 @@ cd "$ATLAS_TEST_ROOT"
 
 # shellcheck source=bootstrap/lib/runtime.sh
 source bootstrap/lib/runtime.sh
+# shellcheck source=bootstrap/host/doctor.sh
+source bootstrap/host/doctor.sh
 
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-docker-authority.XXXXXX")
 cleanup() {
@@ -126,6 +128,42 @@ if runtime::assert_docker_authority > /dev/null 2>&1; then
 fi
 printf 'unix://%s/.orbstack/run/docker.sock\n' "$mock_home" > "$endpoint_state"
 test::pass "Docker context and endpoint drift fail closed"
+
+ATLAS_ROOT_DIR=$test_workspace
+uname() {
+  case "$1" in
+    -s) printf 'Darwin\n' ;;
+    -m) printf 'arm64\n' ;;
+    *) return 64 ;;
+  esac
+}
+
+: > "$docker_log"
+: > "$kind_log"
+printf 'unix:///tmp/foreign-docker.sock\n' > "$endpoint_state"
+if host::doctor > /dev/null 2>&1; then
+  test::fail "doctor accepted a drifted OrbStack endpoint"
+fi
+[[ $(wc -l < "$docker_log") -eq 2 ]] ||
+  test::fail "doctor accessed Docker after the endpoint authority probe failed"
+grep -Fq 'orbstack|||context show' "$docker_log" || test::fail "doctor omitted the context authority probe"
+grep -Fq 'orbstack|||context inspect orbstack' "$docker_log" || test::fail "doctor omitted the endpoint authority probe"
+! grep -Eq '\|(info|image inspect)([|[:space:]]|$)' "$docker_log" ||
+  test::fail "doctor queried the untrusted Docker daemon"
+[[ ! -s $kind_log ]] || test::fail "doctor queried Kind after Docker authority failed"
+
+: > "$docker_log"
+: > "$kind_log"
+printf 'unix://%s/.orbstack/run/docker.sock\n' "$mock_home" > "$endpoint_state"
+if (
+  export DOCKER_FUTURE_TARGET=remote
+  host::doctor > /dev/null 2>&1
+); then
+  test::fail "doctor accepted an inherited Docker target"
+fi
+[[ ! -s $docker_log && ! -s $kind_log ]] ||
+  test::fail "doctor reached Docker or Kind after inherited target rejection"
+test::pass "doctor stops all Docker and Kind access when authority is rejected"
 
 test::assert_not_found '(^[[:space:]]*|\$\(|[|;&][[:space:]]*|\b(if|then|else|elif|while|until)[[:space:]]+|![[:space:]]+)(docker|kind)[[:space:]]' \
   bootstrap/host bootstrap/cluster bootstrap/registry
