@@ -470,7 +470,8 @@ phase0_session::_admin_target() {
   whoami=$(phase0_session::admin auth whoami -o json) || return 1
   username=$(yq -r '.status.userInfo.username' <<< "$whoami") || return 1
   groups=$(yq -o=json -I=0 '.status.userInfo.groups | sort' <<< "$whoami") || return 1
-  [[ $username == kubernetes-admin && $groups == *'"system:masters"'* ]] || {
+  [[ $username == kubernetes-admin &&
+    $groups == '["kubeadm:cluster-admins","system:authenticated"]' ]] || {
     recovery::die "admin kubeconfig is not the isolated Kind cluster authority"
     return 1
   }

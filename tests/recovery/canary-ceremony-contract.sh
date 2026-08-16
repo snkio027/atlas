@@ -141,6 +141,48 @@ ATLAS_PHASE0_TARGET[audit_directory]=/encrypted/audit
 ATLAS_PHASE0_TARGET[creation_evidence]=/encrypted/creation/session
 ATLAS_PHASE0_TARGET[credential_directory]=/encrypted/credentials
 ATLAS_PHASE0_TARGET[storage_assertion]=encrypted-owner-controlled
+ATLAS_PHASE0_TARGET[KUBERNETES_VERSION]=1.36.1
+
+verify_admin_target() (
+  local mock_username=$1 mock_groups=$2 arguments
+  phase0_session::admin() {
+    local IFS=' '
+    arguments=$*
+    case "$arguments" in
+      'config current-context') printf '%s\n' "${ATLAS_PHASE0_TARGET[context]}" ;;
+      'auth whoami -o json')
+        printf '{"status":{"userInfo":{"username":"%s","groups":%s}}}\n' "$mock_username" "$mock_groups"
+        ;;
+      'config view --raw --minify -o json')
+        printf '%s\n' '{"clusters":[{"cluster":{"server":"https://127.0.0.1:6443","certificate-authority-data":"dGVzdA=="}}]}'
+        ;;
+      'get namespace kube-system -o jsonpath={.metadata.uid}')
+        printf '%s\n' 00000000-0000-0000-0000-000000000000
+        ;;
+      'get nodes -o json')
+        printf '{"items":[{"metadata":{"name":"%s-control-plane"}}]}\n' "${ATLAS_PHASE0_TARGET[cluster_name]}"
+        ;;
+      "get node ${ATLAS_PHASE0_TARGET[cluster_name]}-control-plane -o json")
+        printf '%s\n' '{"status":{"conditions":[{"type":"Ready","status":"True"}]}}'
+        ;;
+      'version -o json') printf '%s\n' '{"serverVersion":{"gitVersion":"v1.36.1"}}' ;;
+      *) return 1 ;;
+    esac
+  }
+  phase0_session::_admin_target
+)
+
+verify_admin_target kubernetes-admin \
+  '["system:authenticated","kubeadm:cluster-admins"]'
+for rejected_identity in \
+  'kubernetes-admin|["system:authenticated","system:masters"]' \
+  'kubernetes-admin|["kubeadm:cluster-admins","system:authenticated","unexpected-group"]' \
+  'kubernetes-super-admin|["kubeadm:cluster-admins","system:authenticated"]'; do
+  if verify_admin_target "${rejected_identity%%|*}" "${rejected_identity#*|}" > /dev/null 2>&1; then
+    test::fail "admin target accepted a non-canonical Kind authority: ${rejected_identity}"
+  fi
+done
+
 plan="${session}/plan.json"
 phase0_session::_write_plan "$plan"
 [[ $(yq -r '.adminKubeconfig' "$plan") == /encrypted/admin.kubeconfig &&
