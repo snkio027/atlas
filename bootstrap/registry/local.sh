@@ -4,7 +4,7 @@
 readonly _ATLAS_REGISTRY_LOADED=1
 
 registry::_container_exists() {
-  docker container inspect "$(config::get ATLAS_REGISTRY_NAME)" > /dev/null 2>&1
+  runtime::docker container inspect "$(config::get ATLAS_REGISTRY_NAME)" > /dev/null 2>&1
 }
 
 registry::_validate_container() {
@@ -14,27 +14,27 @@ registry::_validate_container() {
   expected_cluster=$(config::get ATLAS_CLUSTER_NAME)
   expected_binding="127.0.0.1:$(config::get ATLAS_REGISTRY_PORT)"
 
-  actual=$(docker inspect --format '{{.Config.Image}}' "$name")
+  actual=$(runtime::docker inspect --format '{{.Config.Image}}' "$name")
   [[ $actual == "$image" ]] || {
     runtime::die "Registry image drift: expected=${image} actual=${actual}"
     return 1
   }
-  actual=$(docker inspect --format '{{index .Config.Labels "io.atlas.managed"}}' "$name")
+  actual=$(runtime::docker inspect --format '{{index .Config.Labels "io.atlas.managed"}}' "$name")
   [[ $actual == true ]] || {
     runtime::die "Registry ownership label is missing: ${name}"
     return 1
   }
-  actual=$(docker inspect --format '{{index .Config.Labels "io.atlas.cluster"}}' "$name")
+  actual=$(runtime::docker inspect --format '{{index .Config.Labels "io.atlas.cluster"}}' "$name")
   [[ $actual == "$expected_cluster" ]] || {
     runtime::die "Registry cluster label drift: ${name}"
     return 1
   }
-  actual=$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$name")
+  actual=$(runtime::docker inspect --format '{{.HostConfig.NetworkMode}}' "$name")
   [[ $actual == kind ]] || {
     runtime::die "Registry is not attached to the Kind network: ${name}"
     return 1
   }
-  actual=$(docker inspect --format '{{with (index .HostConfig.PortBindings "5000/tcp")}}{{(index . 0).HostIp}}:{{(index . 0).HostPort}}{{end}}' "$name")
+  actual=$(runtime::docker inspect --format '{{with (index .HostConfig.PortBindings "5000/tcp")}}{{(index . 0).HostIp}}:{{(index . 0).HostPort}}{{end}}' "$name")
   [[ $actual == "$expected_binding" ]] || {
     runtime::die "Registry port binding drift: expected=${expected_binding} actual=${actual:-none}"
     return 1
@@ -42,7 +42,7 @@ registry::_validate_container() {
 }
 
 registry::_running() {
-  [[ $(docker inspect --format '{{.State.Running}}' "$(config::get ATLAS_REGISTRY_NAME)") == true ]]
+  [[ $(runtime::docker inspect --format '{{.State.Running}}' "$(config::get ATLAS_REGISTRY_NAME)") == true ]]
 }
 
 registry::_configure_node() {
@@ -53,7 +53,7 @@ registry::_configure_node() {
   temporary=$(mktemp "${TMPDIR:-/tmp}/atlas-registry.XXXXXX")
   printf 'server = "http://%s:5000"\n\n[host."http://%s:5000"]\n  capabilities = ["pull", "resolve", "push"]\n' \
     "$(config::get ATLAS_REGISTRY_NAME)" "$(config::get ATLAS_REGISTRY_NAME)" > "$temporary"
-  if docker exec "$node" mkdir -p "$target" && docker cp "$temporary" "${node}:${target}/hosts.toml"; then
+  if runtime::docker exec "$node" mkdir -p "$target" && runtime::docker cp "$temporary" "${node}:${target}/hosts.toml"; then
     rm -f "$temporary"
     return 0
   fi
@@ -70,30 +70,30 @@ registry::_health() {
 
 registry::_node_has_image() {
   local node=$1 image=$2
-  docker exec "$node" ctr --namespace k8s.io images list --quiet "name==${image}" | grep -Fxq "$image"
+  runtime::docker exec "$node" ctr --namespace k8s.io images list --quiet "name==${image}" | grep -Fxq "$image"
 }
 
 registry::_load_node_image() {
   local node=$1 image=$2 platform digest source_refs source_ref
   registry::_node_has_image "$node" "$image" && return 0
 
-  platform=$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")
+  platform=$(runtime::docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")
   digest=${image##*@}
   # Import offline, then restore the exact digest-pinned reference expected by
   # the workloads; Kind's convenience loader is not part of this supply chain.
-  docker image save "$image" | docker exec --privileged --interactive "$node" \
+  runtime::docker image save "$image" | runtime::docker exec --privileged --interactive "$node" \
     ctr --namespace k8s.io images import \
     --platform "$platform" \
     --digests \
     --snapshotter overlayfs - > /dev/null
 
-  source_refs=$(docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
+  source_refs=$(runtime::docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
   source_ref=${source_refs%%$'\n'*}
   [[ -n $source_ref ]] || {
     runtime::die "imported image digest is absent on node: node=${node} image=${image}"
     return 1
   }
-  docker exec "$node" ctr --namespace k8s.io images tag "$source_ref" "$image" > /dev/null
+  runtime::docker exec "$node" ctr --namespace k8s.io images tag "$source_ref" "$image" > /dev/null
   registry::_node_has_image "$node" "$image" || {
     runtime::die "locked image reference is absent after import: node=${node} image=${image}"
     return 1
@@ -130,20 +130,21 @@ registry::ensure_local() {
   port=$(config::get ATLAS_REGISTRY_PORT)
   cluster=$(config::get ATLAS_CLUSTER_NAME)
 
+  runtime::assert_docker_authority || return 1
   runtime::docker_image_present "$image" || {
     runtime::die "Registry image is not available locally: ${image}"
     return 1
   }
-  docker network inspect kind > /dev/null 2>&1 || {
+  runtime::docker network inspect kind > /dev/null 2>&1 || {
     runtime::die "Kind network is absent; ensure the cluster first"
     return 1
   }
 
   if registry::_container_exists; then
     registry::_validate_container
-    registry::_running || docker start "$name" > /dev/null
+    registry::_running || runtime::docker start "$name" > /dev/null
   else
-    if ! docker run --detach \
+    if ! runtime::docker run --detach \
       --name "$name" \
       --network kind \
       --restart unless-stopped \
@@ -153,7 +154,7 @@ registry::ensure_local() {
       --volume "${name}-data:/var/lib/registry" \
       "$image" > /dev/null; then
       if registry::_container_exists && registry::_validate_container; then
-        docker rm "$name" > /dev/null || true
+        runtime::docker rm "$name" > /dev/null || true
       fi
       return 1
     fi
@@ -176,7 +177,7 @@ registry::ensure_local() {
 registry::inspect_status() {
   local name
   name=$(config::get ATLAS_REGISTRY_NAME)
-  if ! docker info > /dev/null 2>&1; then
+  if ! runtime::assert_docker_authority || ! runtime::docker info > /dev/null 2>&1; then
     printf 'registry\tUNAVAILABLE\t%s\n' "$name"
     return 2
   fi

@@ -42,7 +42,7 @@ cluster::list_validated_kind_node_containers() {
   printf '%s\n' "$MOCK_NODES"
 }
 
-kind() {
+runtime::kind() {
   test::fail "Registry code called raw Kind node enumeration: $*"
 }
 
@@ -84,7 +84,10 @@ runtime::wait_for() {
   shift 3
   "$@"
 }
-docker() {
+runtime::assert_docker_authority() {
+  return 0
+}
+runtime::docker() {
   [[ $1 == network && $2 == inspect && $3 == kind ]] || return 1
 }
 

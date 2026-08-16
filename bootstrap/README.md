@@ -89,6 +89,14 @@ Profile.
 
 ## Kind topology contract
 
+Normal Bootstrap binds every Docker and Kind operation to the `orbstack`
+context and the owner-local `unix://${HOME}/.orbstack/run/docker.sock` endpoint.
+Kind is explicitly fixed to the Docker provider. Inherited `DOCKER_*` or
+`KIND_*` variables are rejected before discovery or mutation, and command
+wrappers clear the current stable toolchain's target, network, snapshotter, and
+DNS-search overrides. Drill keeps its separate authority implementation and is
+not imported by the normal entry point.
+
 Normal Bootstrap accepts a canonical Kind topology with exactly one explicit
 `control-plane` entry and any non-negative number of explicit `worker` entries.
 Multiple control planes are rejected because Kind then creates an implicit

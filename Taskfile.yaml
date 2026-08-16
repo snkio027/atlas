@@ -37,6 +37,7 @@ tasks:
     desc: Run Bootstrap safety and configuration tests
     cmds:
       - ./tests/shell/config.sh
+      - ./tests/bootstrap/docker-authority-contract.sh
       - ./tests/bootstrap/cluster-contract.sh
       - ./tests/bootstrap/kind-topology-contract.sh
       - ./tests/bootstrap/registry-node-contract.sh

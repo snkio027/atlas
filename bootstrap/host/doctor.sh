@@ -7,7 +7,7 @@ host::_tool_version() {
   local tool=$1 expected=$2 actual=
   case "$tool" in
     bash) actual=$(runtime::version_triplet "$BASH_VERSION") ;;
-    kind) actual=$(kind version 2> /dev/null | awk '{print $2}' | sed 's/^v//') ;;
+    kind) actual=$(runtime::kind version 2> /dev/null | awk '{print $2}' | sed 's/^v//') ;;
     kubectl) actual=$(kubectl version --client 2> /dev/null | awk '/Client Version:/ {sub(/^v/, "", $3); print $3; exit}') ;;
     helm)
       actual=$(helm version --template '{{.Version}}' 2> /dev/null)
@@ -47,7 +47,7 @@ host::doctor() {
     ((failures += 1))
   fi
 
-  for tool in bash docker kind kubectl helm git shasum awk sed grep mktemp curl; do
+  for tool in bash docker kind kubectl helm git shasum awk sed grep mktemp curl env; do
     if runtime::command_exists "$tool"; then
       runtime::ok "command available: ${tool}"
     else
@@ -56,14 +56,22 @@ host::doctor() {
     fi
   done
 
-  if ((failures == 0)); then
-    host::_tool_version bash "$(config::version BASH_VERSION)" || ((failures += 1))
-    host::_tool_version kind "$(config::version KIND_VERSION)" || ((failures += 1))
-    host::_tool_version kubectl "$(config::version KUBECTL_VERSION)" || ((failures += 1))
-    host::_tool_version helm "$(config::version HELM_VERSION)" || ((failures += 1))
+  if ((failures > 0)); then
+    runtime::error "doctor failed: ${failures} host preflight check(s) require attention"
+    return 1
   fi
 
-  if docker info > /dev/null 2>&1; then
+  runtime::assert_docker_authority || {
+    runtime::error "doctor failed: Docker authority could not be established"
+    return 1
+  }
+
+  host::_tool_version bash "$(config::version BASH_VERSION)" || ((failures += 1))
+  host::_tool_version kind "$(config::version KIND_VERSION)" || ((failures += 1))
+  host::_tool_version kubectl "$(config::version KUBECTL_VERSION)" || ((failures += 1))
+  host::_tool_version helm "$(config::version HELM_VERSION)" || ((failures += 1))
+
+  if runtime::docker info > /dev/null 2>&1; then
     runtime::ok "Docker daemon is available"
   else
     runtime::die "Docker daemon is unavailable" || true

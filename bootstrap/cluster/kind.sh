@@ -111,7 +111,7 @@ cluster::_inspect_kind_containers() {
   cluster=$(config::get ATLAS_CLUSTER_NAME)
   image=$(config::version KIND_NODE_IMAGE)
 
-  names_output=$(docker ps -a \
+  names_output=$(runtime::docker ps -a \
     --filter "label=io.x-k8s.kind.cluster=${cluster}" \
     --format '{{.Names}}') || {
     runtime::die "unable to inspect Kind containers for ${cluster}"
@@ -123,7 +123,7 @@ cluster::_inspect_kind_containers() {
   }
 
   while IFS= read -r name; do
-    details=$(docker inspect --format \
+    details=$(runtime::docker inspect --format \
       '{{index .Config.Labels "io.x-k8s.kind.cluster"}}{{"|"}}{{index .Config.Labels "io.x-k8s.kind.role"}}{{"|"}}{{.Config.Image}}{{"|"}}{{.State.Running}}' \
       "$name") || {
       runtime::die "unable to inspect Kind container: ${name}"
@@ -312,6 +312,7 @@ cluster::ensure_kind() {
   timeout=$(config::get ATLAS_READY_TIMEOUT)
 
   cluster::_parse_kind_node_roles "$config_file" > /dev/null || return 1
+  runtime::assert_docker_authority || return 1
   runtime::docker_image_present "$image" || {
     runtime::die "Kind node image is not available locally: ${image}"
     return 1
@@ -324,7 +325,7 @@ cluster::ensure_kind() {
     status=$?
     ((status == 1)) || return "$status"
     runtime::info "creating Kind cluster: ${cluster}"
-    kind create cluster \
+    runtime::kind create cluster \
       --name "$cluster" \
       --image "$image" \
       --config "$config_file" \

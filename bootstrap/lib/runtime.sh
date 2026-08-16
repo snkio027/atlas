@@ -4,6 +4,7 @@
 readonly _ATLAS_RUNTIME_LOADED=1
 
 ATLAS_CURRENT_PHASE=bootstrap
+readonly ATLAS_DOCKER_CONTEXT=orbstack
 
 runtime::_color() {
   [[ -t 2 && ${NO_COLOR:-} == "" ]]
@@ -92,13 +93,88 @@ runtime::kubectl() {
   command kubectl --context "$context" --request-timeout "$timeout" "$@"
 }
 
+runtime::_orbstack_endpoint() {
+  [[ -n ${HOME:-} && $HOME == /* ]] || {
+    runtime::die "HOME must be an absolute path for OrbStack target resolution"
+    return 1
+  }
+  printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME"
+}
+
+runtime::_reject_container_target_environment() {
+  local names
+  names=$(env | awk -F= '$1 ~ /^(DOCKER_|KIND_)/ {print $1}') || return 1
+  [[ -z $names ]] || {
+    runtime::die "inherited DOCKER_* and KIND_* environment variables are forbidden: ${names//$'\n'/,}"
+    return 1
+  }
+}
+
+runtime::docker() {
+  env \
+    -u DOCKER_API_VERSION \
+    -u DOCKER_CERT_PATH \
+    -u DOCKER_CONFIG \
+    -u DOCKER_DEFAULT_PLATFORM \
+    -u DOCKER_HOST \
+    -u DOCKER_TLS_VERIFY \
+    DOCKER_CONTEXT="$ATLAS_DOCKER_CONTEXT" \
+    docker "$@"
+}
+
+runtime::kind() {
+  env \
+    -u DOCKER_API_VERSION \
+    -u DOCKER_CERT_PATH \
+    -u DOCKER_CONFIG \
+    -u DOCKER_DEFAULT_PLATFORM \
+    -u DOCKER_HOST \
+    -u DOCKER_TLS_VERIFY \
+    -u KIND_CLUSTER_NAME \
+    -u KIND_DNS_SEARCH \
+    -u KIND_EXPERIMENTAL_CONTAINERD_SNAPSHOTTER \
+    -u KIND_EXPERIMENTAL_DOCKER_CONCURRENT_LOADS \
+    -u KIND_EXPERIMENTAL_DOCKER_CONCURRENT_PULLS \
+    -u KIND_EXPERIMENTAL_DOCKER_DNSSEARCH \
+    -u KIND_EXPERIMENTAL_DOCKER_NETWORK \
+    -u KIND_EXPERIMENTAL_PODMAN_NETWORK \
+    -u KIND_EXPERIMENTAL_PROVIDER \
+    DOCKER_CONTEXT="$ATLAS_DOCKER_CONTEXT" \
+    KIND_EXPERIMENTAL_PROVIDER=docker \
+    kind "$@"
+}
+
+runtime::assert_docker_authority() {
+  local actual_context actual_endpoint expected_endpoint
+  runtime::_reject_container_target_environment || return 1
+  expected_endpoint=$(runtime::_orbstack_endpoint) || return 1
+  actual_context=$(runtime::docker context show 2> /dev/null) || {
+    runtime::die "unable to resolve the effective Docker context"
+    return 1
+  }
+  actual_endpoint=$(runtime::docker context inspect "$ATLAS_DOCKER_CONTEXT" \
+    --format '{{.Endpoints.docker.Host}}' 2> /dev/null) || {
+    runtime::die "unable to inspect the OrbStack Docker context"
+    return 1
+  }
+  [[ $actual_context == "$ATLAS_DOCKER_CONTEXT" ]] || {
+    runtime::die "effective Docker context drift: expected=${ATLAS_DOCKER_CONTEXT} actual=${actual_context}"
+    return 1
+  }
+  [[ $actual_endpoint == "$expected_endpoint" ]] || {
+    runtime::die "OrbStack Docker endpoint drift: expected=${expected_endpoint} actual=${actual_endpoint}"
+    return 1
+  }
+}
+
 runtime::kind_cluster_exists() {
   local cluster=$1 clusters
-  docker info > /dev/null 2>&1 || {
+  runtime::assert_docker_authority || return 2
+  runtime::docker info > /dev/null 2>&1 || {
     runtime::error "Docker daemon is unavailable"
     return 2
   }
-  clusters=$(kind get clusters --quiet 2>&1) || {
+  clusters=$(runtime::kind get clusters --quiet 2>&1) || {
     runtime::error "Kind cluster discovery failed: ${clusters}"
     return 2
   }
@@ -106,7 +182,7 @@ runtime::kind_cluster_exists() {
 }
 
 runtime::docker_image_present() {
-  docker image inspect "$1" > /dev/null 2>&1
+  runtime::docker image inspect "$1" > /dev/null 2>&1
 }
 
 runtime::wait_for() {
