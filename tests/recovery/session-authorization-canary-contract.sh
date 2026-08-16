@@ -67,7 +67,7 @@ assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-reco
 assert_resource_projection ConfigMap atlas-bootstrap-recovery-guard-canary \
   ad3974aa428d29a7b882fde39f480527da09603fa5e73e6cb5e003d35f7dfc02
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-guard-authorization-canary \
-  0c2808a7034ab0882ee2cfcfefdd06c50fc31f8076ff25f6bad74f1af17297f5
+  bcc7c6cab5c85a423dafe096a845edd4234531ac1224c87f862387751c7b939a
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-guard-authorization-canary \
   07674f6d9d9c8fb0409d7ce9f048ebb60221cdf1dcb39748473620be4a6af774
 test::pass "all Phase-0 Session Authorization definitions have exact complete projections"
@@ -228,11 +228,52 @@ guard_match=$(yq -r '.spec.matchConditions[0].expression' <<< "$guard_policy")
 for guard_contract in \
   "$recovery_operator" atlas-bootstrap-recovery-guard-canary policy.atlas-recovery-freeze.csv \
   'request.operation != '\''DELETE'\''' 'object.metadata.labels == oldObject.metadata.labels' \
-  'variables.oldGuardValue != variables.newGuardValue'; do
+  "(('policy.atlas-recovery-freeze.csv' in object.data) ? 2 : 1)" \
+  "request.operation == 'CREATE' && has(object.data)" \
+  "('policy.atlas-recovery-freeze.csv' in oldObject.data) !="; do
   grep -Fq "$guard_contract" <<< "$guard_expressions" ||
     test::fail "Guard authorization omits contract: ${guard_contract}"
 done
+! grep -Fq 'GuardValue' <<< "$guard_expressions" ||
+  test::fail "Guard authorization still conflates absent keys with empty values"
 test::pass "Guard authorization protects exact add/remove projection and denies destructive drift"
+
+guard_data_transition_allowed() {
+  local old_data=$1 new_data=$2
+  local old_has_guard new_has_guard old_size new_size
+  local guard_key='policy.atlas-recovery-freeze.csv'
+  local guard_value='p, role:atlas-recovery-guard-canary, applications, *, */*, deny'
+
+  old_has_guard=$(GUARD_KEY=$guard_key yq 'has(strenv(GUARD_KEY))' <<< "$old_data")
+  new_has_guard=$(GUARD_KEY=$guard_key yq 'has(strenv(GUARD_KEY))' <<< "$new_data")
+  old_size=$(yq 'length' <<< "$old_data")
+  new_size=$(yq 'length' <<< "$new_data")
+
+  [[ $(yq -r '.sentinel' <<< "$old_data") == recovery-guard-canary &&
+  $(yq -r '.sentinel' <<< "$new_data") == recovery-guard-canary ]] || return 1
+  [[ $old_size -eq 1 && $old_has_guard == false ||
+    $old_size -eq 2 && $old_has_guard == true ]] || return 1
+  [[ $new_size -eq 1 && $new_has_guard == false ||
+    $new_size -eq 2 && $new_has_guard == true ]] || return 1
+  [[ $old_has_guard != "$new_has_guard" ]] || return 1
+  [[ $new_has_guard == false ||
+    $(GUARD_KEY=$guard_key yq -r '.[strenv(GUARD_KEY)]' <<< "$new_data") == "$guard_value" ]]
+}
+
+guard_absent='{"sentinel":"recovery-guard-canary"}'
+guard_present='{"sentinel":"recovery-guard-canary","policy.atlas-recovery-freeze.csv":"p, role:atlas-recovery-guard-canary, applications, *, */*, deny"}'
+guard_replaced='{"sentinel":"recovery-guard-canary","unexpected":"replacement"}'
+guard_data_transition_allowed "$guard_absent" "$guard_present" ||
+  test::fail "exact Guard addition is rejected by the static projection model"
+guard_data_transition_allowed "$guard_present" "$guard_absent" ||
+  test::fail "exact Guard removal is rejected by the static projection model"
+if guard_data_transition_allowed "$guard_present" "$guard_replaced"; then
+  test::fail "Guard removal plus arbitrary data insertion is accepted"
+fi
+if guard_data_transition_allowed "$guard_replaced" "$guard_present"; then
+  test::fail "Guard addition plus arbitrary data replacement is accepted"
+fi
+test::pass "Guard add/remove cannot replace another data key"
 
 # Static routing matrix. Full projection hashes above bind these assertions to
 # the reviewed CEL; server-side type checking and request probes belong to the

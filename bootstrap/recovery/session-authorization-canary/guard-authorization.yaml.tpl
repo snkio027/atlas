@@ -40,18 +40,6 @@ spec:
   variables:
     - name: guard
       expression: "request.operation == 'DELETE' ? oldObject : object"
-    - name: oldGuardValue
-      expression: >-
-        request.operation == 'CREATE' || !has(oldObject.data) ||
-        !('policy.atlas-recovery-freeze.csv' in oldObject.data)
-          ? ''
-          : oldObject.data['policy.atlas-recovery-freeze.csv']
-    - name: newGuardValue
-      expression: >-
-        request.operation == 'DELETE' || !has(object.data) ||
-        !('policy.atlas-recovery-freeze.csv' in object.data)
-          ? ''
-          : object.data['policy.atlas-recovery-freeze.csv']
   validations:
     - expression: >-
         request.userInfo.username == '__ATLAS_RECOVERY_OPERATOR_USERNAME__' &&
@@ -83,15 +71,25 @@ spec:
           !has(object.binaryData) && !has(oldObject.binaryData) &&
           !has(object.immutable) && !has(oldObject.immutable) &&
           has(object.data) && has(oldObject.data) &&
-          object.data.size() <= 2 && oldObject.data.size() <= 2 &&
+          object.data.size() ==
+            (('policy.atlas-recovery-freeze.csv' in object.data) ? 2 : 1) &&
+          oldObject.data.size() ==
+            (('policy.atlas-recovery-freeze.csv' in oldObject.data) ? 2 : 1) &&
           object.data.sentinel == 'recovery-guard-canary' &&
           oldObject.data.sentinel == 'recovery-guard-canary')
       message: Canary guard UPDATE changed a field outside the guarded projection
       reason: Forbidden
     - expression: >-
-        variables.oldGuardValue != variables.newGuardValue &&
-        (variables.newGuardValue == '' ||
-          variables.newGuardValue == 'p, role:atlas-recovery-guard-canary, applications, *, */*, deny')
+        (request.operation == 'CREATE' && has(object.data) &&
+          'policy.atlas-recovery-freeze.csv' in object.data &&
+          object.data['policy.atlas-recovery-freeze.csv'] ==
+            'p, role:atlas-recovery-guard-canary, applications, *, */*, deny') ||
+        (request.operation == 'UPDATE' && has(oldObject.data) && has(object.data) &&
+          ('policy.atlas-recovery-freeze.csv' in oldObject.data) !=
+            ('policy.atlas-recovery-freeze.csv' in object.data) &&
+          (!('policy.atlas-recovery-freeze.csv' in object.data) ||
+            object.data['policy.atlas-recovery-freeze.csv'] ==
+              'p, role:atlas-recovery-guard-canary, applications, *, */*, deny'))
       message: Canary guard value is unchanged or invalid
       reason: Forbidden
 ---
