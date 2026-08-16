@@ -242,13 +242,23 @@ $(yq -r '.sourceIdentity' "${session}/audit/pre-mutation-boundary.json") == 1:2 
 
 read_only_inventory="${session}/authorization/read-only-permissions.txt"
 unsafe_inventory="${session}/authorization/unsafe-permissions.txt"
+declare -a unsafe_permissions=(
+  $'kube-system\tpods   []   []   [get create]'
+  $'kube-system\tdeployments.apps   []   []   [*]'
+  $'kube-system\tdeployments.apps   []   []   [get proxy]'
+  $'kube-system\tdeployments.apps   []   []   [get future-verb]'
+  $'kube-system\tdeployments.apps   []   []   [get'
+)
 printf '%s\n' $'kube-system\tselfsubjectaccessreviews.authorization.k8s.io   []   []   [create]' \
-  $'kube-system\t                                              [/api]   []   [get]' > "$read_only_inventory"
-printf '%s\n' $'kube-system\tpods   []   []   [get create]' > "$unsafe_inventory"
+  $'kube-system\t                                              [/api]   []   [get]' \
+  $'kube-system\tdeployments.apps   []   []   [get list watch]' > "$read_only_inventory"
 phase0_ceremony::_assert_permission_inventory_non_mutating "$read_only_inventory"
-if phase0_ceremony::_assert_permission_inventory_non_mutating "$unsafe_inventory" > /dev/null 2>&1; then
-  test::fail "effective-permission baseline accepted a state-changing grant"
-fi
+for unsafe_permission in "${unsafe_permissions[@]}"; do
+  printf '%s\n' "$unsafe_permission" > "$unsafe_inventory"
+  if phase0_ceremony::_assert_permission_inventory_non_mutating "$unsafe_inventory" > /dev/null 2>&1; then
+    test::fail "effective-permission baseline accepted an unknown, mutating, or malformed grant: ${unsafe_permission}"
+  fi
+done
 
 cleanup_calls="${test_workspace}/cleanup-calls"
 : > "$cleanup_calls"

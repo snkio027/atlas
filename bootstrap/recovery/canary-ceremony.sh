@@ -204,16 +204,30 @@ phase0_ceremony::_snapshot_permission_namespaces() {
 }
 
 phase0_ceremony::_assert_permission_inventory_non_mutating() {
-  local inventory=$1 line rule resource verbs verb
+  local inventory=$1 line namespace rule resource verbs verb
   local -a verb_list
   while IFS= read -r line || [[ -n $line ]]; do
+    if [[ $line != *$'\t'* || ${line#*$'\t'} == *$'\t'* ]]; then
+      recovery::die "credential baseline contains an invalid permission record"
+      return 1
+    fi
+    namespace=${line%%$'\t'*}
     rule=${line#*$'\t'}
-    resource=${rule%%[[:space:]]*}
-    verbs=${rule##*[}
-    verbs=${verbs%]}
+    if [[ ! $namespace =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ||
+      ! $rule =~ ^([^[:space:]]*)[[:space:]]+\[([^]]*)\][[:space:]]+\[([^]]*)\][[:space:]]+\[([^]]+)\][[:space:]]*$ ]]; then
+      recovery::die "credential baseline contains an invalid permission record"
+      return 1
+    fi
+    resource=${BASH_REMATCH[1]}
+    verbs=${BASH_REMATCH[4]}
     IFS=' ' read -r -a verb_list <<< "$verbs"
+    ((${#verb_list[@]} > 0)) || {
+      recovery::die "credential baseline contains an invalid permission record"
+      return 1
+    }
     for verb in "${verb_list[@]}"; do
       case "$verb" in
+        get | list | watch) ;;
         create)
           case "$resource" in
             selfsubjectaccessreviews.authorization.k8s.io | \
@@ -225,8 +239,8 @@ phase0_ceremony::_assert_permission_inventory_non_mutating() {
               ;;
           esac
           ;;
-        update | patch | delete | deletecollection | impersonate | bind | escalate | approve | sign | use)
-          recovery::die "credential baseline contains a state-changing permission: ${resource} ${verb}"
+        *)
+          recovery::die "credential baseline contains an unexpected permission: ${resource:-<non-resource>} ${verb}"
           return 1
           ;;
       esac
