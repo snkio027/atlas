@@ -35,6 +35,8 @@ source "${ATLAS_ROOT_DIR}/bootstrap/argocd/seed.sh"
 source "${ATLAS_ROOT_DIR}/bootstrap/argocd/handoff.sh"
 # shellcheck source=bootstrap/argocd/status.sh
 source "${ATLAS_ROOT_DIR}/bootstrap/argocd/status.sh"
+# shellcheck source=bootstrap/status/report.sh
+source "${ATLAS_ROOT_DIR}/bootstrap/status/report.sh"
 
 cli::usage() {
   cat << 'EOF'
@@ -49,6 +51,7 @@ Commands:
 Options:
   --env <name>         Environment profile (default: local-orbstack)
   --approve-tier0      Explicitly authorize initial Tier-0 instantiation
+  --check              Make status fail unless every component is ready
   -V, --version        Show the Bootstrap CLI version
   -h, --help           Show this help
 EOF
@@ -85,6 +88,7 @@ esac
 
 environment=local-orbstack
 tier0_approved=false
+status_check=false
 while (($# > 0)); do
   case "$1" in
     --env)
@@ -94,6 +98,10 @@ while (($# > 0)); do
       ;;
     --approve-tier0)
       tier0_approved=true
+      shift
+      ;;
+    --check)
+      status_check=true
       shift
       ;;
     -h | --help)
@@ -113,6 +121,9 @@ if [[ $command_name == apply ]]; then
   [[ $tier0_approved == true ]] || runtime::die "Tier-0 approval is required: pass --approve-tier0"
 else
   [[ $tier0_approved == false ]] || runtime::die "--approve-tier0 is valid only with apply"
+fi
+if [[ $command_name != status ]]; then
+  [[ $status_check == false ]] || runtime::die "--check is valid only with status"
 fi
 config::load "$ATLAS_ROOT_DIR" "$environment"
 
@@ -136,21 +147,8 @@ case "$command_name" in
     argocd::handoff "$tier0_approved"
     ;;
   status)
-    cluster::inspect_status || true
-    registry::inspect_status || true
-    if runtime::kind_cluster_exists "$(config::get ATLAS_CLUSTER_NAME)"; then
-      argocd::inspect_status || true
-    else
-      cluster_query_status=$?
-      if ((cluster_query_status == 1)); then
-        printf 'argocd\tABSENT\tcluster absent\n'
-        printf 'root\tABSENT\tcluster absent\n'
-        printf 'argocd-self\tABSENT\tcluster absent\n'
-      else
-        printf 'argocd\tUNAVAILABLE\tcluster status unavailable\n'
-        printf 'root\tUNAVAILABLE\tcluster status unavailable\n'
-        printf 'argocd-self\tUNAVAILABLE\tcluster status unavailable\n'
-      fi
-    fi
+    status_report=$(status::inspect)
+    printf '%s\n' "$status_report"
+    [[ $status_check == false ]] || status::check "$status_report"
     ;;
 esac

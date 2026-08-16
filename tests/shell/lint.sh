@@ -28,6 +28,7 @@ expected_production_shell=(
   bootstrap/recovery/atlas-recovery
   bootstrap/recovery/audit-config.sh
   bootstrap/registry/local.sh
+  bootstrap/status/report.sh
 )
 
 [[ ${production_shell[*]} == "${expected_production_shell[*]}" ]] || test::fail "production Shell layout differs from its domain contract"
