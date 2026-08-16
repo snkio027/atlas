@@ -102,6 +102,7 @@ phase0::assert_audit_level Metadata "named Fence CREATE" create "" configmaps ku
 phase0::assert_audit_level Metadata "collection Fence CREATE" create "" configmaps kube-system ""
 phase0::assert_audit_level RequestResponse "admission canary UPDATE" update "" configmaps kube-system atlas-bootstrap-admission-escape-canary
 phase0::assert_audit_level RequestResponse "named Fence UPDATE" update "" configmaps kube-system atlas-bootstrap-operation-fence-canary
+phase0::assert_audit_level RequestResponse "Guard canary UPDATE" update "" configmaps kube-system atlas-bootstrap-recovery-guard-canary
 phase0::assert_audit_level Metadata "unrelated ConfigMap UPDATE" update "" configmaps kube-system unrelated
 phase0::assert_audit_level RequestResponse "RBAC CREATE" create rbac.authorization.k8s.io rolebindings kube-system ""
 phase0::assert_audit_level RequestResponse "Argo Application CREATE" create argoproj.io applications argocd ""

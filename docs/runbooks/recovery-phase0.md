@@ -104,17 +104,22 @@ session_authorizer="atlas:recovery-authorizer:${namespace_uid}:g1"
   > .state/recovery-phase0-session-authorization-canary.yaml
 ```
 
-The deterministic nine-document bundle contains:
+The deterministic twelve-document bundle closes the Phase-0 definition set and
+contains:
 
 - a `kube-system` permission `Role` that can only `get` the exact inert
-  admission-escape ConfigMap fixture;
+  admission-escape fixture and `get`/`patch`/`update` the exact inert Guard
+  fixture when a temporary Binding exists;
 - a separate `kube-system` Session Authorizer `Role` and exact-user
   `RoleBinding` for canary Fence and temporary RoleBinding lifecycle plus
   exact `bind` on that permission Role;
 - parameter-free Fence and Binding Shape Policy/Binding pairs; and
 - a Permission Policy/Binding parameterized only by
   `kube-system/atlas-bootstrap-operation-fence-canary`, with
-  `parameterNotFoundAction: Deny` and `failurePolicy: Fail`.
+  `parameterNotFoundAction: Deny` and `failurePolicy: Fail`; and
+- an inert Guard ConfigMap plus a parameter-free Guard Policy/Binding pair that
+  permits only the exact Recovery Operator to add or remove the canonical
+  freeze rule without changing the remaining fixture projection.
 
 Kubernetes RBAC cannot constrain collection `create` by object name. The Fence
 Policy therefore matches every ConfigMap mutation attempted by the exact
@@ -125,12 +130,33 @@ authorization compares the temporary RoleBinding's session, plan, target,
 revision, Fence UID, roleRef, and Recovery Operator subject to the Fence.
 
 No Fence ConfigMap or temporary Recovery Operator RoleBinding is rendered, so
-the fixture permission has no standing subject. No ClusterRole or
+the fixture and Guard permissions have no standing subject. No ClusterRole or
 ClusterRoleBinding is present, and same-named ConfigMaps in other Namespaces
-remain unreadable. The Guard authorization canary, API-server type checking,
-effective permission probes, resource installation, Fence creation, temporary
-RoleBinding creation, cleanup, and ceremony evidence remain separate work and
-separate Human Judgment Gates.
+remain unreadable. Every authorization Policy uses `failurePolicy: Fail`; every
+Binding uses the canonical action set `[Audit, Deny]`. Only Permission
+authorization is parameterized. The other three controls remain independent of
+Fence readability so a missing Fence cannot bypass Fence, Binding Shape, or
+Guard enforcement.
+
+The static authorization routing contract is:
+
+| Request | Fence | Binding Shape | Permission | Guard | Definition result |
+| --- | --- | --- | --- | --- | --- |
+| unrelated ConfigMap or RBAC request | skip | skip | skip | skip | unaffected by recovery definitions |
+| Session Authorizer creates the exact Fence | evaluate | skip | skip | skip | eligible only for the exact Fence projection |
+| Session Authorizer creates another ConfigMap | deny | skip | skip | skip | denied |
+| Session Authorizer creates an exact temporary Binding while Fence is absent | skip | evaluate | deny missing parameter | skip | denied |
+| UPDATE removes a recovery-session label | skip | evaluate old and new object | evaluate through old-object selector | skip | denied on shape or lineage mismatch |
+| Recovery Operator adds or removes the exact Guard value | skip | skip | skip | evaluate | eligible only with separate temporary RBAC and exact projection |
+| ordinary principal changes or removes the Guard | skip | skip | skip | deny | denied |
+| Recovery Operator performs a Guard no-op or deletes the selected fixture | skip | skip | skip | deny | denied |
+
+“Eligible” describes Admission only; Kubernetes RBAC must independently grant
+the exact operation. Complete normalized projections and the routing matrix are
+checked by Quality. API-server CEL type checking, positive and negative
+permission probes, resource installation, Fence creation, temporary
+RoleBinding creation, cleanup, and ceremony evidence belong to the separately
+authorized Phase-0 runtime milestone.
 
 This render command performs no API call and is not an activation mechanism.
 The definitions are absent from all Kustomizations and must not be applied to

@@ -56,6 +56,7 @@ rules:
           - atlas-bootstrap-identity
           - atlas-bootstrap-operation-fence
           - atlas-bootstrap-operation-fence-canary
+          - atlas-bootstrap-recovery-guard-canary
 
   - level: RequestResponse
     verbs:
