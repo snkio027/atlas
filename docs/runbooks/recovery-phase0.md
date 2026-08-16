@@ -62,16 +62,20 @@ contains:
 - one inert `kube-system` ConfigMap canary fixture;
 - the `atlas-bootstrap-admission-escape-canary` Policy and Binding using
   `failurePolicy: Fail` and the semantic action set `{Audit, Deny}`;
-- the canonical Escape ClusterRole restricted to canary reads plus exact-name
-  Binding `patch`/`update`; and
+- the canonical Escape ClusterRole restricted to exact-name Policy, Binding,
+  and `kube-system` Namespace inspection plus exact-name Binding
+  `patch`/`update`; and
 - one exact-user ClusterRoleBinding with no group subject.
 
 The Policy denies matched fixture mutation by every username except the exact
 rendered Recovery Operator. The Escape role cannot create or delete resources,
-read Secrets, mutate the canary fixture, or target production evidence. Its
-standing mutation authority is limited to suspending and restoring the canary
-Binding; the future ceremony must constrain that operation to the exact
-UID/resourceVersion and `validationActions` JSON Patch defined by ADR-0003.
+read Secrets or ConfigMaps in any Namespace, mutate the canary fixture, or
+target production evidence. Fixture reads are deliberately absent rather than
+granted cluster-wide; any future namespaced read requires a separately reviewed
+`Role` and `RoleBinding` decision. Standing mutation authority is limited to
+suspending and restoring the canary Binding; the future ceremony must constrain
+that operation to the exact UID/resourceVersion and `validationActions` JSON
+Patch defined by ADR-0003.
 
 This command does not authorize applying the bundle. Activation requires an
 audited disposable target, a separately issued and escrowed Recovery Operator

@@ -41,70 +41,90 @@ assert_one_resource ClusterRoleBinding atlas-bootstrap-break-glass-escape
 assert_one_resource ValidatingAdmissionPolicy atlas-bootstrap-admission-escape-canary
 assert_one_resource ValidatingAdmissionPolicyBinding atlas-bootstrap-admission-escape-canary
 
+assert_resource_projection() {
+  local kind=$1 expected_sha=$2 actual_sha
+
+  actual_sha=$(
+    RESOURCE_KIND=$kind yq ea -o=json -I=0 \
+      'select(.kind == strenv(RESOURCE_KIND)) | sort_keys(..)' \
+      "$first_bundle" |
+      shasum -a 256 |
+      awk '{print $1}'
+  )
+  [[ $actual_sha == "$expected_sha" ]] ||
+    test::fail "${kind} complete projection drifted: expected ${expected_sha}, got ${actual_sha}"
+}
+
+# These hashes cover every rendered field, including rule multiplicity, CEL,
+# metadata, roleRef, and subjects. Readable assertions below document the
+# security boundary and make failures actionable.
+assert_resource_projection ConfigMap 1de0f296ea0d8e970b9ca3b9665dc9c647afd7da1a0d7e334a6a531727fc8cdc
+assert_resource_projection ClusterRole 18ec7e9d447c07be101df0454e06ed202eb93eb6d00b287c66a3d985a0e24e97
+assert_resource_projection ClusterRoleBinding d74343d40b7c631b10ebcdfa02f4afab33a15df8df3d7af32c153f33d53ceeec
+assert_resource_projection ValidatingAdmissionPolicy a6b7f1a4b1a84c834f232b9d89fc1f149b95f046f36628ce0cdd1ef2586ac7ae
+assert_resource_projection ValidatingAdmissionPolicyBinding 88a357b9e5d456fd137c385f1ddd4aa7f4b2e71be057c62ca6191adb233336eb
+
 fixture=$(yq ea 'select(.kind == "ConfigMap")' "$first_bundle")
 [[ $(yq '.metadata.namespace' <<< "$fixture") == kube-system ]] || test::fail "canary fixture is outside kube-system"
 [[ $(yq '.data.sentinel' <<< "$fixture") == admission-escape-canary ]] || test::fail "canary fixture is not inert"
 
 policy=$(yq ea 'select(.kind == "ValidatingAdmissionPolicy")' "$first_bundle")
 [[ $(yq '.spec.failurePolicy' <<< "$policy") == Fail ]] || test::fail "canary Policy is not fail closed"
-operations=$(yq -r '.spec.matchConstraints.resourceRules[0].operations | sort | join(",")' <<< "$policy")
-[[ $operations == CREATE,DELETE,UPDATE ]] || test::fail "canary Policy mutation inventory is incomplete"
-[[ $(yq -r '.spec.matchConstraints.resourceRules[0].resources | join(",")' <<< "$policy") == configmaps ]] ||
-  test::fail "canary Policy matches a non-ConfigMap resource"
-target_expression=$(yq -r \
-  '.spec.matchConditions[] | select(.name == "canonical-canary-target") | .expression' \
-  <<< "$policy")
-[[ $target_expression == *"request.namespace == 'kube-system'"* ]] ||
-  test::fail "canary Policy does not confine the fixture Namespace"
-[[ $target_expression == *"request.operation == 'DELETE'"* ]] ||
-  test::fail "canary Policy does not distinguish DELETE oldObject"
-[[ $target_expression == *"oldObject.metadata.name == 'atlas-bootstrap-admission-escape-canary'"* ]] ||
-  test::fail "canary Policy does not validate the deleted object name"
-[[ $target_expression == *"object.metadata.name == 'atlas-bootstrap-admission-escape-canary'"* ]] ||
-  test::fail "canary Policy does not validate the created or updated object name"
-principal_expression=$(yq -r \
-  '.spec.matchConditions[] | select(.name == "ordinary-principal") | .expression' \
-  <<< "$policy")
+[[ $(yq '.spec.matchConstraints.resourceRules | length' <<< "$policy") -eq 1 ]] ||
+  test::fail "canary Policy does not have exactly one resource rule"
+policy_rule=$(yq -o=json -I=0 '.spec.matchConstraints.resourceRules[0]' <<< "$policy")
+expected_policy_rule='{"apiGroups":[""],"apiVersions":["v1"],"operations":["CREATE","UPDATE","DELETE"],"resources":["configmaps"],"scope":"Namespaced"}'
+[[ $policy_rule == "$expected_policy_rule" ]] || test::fail "canary Policy resource rule drifted"
+[[ $(yq '.spec.matchConditions | length' <<< "$policy") -eq 2 ]] ||
+  test::fail "canary Policy does not have exactly two match conditions"
+condition_names=$(yq -o=json -I=0 '[.spec.matchConditions[].name]' <<< "$policy")
+[[ $condition_names == '["canonical-canary-target","ordinary-principal"]' ]] ||
+  test::fail "canary Policy match condition names or order drifted"
+target_expression=$(yq ea -r \
+  'select(.kind == "ValidatingAdmissionPolicy") | .spec.matchConditions[0].expression' \
+  "$first_bundle")
+expected_target_expression=$'request.namespace == \'kube-system\' && (request.operation == \'DELETE\'\n  ? oldObject.metadata.name == \'atlas-bootstrap-admission-escape-canary\'\n  : object.metadata.name == \'atlas-bootstrap-admission-escape-canary\')'
+[[ $target_expression == "$expected_target_expression" ]] ||
+  test::fail "canary Policy target expression drifted"
+principal_expression=$(yq -r '.spec.matchConditions[1].expression' <<< "$policy")
 [[ $principal_expression == "request.userInfo.username != '${recovery_operator}'" ]] ||
   test::fail "canary Policy exception is not the exact Recovery Operator"
+[[ $(yq '.spec.validations | length' <<< "$policy") -eq 1 ]] ||
+  test::fail "canary Policy does not have exactly one validation"
+validation=$(yq -o=json -I=0 '.spec.validations[0]' <<< "$policy")
+expected_validation='{"expression":"false","message":"Atlas admission escape canary mutation requires the exact Recovery Operator","reason":"Forbidden"}'
+[[ $validation == "$expected_validation" ]] || test::fail "canary Policy validation drifted"
 [[ $(yq -r '.spec.validations[0].expression' <<< "$policy") == false ]] ||
   test::fail "canary Policy does not deny matched ordinary principals"
-[[ $(yq -r '.spec.validations[0].reason' <<< "$policy") == Forbidden ]] ||
-  test::fail "canary Policy does not use the intended denial reason"
 
 binding=$(yq ea 'select(.kind == "ValidatingAdmissionPolicyBinding")' "$first_bundle")
-[[ $(yq -r '.spec.policyName' <<< "$binding") == atlas-bootstrap-admission-escape-canary ]] ||
-  test::fail "canary Binding references the wrong Policy"
-actions=$(yq -r '.spec.validationActions | sort | join(",")' <<< "$binding")
-[[ $actions == Audit,Deny ]] || test::fail "canary Binding is not the exact Audit+Deny set"
-raw_actions=$(yq -o=json -I=0 '.spec.validationActions' <<< "$binding")
-[[ $raw_actions == '["Audit","Deny"]' ]] || test::fail "canary Binding is not in canonical action order"
+binding_spec=$(yq -o=json -I=0 '.spec' <<< "$binding")
+expected_binding_spec='{"policyName":"atlas-bootstrap-admission-escape-canary","validationActions":["Audit","Deny"]}'
+[[ $binding_spec == "$expected_binding_spec" ]] || test::fail "canary Binding spec drifted"
 test::pass "admission canary definitions are deterministic, isolated, and fail closed"
 
 role=$(yq ea 'select(.kind == "ClusterRole")' "$first_bundle")
 role_binding=$(yq ea 'select(.kind == "ClusterRoleBinding")' "$first_bundle")
-[[ $(yq '.subjects | length' <<< "$role_binding") -eq 1 ]] ||
-  test::fail "Escape binding does not have exactly one subject"
-[[ $(yq -r '.subjects[0].kind' <<< "$role_binding") == User ]] ||
-  test::fail "Escape binding uses a group or service account"
-[[ $(yq -r '.subjects[0].name' <<< "$role_binding") == "$recovery_operator" ]] ||
-  test::fail "Escape binding subject drifted"
-[[ $(yq -r '.roleRef.name' <<< "$role_binding") == atlas-bootstrap-break-glass-escape ]] ||
-  test::fail "Escape binding references the wrong role"
-
-role_verbs=$(yq -r '.rules[].verbs[]' <<< "$role" | sort -u | paste -sd, -)
-[[ $role_verbs == get,patch,update ]] ||
-  test::fail "Escape role grants verbs beyond canary read and Binding patch/update"
-role_resources=$(yq -r '.rules[].resources[]' <<< "$role" | sort -u | paste -sd, -)
-[[ $role_resources == configmaps,namespaces,validatingadmissionpolicies,validatingadmissionpolicybindings ]] ||
-  test::fail "Escape role grants a resource outside its canary inspection boundary"
-mutation_rule=$(yq '.rules[] | select(.verbs | any_c(. == "patch" or . == "update"))' <<< "$role")
-[[ $(yq -r '.resources | join(",")' <<< "$mutation_rule") == validatingadmissionpolicybindings ]] ||
-  test::fail "Escape mutation is not confined to the canary Binding kind"
-[[ $(yq -r '.resourceNames | join(",")' <<< "$mutation_rule") == atlas-bootstrap-admission-escape-canary ]] ||
-  test::fail "Escape mutation is not confined to the exact canary Binding"
+[[ $(yq '.rules | length' <<< "$role") -eq 3 ]] || test::fail "Escape role does not have exactly three rules"
+expected_vap_rule='{"apiGroups":["admissionregistration.k8s.io"],"resources":["validatingadmissionpolicies"],"resourceNames":["atlas-bootstrap-admission-escape-canary"],"verbs":["get"]}'
+expected_binding_rule='{"apiGroups":["admissionregistration.k8s.io"],"resources":["validatingadmissionpolicybindings"],"resourceNames":["atlas-bootstrap-admission-escape-canary"],"verbs":["get","patch","update"]}'
+expected_namespace_rule='{"apiGroups":[""],"resources":["namespaces"],"resourceNames":["kube-system"],"verbs":["get"]}'
+[[ $(yq -o=json -I=0 '.rules[0]' <<< "$role") == "$expected_vap_rule" ]] ||
+  test::fail "Escape VAP read rule drifted"
+[[ $(yq -o=json -I=0 '.rules[1]' <<< "$role") == "$expected_binding_rule" ]] ||
+  test::fail "Escape Binding authority rule drifted"
+[[ $(yq -o=json -I=0 '.rules[2]' <<< "$role") == "$expected_namespace_rule" ]] ||
+  test::fail "Escape Namespace read rule drifted"
+configmap_rule_count=$(yq '[.rules[] | select(.apiGroups == [""] and (.resources | any_c(. == "configmaps")))] | length' <<< "$role")
+((configmap_rule_count == 0)) || test::fail "Escape role grants ConfigMap access outside a namespace RoleBinding"
 ! grep -Eq '(^|[[:space:]])\*([[:space:]]|$)' <<< "$role" || test::fail "Escape role contains a wildcard"
-test::pass "Escape RBAC grants only exact-user canary read and Binding suspend/restore authority"
+role_ref=$(yq -o=json -I=0 '.roleRef' <<< "$role_binding")
+expected_role_ref='{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"atlas-bootstrap-break-glass-escape"}'
+[[ $role_ref == "$expected_role_ref" ]] || test::fail "Escape binding roleRef drifted"
+subjects=$(yq -o=json -I=0 '.subjects' <<< "$role_binding")
+expected_subjects="[{\"apiGroup\":\"rbac.authorization.k8s.io\",\"kind\":\"User\",\"name\":\"${recovery_operator}\"}]"
+[[ $subjects == "$expected_subjects" ]] || test::fail "Escape binding subject projection drifted"
+test::pass "Escape RBAC is exact-user, canary-only, and grants no ConfigMap access in any Namespace"
 
 assert_username_rejected() {
   local username=$1

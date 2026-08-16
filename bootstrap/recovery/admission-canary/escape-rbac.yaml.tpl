@@ -27,14 +27,6 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - configmaps
-    resourceNames:
-      - atlas-bootstrap-admission-escape-canary
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
       - namespaces
     resourceNames:
       - kube-system
