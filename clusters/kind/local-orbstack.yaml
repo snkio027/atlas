@@ -12,3 +12,23 @@ containerdConfigPatches:
 
 nodes:
   - role: control-plane
+    labels:
+      atlas.io/node-pool: control
+  - role: worker
+    labels:
+      atlas.io/node-pool: gateway
+  - role: worker
+    labels:
+      atlas.io/node-pool: compute
+  - role: worker
+    labels:
+      atlas.io/node-pool: data
+    kubeadmConfigPatches:
+      - |-
+        apiVersion: kubeadm.k8s.io/v1beta4
+        kind: JoinConfiguration
+        nodeRegistration:
+          taints:
+            - key: atlas.io/node-pool
+              value: data
+              effect: NoSchedule
