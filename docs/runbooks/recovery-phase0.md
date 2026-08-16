@@ -1,4 +1,4 @@
-# Phase-0 Admission Escape Preparation
+# Phase-0 Recovery Authority Preparation
 
 This runbook covers the audited Kind definition and the isolated drill-cluster
 lifecycle implemented for ADR-0003 Phase 0. It does not declare Phase 0
@@ -82,8 +82,59 @@ audited disposable target, a separately issued and escrowed Recovery Operator
 credential, an authority-specific Human Judgment Gate, server-side CEL type
 checking, effective-permission probes, and retained audit evidence. The current
 implementation has no apply, suspend, restore, or cleanup command. Session
-Authorizer RBAC and the Fence/Permission canary are a separate future permission
-boundary; production Session Authorization and production `Deny` remain absent.
+Authorizer activation and the Fence/Permission ceremony remain separate future
+permission boundaries; production Session Authorization and production `Deny`
+remain absent.
+
+## Render the Session Authorization canary definitions
+
+The second definition bundle models only the `kube-system` canary authority
+needed to prove Fence-gated temporary permission. Supply the independently
+planned principals. Both usernames must contain the same lowercase
+`kube-system` Namespace UID and positive, independently rotatable generations:
+
+```bash
+namespace_uid=00000000-0000-0000-0000-000000000000
+recovery_operator="atlas:break-glass:${namespace_uid}:g1"
+session_authorizer="atlas:recovery-authorizer:${namespace_uid}:g1"
+./bootstrap/recovery/atlas-recovery phase0 \
+  session-authorization-canary-manifests \
+  --recovery-operator "$recovery_operator" \
+  --session-authorizer "$session_authorizer" \
+  > .state/recovery-phase0-session-authorization-canary.yaml
+```
+
+The deterministic nine-document bundle contains:
+
+- a `kube-system` permission `Role` that can only `get` the exact inert
+  admission-escape ConfigMap fixture;
+- a separate `kube-system` Session Authorizer `Role` and exact-user
+  `RoleBinding` for canary Fence and temporary RoleBinding lifecycle plus
+  exact `bind` on that permission Role;
+- parameter-free Fence and Binding Shape Policy/Binding pairs; and
+- a Permission Policy/Binding parameterized only by
+  `kube-system/atlas-bootstrap-operation-fence-canary`, with
+  `parameterNotFoundAction: Deny` and `failurePolicy: Fail`.
+
+Kubernetes RBAC cannot constrain collection `create` by object name. The Fence
+Policy therefore matches every ConfigMap mutation attempted by the exact
+Session Authorizer as well as every mutation of the canonical canary Fence.
+The Binding Shape Policy similarly matches every RoleBinding mutation attempted
+by that principal, preventing omission of the session selector. Permission
+authorization compares the temporary RoleBinding's session, plan, target,
+revision, Fence UID, roleRef, and Recovery Operator subject to the Fence.
+
+No Fence ConfigMap or temporary Recovery Operator RoleBinding is rendered, so
+the fixture permission has no standing subject. No ClusterRole or
+ClusterRoleBinding is present, and same-named ConfigMaps in other Namespaces
+remain unreadable. The Guard authorization canary, API-server type checking,
+effective permission probes, resource installation, Fence creation, temporary
+RoleBinding creation, cleanup, and ceremony evidence remain separate work and
+separate Human Judgment Gates.
+
+This render command performs no API call and is not an activation mechanism.
+The definitions are absent from all Kustomizations and must not be applied to
+the existing four-node normal Bootstrap cluster.
 
 ## Drill-cluster lifecycle boundary
 
@@ -156,7 +207,7 @@ Cluster lifecycle approval is not reusable for later Phase-0 gates. The
 following remain separately reviewed and unauthorized:
 
 - Recovery Operator and Session Authorizer credential ceremonies;
-- persistent Escape and canary-scoped Session Authorizer RBAC;
+- persistent Escape and canary-scoped Session Authorizer RBAC activation;
 - disposable protection and recovery-authorization canaries; and
 - canary suspend/restore and Fence/Permission Bundle exercises.
 

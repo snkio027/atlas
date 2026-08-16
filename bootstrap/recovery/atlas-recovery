@@ -19,6 +19,8 @@ readonly ATLAS_RECOVERY_CLI_VERSION=0.1.0
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit-config.sh"
 # shellcheck source=bootstrap/recovery/admission-canary/render.sh
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/admission-canary/render.sh"
+# shellcheck source=bootstrap/recovery/session-authorization-canary/render.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/session-authorization-canary/render.sh"
 
 recovery::usage() {
   cat << 'EOF'
@@ -27,6 +29,8 @@ Usage: bootstrap/recovery/atlas-recovery <command> [options]
 Commands:
   phase0 audit-config                 Render an audited Kind configuration
   phase0 admission-canary-manifests  Render the admission escape canary bundle
+  phase0 session-authorization-canary-manifests
+                                      Render the Fence/Permission canary bundle
 
 Options for phase0 audit-config:
   --audit-dir <path>  Existing writable audit directory outside the repository
@@ -34,6 +38,12 @@ Options for phase0 audit-config:
 Options for phase0 admission-canary-manifests:
   --recovery-operator <username>
                       Exact atlas:break-glass:<kube-system-UID>:g<N> username
+
+Options for phase0 session-authorization-canary-manifests:
+  --recovery-operator <username>
+                      Exact atlas:break-glass:<kube-system-UID>:g<N> username
+  --session-authorizer <username>
+                      Exact atlas:recovery-authorizer:<kube-system-UID>:g<N>
 
 Global options:
   -V, --version        Show the Recovery CLI version
@@ -68,6 +78,9 @@ recovery::dispatch_phase0() {
       ;;
     admission-canary-manifests)
       admission_canary::dispatch "$@"
+      ;;
+    session-authorization-canary-manifests)
+      session_canary::dispatch "$@"
       ;;
     *)
       recovery::die "unknown phase0 action: ${action}"
