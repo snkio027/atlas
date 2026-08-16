@@ -46,6 +46,7 @@ tasks:
       - ./tests/bootstrap/status-exit-contract.sh
       - ./tests/recovery/audit-config-contract.sh
       - ./tests/recovery/admission-canary-contract.sh
+      - ./tests/recovery/session-authorization-canary-contract.sh
       - ./tests/drill/kind-create-contract.sh
 
   conformance:
