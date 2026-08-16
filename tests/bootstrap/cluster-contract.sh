@@ -157,7 +157,7 @@ config::version() {
   printf '%s\n' "$MOCK_IMAGE"
 }
 
-docker() {
+runtime::docker() {
   case "$1" in
     ps)
       local calls
@@ -286,7 +286,7 @@ runtime::kind_cluster_exists() {
   printf 'CLUSTER_DISCOVERY\n' >> "$mutation_log"
   return 1
 }
-kind() {
+runtime::kind() {
   printf 'KIND_CREATE\n' >> "$mutation_log"
 }
 if cluster::ensure_kind > /dev/null 2>&1; then
