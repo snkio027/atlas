@@ -260,6 +260,33 @@ for unsafe_permission in "${unsafe_permissions[@]}"; do
   fi
 done
 
+permission_namespaces="${session}/authorization/permission-namespaces-test.txt"
+complete_inventory="${session}/authorization/complete-permissions.txt"
+incomplete_inventory="${session}/authorization/incomplete-permissions.txt"
+printf '%s\n' kube-system > "$permission_namespaces"
+(
+  ATLAS_PHASE0_OPERATION[permission_namespaces]=$permission_namespaces
+  phase0_session::principal() {
+    printf '%s\n' 'deployments.apps   []   []   [get list watch]'
+  }
+  phase0_ceremony::_permission_inventory principal.kubeconfig "$complete_inventory"
+)
+[[ $(< "$complete_inventory") == $'kube-system\tdeployments.apps   []   []   [get list watch]' &&
+! -e ${complete_inventory}.tmp && ! -e ${complete_inventory}.stderr.tmp ]] ||
+  test::fail "complete permission inventory was not captured atomically"
+if (
+  ATLAS_PHASE0_OPERATION[permission_namespaces]=$permission_namespaces
+  phase0_session::principal() {
+    printf '%s\n' 'deployments.apps   []   []   [get list watch]'
+    printf '%s\n' 'Warning: the list may be incomplete: simulated evaluator gap' >&2
+  }
+  phase0_ceremony::_permission_inventory principal.kubeconfig "$incomplete_inventory"
+) > /dev/null 2>&1; then
+  test::fail "permission inventory accepted safe stdout with an incomplete warning"
+fi
+[[ ! -e $incomplete_inventory && ! -e ${incomplete_inventory}.tmp && ! -e ${incomplete_inventory}.stderr.tmp ]] ||
+  test::fail "rejected incomplete permission inventory left ambiguous evidence"
+
 cleanup_calls="${test_workspace}/cleanup-calls"
 : > "$cleanup_calls"
 phase0_ceremony::_snapshot_for_delete() {

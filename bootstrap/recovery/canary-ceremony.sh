@@ -174,19 +174,31 @@ phase0_ceremony::_issue_credentials() {
 }
 
 phase0_ceremony::_permission_inventory() {
-  local kubeconfig=$1 destination=$2 temporary namespace line namespaces listing
+  local kubeconfig=$1 destination=$2 temporary diagnostics namespace line namespaces listing
   temporary="${destination}.tmp"
+  diagnostics="${destination}.stderr.tmp"
   namespaces=$(phase0_session::operation permission_namespaces) || return 1
   : > "$temporary" || return 1
   while IFS= read -r namespace || [[ -n $namespace ]]; do
     [[ -n $namespace ]] || return 1
-    listing=$(phase0_session::principal "$kubeconfig" auth can-i --list \
-      --namespace="$namespace" --no-headers) || return 1
+    : > "$diagnostics" || return 1
+    if ! listing=$(phase0_session::principal "$kubeconfig" auth can-i --list \
+      --namespace="$namespace" --no-headers 2> "$diagnostics"); then
+      rm -f -- "$temporary" "$diagnostics"
+      recovery::die "credential permission inventory command failed: ${namespace}"
+      return 1
+    fi
+    if [[ -s $diagnostics ]]; then
+      rm -f -- "$temporary" "$diagnostics"
+      recovery::die "credential permission inventory emitted diagnostics and may be incomplete: ${namespace}"
+      return 1
+    fi
     while IFS= read -r line || [[ -n $line ]]; do
       [[ -n $line ]] || continue
       printf '%s\t%s\n' "$namespace" "$line" >> "$temporary" || return 1
     done <<< "$listing"
   done < "$namespaces"
+  rm -f -- "$diagnostics" || return 1
   LC_ALL=C sort -u "$temporary" -o "$temporary" || return 1
   [[ -s $temporary ]] || return 1
   mv "$temporary" "$destination" || return 1
