@@ -42,6 +42,10 @@ cat > "${fixture_bootstrap}/lib/config.sh" << 'EOF'
 config::load() {
   printf 'load\n' >> "$ATLAS_TEST_CONFIG_LOG"
 }
+config::version() {
+  [[ $1 == ARGOCD_VERSION ]] || return 1
+  printf '%s\n' "${ATLAS_TEST_ARGOCD_VERSION:-3.5.1}"
+}
 EOF
 cat > "${fixture_bootstrap}/host/doctor.sh" << 'EOF'
 host::doctor() { :; }
@@ -127,17 +131,31 @@ run_status 1 ATLAS_TEST_CLUSTER_RECORD=$'cluster\tDRIFTED\tatlas-test' > /dev/nu
 run_status 1 ATLAS_TEST_REGISTRY_RECORD=$'registry\tABSENT\tatlas-registry' > /dev/null
 run_status 1 ATLAS_TEST_ARGOCD_RECORD=$'argocd\tDEGRADED\targocd' > /dev/null
 run_status 1 ATLAS_TEST_ROOT_RECORD=$'root\tOutOfSync/Healthy\tatlas-root' > /dev/null
+run_status 1 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Progressing\tatlas-root' > /dev/null
+run_status 1 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Suspended\tatlas-root' > /dev/null
+run_status 1 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Degraded\tatlas-root' > /dev/null
+run_status 1 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Missing\tatlas-root' > /dev/null
 test::pass "known absent, drifted, degraded, and unhealthy states return 1"
 
 run_status 2 \
   ATLAS_TEST_CLUSTER_RECORD=$'cluster\tDRIFTED\tatlas-test' \
   ATLAS_TEST_REGISTRY_RECORD=$'registry\tUNAVAILABLE\tatlas-registry' > /dev/null
 run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tFUTURE_STATE\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tFuture/State\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_SELF_RECORD=$'argocd-self\tFuture/State\targocd-self' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\t////\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tUnknown/Unknown\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tUnknown/Healthy\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Unknown\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Healthy/Extra\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\t/Healthy\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/\tatlas-root' > /dev/null
+run_status 2 ATLAS_TEST_ARGOCD_VERSION=3.6.0 > /dev/null
 run_status 2 ATLAS_TEST_REGISTRY_RECORD=$'unexpected\tREADY\tatlas-registry' > /dev/null
 run_status 2 ATLAS_TEST_REGISTRY_RECORD=$'cluster\tREADY\tduplicate-cluster' > /dev/null
 run_status 2 ATLAS_TEST_ROOT_RECORD=$'root\tSynced/Healthy\tatlas-root\textra-field' > /dev/null
 run_status 2 ATLAS_TEST_ARGOCD_MODE=partial > /dev/null
-test::pass "unavailable, unknown, unexpected, duplicate, malformed, and incomplete reports fail closed with 2"
+test::pass "unknown Argo states or versions and malformed or incomplete reports fail closed with 2"
 
 : > "$argocd_log"
 absent_output=$(run_status 1 \

@@ -2,6 +2,7 @@
 
 [[ -n ${_ATLAS_STATUS_REPORT_LOADED:-} ]] && return 0
 readonly _ATLAS_STATUS_REPORT_LOADED=1
+readonly _ATLAS_STATUS_ARGOCD_VERSION=3.5.1
 
 status::_component_state() {
   local report=$1 expected_component=$2 first_line component state detail tabless
@@ -18,6 +19,26 @@ status::_synthetic_argocd_report() {
   printf 'argocd\t%s\t%s\n' "$state" "$detail"
   printf 'root\t%s\t%s\n' "$state" "$detail"
   printf 'argocd-self\t%s\t%s\n' "$state" "$detail"
+}
+
+status::_application_state_severity() {
+  local state=$1 sync health
+  sync=${state%%/*}
+  health=${state#*/}
+  [[ -n $sync && -n $health && $sync != "$state" && $health != */* ]] || return 2
+
+  # Keep both sets aligned with the Argo CD version declared above.
+  case "$sync" in
+    Synced | OutOfSync) ;;
+    *) return 2 ;;
+  esac
+  case "$health" in
+    Healthy | Progressing | Suspended | Degraded | Missing) ;;
+    *) return 2 ;;
+  esac
+
+  [[ $sync == Synced && $health == Healthy ]] && return 0
+  return 1
 }
 
 status::inspect() {
@@ -69,10 +90,9 @@ status::_record_severity() {
       ;;
     root | argocd-self)
       case "$state" in
-        Synced/Healthy) return 0 ;;
-        ABSENT | */*) return 1 ;;
+        ABSENT) return 1 ;;
         UNAVAILABLE) return 2 ;;
-        *) return 2 ;;
+        *) status::_application_state_severity "$state" ;;
       esac
       ;;
     *) return 2 ;;
@@ -80,9 +100,12 @@ status::_record_severity() {
 }
 
 status::check() {
-  local report=$1 line tabless component state detail record_severity expected_component
+  local report=$1 argocd_version line tabless component state detail record_severity expected_component
   local severity=0
   local -A seen=()
+
+  argocd_version=$(config::version ARGOCD_VERSION) || return 2
+  [[ $argocd_version == "$_ATLAS_STATUS_ARGOCD_VERSION" ]] || return 2
 
   while IFS= read -r line || [[ -n $line ]]; do
     tabless=${line//$'\t'/}

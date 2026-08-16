@@ -30,7 +30,9 @@ containing exactly `cluster`, `registry`, `argocd`, `root`, and `argocd-self`.
 It returns `0` only when all five are ready or Synced/Healthy, `1` for a known
 absent, drifted, degraded, or unhealthy state, and `2` for unavailable,
 unrecognized, incomplete, duplicate, or malformed status data. Unknown states
-therefore fail closed instead of being treated as healthy.
+therefore fail closed instead of being treated as healthy. The Application
+status classifier is bound to the `ARGOCD_VERSION` in `versions.lock`; a version
+change also returns `2` until its Sync and Health enumerations are reviewed.
 
 The `--approve-tier0` flag is mandatory for `apply`. An existing External Root
 is compared but never overwritten by the normal Bootstrap path. Root repair is
