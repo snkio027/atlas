@@ -78,14 +78,19 @@ The shared rules are:
 - `<generation>` is an unpadded decimal integer from `1` through `999999`,
   represented by `g[1-9][0-9]{0,5}`;
 - the complete username is ASCII-only and at most 64 bytes;
-- the 58-byte fixed projection plus one to six generation digits produces a
-  complete username of 59 through 64 bytes;
 - case folding, Unicode normalization, alternate UID encodings, leading zeroes,
   signs, whitespace, and trailing data are forbidden;
 - the certificate Subject Common Name equals the complete canonical username
   byte for byte and the Subject contains no Organization;
 - RBAC continues to bind an exact `User` subject. Group-based recovery mutation
   authority remains forbidden.
+
+The byte projections are principal-specific:
+
+- Recovery Operator has a 56-byte fixed projection and produces a complete
+  username of 57 through 62 bytes;
+- Session Authorizer has a 58-byte fixed projection and produces a complete
+  username of 59 through 64 bytes.
 
 These ASCII, exact-format, generation-range, and 64-byte Common Name checks
 apply to every Recovery Operator and Session Authorizer generation planned by
@@ -111,9 +116,19 @@ private key, CSR, certificate, Kubernetes object, or other cluster mutation.
 Partial validation is not sufficient: every planned principal must pass before
 the workflow may proceed.
 
-Post-Gate revalidation MUST recompute the same usernames from the approved
-target and plan and compare them byte for byte before credential issuance. Any
-drift stops the ceremony without mutation.
+After Gate approval and before credential issuance, the recovery command MUST
+repeat read-only target discovery against the current live API authority. It
+MUST re-read the live `kube-system` Namespace UID and re-derive the complete
+target fingerprint, including the API endpoint and API server CA SPKI binding.
+The live fingerprint and UID MUST equal the approved target and plan exactly.
+
+The command MUST then reconstruct every current and previous principal from the
+live UID, validate all identity rules again, and compare each result byte for
+byte with the approved Plan. Unavailable discovery, unreadable live state, or
+any target, UID, CA, principal, or plan drift fails closed before creation of a
+credential directory, private key, CSR, certificate, Kubernetes object, or
+other cluster mutation. Comparing only approved or previously stored values is
+not a valid Post-Gate revalidation.
 
 ### Single identity projection
 
@@ -215,6 +230,8 @@ only expand the recovery trust boundary.
 
 The implementation change MUST add deterministic tests that prove:
 
+- `atlas:break-glass:<canonical-uid>:g1` is accepted at 57 bytes;
+- `atlas:break-glass:<canonical-uid>:g999999` is accepted at 62 bytes;
 - `atlas:session-authz:<canonical-uid>:g1` is accepted at 59 bytes;
 - `atlas:session-authz:<canonical-uid>:g999999` is accepted at exactly 64
   bytes;
@@ -230,6 +247,9 @@ The implementation change MUST add deterministic tests that prove:
   mutating kubectl invocation, or other cluster mutation;
 - every planned current and previous principal is validated, and one invalid
   principal rejects the complete plan;
+- Post-Gate target discovery re-reads the live target fingerprint and Namespace
+  UID; API, CA, UID, or availability drift is rejected before credential
+  creation or mutation, while an exact live match proceeds;
 - rendered RBAC, VAP CEL, plan, evidence, and runbook projections contain the
   exact new username and no active reference to the rejected form;
 - the issued certificate Subject and Kubernetes authenticated username equal
