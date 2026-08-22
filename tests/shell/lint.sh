@@ -30,6 +30,7 @@ expected_production_shell=(
   bootstrap/recovery/audit-config.sh
   bootstrap/recovery/canary-ceremony.sh
   bootstrap/recovery/canary-session.sh
+  bootstrap/recovery/principal-identity.sh
   bootstrap/recovery/session-authorization-canary/render.sh
   bootstrap/registry/local.sh
   bootstrap/status/report.sh

@@ -16,7 +16,7 @@ trap cleanup EXIT
 recovery_cli=./bootstrap/recovery/atlas-recovery
 namespace_uid=12345678-1234-1234-1234-123456789abc
 recovery_operator="atlas:break-glass:${namespace_uid}:g7"
-session_authorizer="atlas:recovery-authorizer:${namespace_uid}:g4"
+session_authorizer="atlas:session-authz:${namespace_uid}:g4"
 first_bundle="${test_workspace}/first.yaml"
 second_bundle="${test_workspace}/second.yaml"
 
@@ -51,17 +51,17 @@ assert_resource_projection Role atlas-bootstrap-recovery-canary \
 assert_resource_projection Role atlas-bootstrap-recovery-authorizer-canary \
   bad62a23878e69e0b15682a35663135bbbaff549a3362fd2da21ce2068b8dd89
 assert_resource_projection RoleBinding atlas-bootstrap-recovery-authorizer-canary \
-  3a7ca7239cad628c85535f67c971e9523ac6ea7679dbbb3dea21d065b611c7d5
+  dfcd2c71ebba51ac645fa5959fe2490c6eaebc18060a6d26f491825386867ee4
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-fence-authorization-canary \
-  78155caba4f982a407e036400d828598b26de0274e487a5f347f4d5f02f70266
+  0d0985284dd35de5bc5811555274ece243ad48b7658ad4e228394f380a0c75f8
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-fence-authorization-canary \
   efb401217069eb264239bf58996c2e13f60045743f4216ea4e78c05fb65d25fc
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-binding-shape-authorization-canary \
-  327e7b2726efdc931d9b566b1cb37543621b82b10a9fd90a19951e1973a7b4ed
+  0e7c7becded53de9ceb8a7b94f3551f1a3a1aeb259fe64eb989cd6a12a5b5312
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-binding-shape-authorization-canary \
   3d09d0dcc836ccd65195a853b51105044da9e4dbd056e95cdf9decf4b5f103a2
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-permission-authorization-canary \
-  03d39c71233c0e5136325c39294a2e2e718f8644a4655bab47a0755a9f103dbd
+  7f002e6f7776c557cecd847f307932120401f3b0226d382f32e1e432e75a2c96
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-permission-authorization-canary \
   2877b4638b8453a809e0a0bee591cffcd888f72de4e5295fe58bdfd4c0cf98f7
 assert_resource_projection ConfigMap atlas-bootstrap-recovery-guard-canary \
@@ -178,7 +178,7 @@ shape_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorizatio
 shape_match=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorization-canary yq ea -r \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME)) | .spec.matchConditions[0].expression' \
   "$first_bundle")
-expected_shape_match=$'request.userInfo.username == \'atlas:recovery-authorizer:12345678-1234-1234-1234-123456789abc:g4\' || (request.namespace == \'kube-system\' &&\n  ((request.operation != \'CREATE\' &&\n    (oldObject.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(oldObject.metadata.labels) &&\n        \'atlas.io/recovery-session\' in oldObject.metadata.labels))) ||\n  (request.operation != \'DELETE\' &&\n    (object.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(object.metadata.labels) &&\n        \'atlas.io/recovery-session\' in object.metadata.labels))))'
+expected_shape_match=$'request.userInfo.username == \'atlas:session-authz:12345678-1234-1234-1234-123456789abc:g4\' || (request.namespace == \'kube-system\' &&\n  ((request.operation != \'CREATE\' &&\n    (oldObject.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(oldObject.metadata.labels) &&\n        \'atlas.io/recovery-session\' in oldObject.metadata.labels))) ||\n  (request.operation != \'DELETE\' &&\n    (object.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(object.metadata.labels) &&\n        \'atlas.io/recovery-session\' in object.metadata.labels))))'
 [[ $shape_match == "$expected_shape_match" ]] ||
   test::fail "Binding Shape authorization does not select the exact old/new target union"
 
@@ -309,10 +309,10 @@ assert_render_rejected() {
 }
 
 assert_render_rejected atlas:break-glass:not-a-uid:g1 "$session_authorizer"
-assert_render_rejected "$recovery_operator" atlas:recovery-authorizer:not-a-uid:g1
-assert_render_rejected "$recovery_operator" atlas:recovery-authorizer:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:g4
-assert_render_rejected "$recovery_operator" atlas:recovery-authorizer:12345678-1234-1234-1234-123456789abc:g0
-assert_render_rejected "$recovery_operator" $'atlas:recovery-authorizer:12345678-1234-1234-1234-123456789abc:g4\nsecond-user'
+assert_render_rejected "$recovery_operator" atlas:session-authz:not-a-uid:g1
+assert_render_rejected "$recovery_operator" atlas:session-authz:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:g4
+assert_render_rejected "$recovery_operator" atlas:session-authz:12345678-1234-1234-1234-123456789abc:g0
+assert_render_rejected "$recovery_operator" $'atlas:session-authz:12345678-1234-1234-1234-123456789abc:g4\nsecond-user'
 if "$recovery_cli" phase0 session-authorization-canary-manifests \
   --recovery-operator "$recovery_operator" > /dev/null 2>&1; then
   test::fail "missing Session Authorizer was accepted"
