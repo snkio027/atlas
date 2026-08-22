@@ -1,6 +1,6 @@
 # ADR-0004: Bound recovery principal identities for X.509
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-17
 - Deciders: repository owner and required CODEOWNERS
 - Amends: [ADR-0003](0003-bootstrap-break-glass-recovery.md) principal identity contract
@@ -39,9 +39,10 @@ must therefore use a valid Common Name, continue to omit Organization, and
 verify the effective group-derived permission baseline.
 
 This is a recovery-authority amendment to Accepted ADR-0003, not a wording
-clarification. Until this ADR is accepted and implemented, Phase-0 Runtime
-Closure remains `NO-GO`. The retained drill state, credentials, plan, evidence
-session, and Human Gate from the failed ceremony must not be reused.
+clarification. Although this ADR is accepted, Phase-0 Runtime Closure remains
+`NO-GO` until the amendment is implemented and a new ceremony succeeds. The
+retained drill state, credentials, plan, evidence session, and Human Gate from
+the failed ceremony must not be reused.
 
 ## Decision
 
@@ -188,8 +189,8 @@ certificates, plan, evidence session, and approval values.
   compatibility authorization path.
 - Generation `1000000` and above require a new ADR before use. Atlas must not
   silently shorten another field or roll over the generation counter.
-- Phase-0 Runtime Closure remains blocked until the amendment is accepted,
-  implemented, and a completely new Human-gated ceremony succeeds.
+- Phase-0 Runtime Closure remains blocked until the amendment is implemented
+  and a completely new Human-gated ceremony succeeds.
 
 ## Alternatives considered
 
@@ -264,6 +265,6 @@ mock contracts. A real ceremony requires a separate retained-state disposition
 Gate and a new execution Gate. Only a successful audited disposable-cluster
 ceremony can close Phase-0 Runtime Closure.
 
-This ADR remains `Proposed` until reviewers confirm the grammar, byte boundary,
+Reviewers accepted this ADR after confirming the grammar, byte boundary,
 failure ordering, single-projection rule, absence of a compatibility path, and
 the independent post-implementation Human Gates.
