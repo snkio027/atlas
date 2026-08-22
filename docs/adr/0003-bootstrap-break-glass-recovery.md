@@ -4,6 +4,7 @@
 - Date: 2026-08-15
 - Deciders: repository owner and required CODEOWNERS
 - Clarifies: ADR-0002 evidence protection and recovery authority
+- Amended by: [ADR-0004](0004-length-bounded-recovery-principal-identities.md) principal identity contract
 - Supersedes: none
 - Superseded by: none
 
@@ -58,8 +59,8 @@ The phase statement remains:
 > and the complete recovery drill pass, monotonic adoption proof is decided but
 > not implemented.
 
-This ADR is a governance proposal only. While it remains `Proposed`, it does
-not authorize admission activation, credential issuance, recovery execution,
+This ADR is an accepted governance decision. Acceptance alone does not
+authorize admission activation, credential issuance, recovery execution,
 Tier-0 mutation, legacy migration, Receipt reissue, or receipt-aware release.
 
 ## Decision
@@ -111,8 +112,28 @@ Recovery uses two independent X.509 usernames:
 
 ```text
 Recovery Operator:  atlas:break-glass:<kubeSystemNamespaceUID>:g<generation>
-Session Authorizer: atlas:recovery-authorizer:<kubeSystemNamespaceUID>:g<generation>
+Session Authorizer: atlas:session-authz:<kubeSystemNamespaceUID>:g<generation>
 ```
+
+[ADR-0004](0004-length-bounded-recovery-principal-identities.md) amends
+the principal identity contract. Both usernames are ASCII-only, use the exact
+lowercase hyphenated 36-byte `kube-system` Namespace UID, and use an unpadded
+generation matching `g[1-9][0-9]{0,5}`. The complete X.509 Common Name is at
+most 64 bytes. The Recovery Operator has a 56-byte fixed projection and a
+57-to-62-byte complete username; the Session Authorizer has a 58-byte fixed
+projection and a 59-to-64-byte complete username.
+
+Every current and previous principal required by a plan must pass the canonical
+grammar, target UID, ASCII, generation, and Common Name byte-length checks
+before the Human Judgment Gate and before any credential directory, private
+key, CSR, certificate, or cluster mutation. After approval, the command must
+repeat read-only discovery against the live API, re-read the target fingerprint
+and `kube-system` Namespace UID, reconstruct every planned principal from the
+live UID, and compare the results byte for byte with the approved Plan before
+credential issuance. Unavailable discovery or any API endpoint, CA SPKI, UID,
+target, principal, or Plan drift fails closed. The rejected
+`atlas:recovery-authorizer:` form has no compatibility or dual-authorization
+path.
 
 Both certificate subjects omit Organization (`O`) entirely. Kubernetes maps
 X.509 Organization values to authorization groups and automatically adds every
@@ -1874,7 +1895,7 @@ is not sufficient for recovery acceptance.
 
 ## Acceptance gates
 
-This ADR remains `Proposed` until reviewers confirm:
+Reviewers accepted this ADR after confirming:
 
 - the upstream VAP self-protection limitation and ADR-0002 clarification are
   accurately represented;
@@ -1929,7 +1950,7 @@ This ADR remains `Proposed` until reviewers confirm:
   historical Bootstrap downgrade fence before per-cluster enablement;
 - the macOS/OrbStack drill is sufficient for the supported environment.
 
-Acceptance will authorize separately reviewed implementation in Phase 0 through
-Phase 4 order. It will not authorize a Tier-0 apply, admission activation,
+Acceptance authorizes separately reviewed implementation in Phase 0 through
+Phase 4 order. It does not authorize a Tier-0 apply, admission activation,
 credential issuance, recovery execution, legacy migration, Receipt reissue,
 receipt-aware release, or production enablement.
