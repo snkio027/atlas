@@ -1950,7 +1950,7 @@ Reviewers accepted this ADR after confirming:
   historical Bootstrap downgrade fence before per-cluster enablement;
 - the macOS/OrbStack drill is sufficient for the supported environment.
 
-Acceptance will authorize separately reviewed implementation in Phase 0 through
-Phase 4 order. It will not authorize a Tier-0 apply, admission activation,
+Acceptance authorizes separately reviewed implementation in Phase 0 through
+Phase 4 order. It does not authorize a Tier-0 apply, admission activation,
 credential issuance, recovery execution, legacy migration, Receipt reissue,
 receipt-aware release, or production enablement.
