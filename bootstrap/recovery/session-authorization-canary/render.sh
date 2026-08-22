@@ -16,24 +16,6 @@ session_canary::_definition_path() {
   printf '%s\n' "$path"
 }
 
-session_canary::_recovery_operator_namespace_uid() {
-  local username=$1
-  [[ $username =~ ^atlas:break-glass:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):g[1-9][0-9]*$ ]] || {
-    recovery::die "invalid Recovery Operator username"
-    return 1
-  }
-  printf '%s\n' "${BASH_REMATCH[1]}"
-}
-
-session_canary::_authorizer_namespace_uid() {
-  local username=$1
-  [[ $username =~ ^atlas:recovery-authorizer:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):g[1-9][0-9]*$ ]] || {
-    recovery::die "invalid Session Authorizer username"
-    return 1
-  }
-  printf '%s\n' "${BASH_REMATCH[1]}"
-}
-
 session_canary::_placeholder_count() {
   local content=$1 placeholder=$2 remaining count=0
   remaining=$content
@@ -68,18 +50,9 @@ session_canary::_render_template() {
 }
 
 session_canary::render_manifests() {
-  local recovery_operator=$1 authorizer=$2 recovery_uid authorizer_uid
+  local recovery_operator=$1 authorizer=$2
 
-  recovery_uid=$(session_canary::_recovery_operator_namespace_uid "$recovery_operator") || return 1
-  authorizer_uid=$(session_canary::_authorizer_namespace_uid "$authorizer") || return 1
-  [[ $recovery_uid == "$authorizer_uid" ]] || {
-    recovery::die "Recovery Operator and Session Authorizer target different kube-system UIDs"
-    return 1
-  }
-  [[ $recovery_operator != "$authorizer" ]] || {
-    recovery::die "Recovery Operator and Session Authorizer must be independent principals"
-    return 1
-  }
+  principal_identity::validate_pair "$recovery_operator" "$authorizer" || return 1
 
   session_canary::_render_template rbac.yaml.tpl "$recovery_operator" "$authorizer" 0 1
   printf '%s\n' '---'

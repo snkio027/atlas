@@ -17,6 +17,8 @@ readonly ATLAS_RECOVERY_CLI_VERSION=0.2.0
 # Bootstrap CLI must remain unable to dispatch recovery behavior.
 # shellcheck source=bootstrap/recovery/audit-config.sh
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/audit-config.sh"
+# shellcheck source=bootstrap/recovery/principal-identity.sh
+source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/principal-identity.sh"
 # shellcheck source=bootstrap/recovery/admission-canary/render.sh
 source "${ATLAS_RECOVERY_ROOT_DIR}/bootstrap/recovery/admission-canary/render.sh"
 # shellcheck source=bootstrap/recovery/session-authorization-canary/render.sh
@@ -48,7 +50,7 @@ Options for phase0 session-authorization-canary-manifests:
   --recovery-operator <username>
                       Exact atlas:break-glass:<kube-system-UID>:g<N> username
   --session-authorizer <username>
-                      Exact atlas:recovery-authorizer:<kube-system-UID>:g<N>
+                      Exact atlas:session-authz:<kube-system-UID>:g<N>
 
 Options for phase0 canary-drill (all required):
   --cluster-name <name>               Canonical disposable drill cluster
@@ -60,6 +62,11 @@ Options for phase0 canary-drill (all required):
   --credential-dir <path>             Empty short-lived credential directory
   --storage-assertion <value>         encrypted-owner-controlled
   --known-good-revision <commit>      Full reviewed clean Git commit
+  --recovery-generation <N>          Current Recovery Operator generation
+  --previous-recovery-generation <N> Previous Recovery Operator generation
+  --authorizer-generation <N>        Current Session Authorizer generation
+  --previous-authorizer-generation <N>
+                                      Previous Session Authorizer generation
 
 Global options:
   -V, --version        Show the Recovery CLI version
@@ -94,6 +101,10 @@ recovery::dispatch_canary_drill() {
     [credential_directory]=--credential-dir
     [storage_assertion]=--storage-assertion
     [known_good_revision]=--known-good-revision
+    [recovery_generation]=--recovery-generation
+    [previous_recovery_generation]=--previous-recovery-generation
+    [authorizer_generation]=--authorizer-generation
+    [previous_authorizer_generation]=--previous-authorizer-generation
   )
   while (($# > 0)); do
     option=$1
@@ -107,6 +118,10 @@ recovery::dispatch_canary_drill() {
       --credential-dir) key=credential_directory ;;
       --storage-assertion) key=storage_assertion ;;
       --known-good-revision) key=known_good_revision ;;
+      --recovery-generation) key=recovery_generation ;;
+      --previous-recovery-generation) key=previous_recovery_generation ;;
+      --authorizer-generation) key=authorizer_generation ;;
+      --previous-authorizer-generation) key=previous_authorizer_generation ;;
       *)
         recovery::die "unknown canary-drill option: ${option}"
         return 2
@@ -129,7 +144,9 @@ recovery::dispatch_canary_drill() {
     shift 2
   done
   for key in cluster_name context admin_kubeconfig audit_directory creation_evidence \
-    evidence_root credential_directory storage_assertion known_good_revision; do
+    evidence_root credential_directory storage_assertion known_good_revision \
+    recovery_generation previous_recovery_generation authorizer_generation \
+    previous_authorizer_generation; do
     [[ -n ${values[$key]+present} ]] || {
       recovery::die "canary-drill requires ${option_names[$key]}"
       return 2
@@ -139,7 +156,9 @@ recovery::dispatch_canary_drill() {
     "${values[admin_kubeconfig]}" "${values[audit_directory]}" \
     "${values[creation_evidence]}" "${values[evidence_root]}" \
     "${values[credential_directory]}" "${values[storage_assertion]}" \
-    "${values[known_good_revision]}"
+    "${values[known_good_revision]}" "${values[recovery_generation]}" \
+    "${values[previous_recovery_generation]}" "${values[authorizer_generation]}" \
+    "${values[previous_authorizer_generation]}"
 }
 
 recovery::dispatch_phase0() {

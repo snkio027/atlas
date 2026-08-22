@@ -15,14 +15,6 @@ admission_canary::_definition_path() {
   printf '%s\n' "$path"
 }
 
-admission_canary::_validate_recovery_operator() {
-  local username=$1
-  [[ $username =~ ^atlas:break-glass:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:g[1-9][0-9]*$ ]] || {
-    recovery::die "invalid Recovery Operator username"
-    return 1
-  }
-}
-
 admission_canary::_render_template() {
   local name=$1 username=$2 expected_occurrences=$3 path content remaining
   local occurrences=0
@@ -42,7 +34,7 @@ admission_canary::_render_template() {
 
 admission_canary::render_manifests() {
   local username=$1 fixture fixture_content
-  admission_canary::_validate_recovery_operator "$username" || return 1
+  principal_identity::validate_recovery_operator "$username" || return 1
   fixture=$(admission_canary::_definition_path fixture.yaml) || return 1
   fixture_content=$(< "$fixture")
 

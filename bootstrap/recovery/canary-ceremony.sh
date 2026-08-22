@@ -79,7 +79,7 @@ phase0_ceremony::_write_principal_kubeconfig() {
 phase0_ceremony::_issue_principal() {
   local role=$1 username=$2 csr_name=$3 directory=$4 ca_file=$5
   local key csr certificate kubeconfig csr_manifest csr_snapshot certificate_data
-  local metadata_file subject serial fingerprint not_before not_after
+  local metadata_file serial fingerprint not_before not_after namespace_uid
   key="${directory}/${role}.key"
   csr="${directory}/${role}.csr"
   certificate="${directory}/${role}.crt"
@@ -88,14 +88,25 @@ phase0_ceremony::_issue_principal() {
   csr_snapshot="$(phase0_ceremony::_evidence_file "authorization/${role}-csr-issued.json")"
   metadata_file="$(phase0_ceremony::_evidence_file "authorization/${role}-certificate.json")"
 
+  namespace_uid=$(phase0_session::operation namespace_uid) || return 1
+  case "$role" in
+    recovery | previous_recovery)
+      principal_identity::validate_recovery_operator "$username" "$namespace_uid" || return 1
+      ;;
+    authorizer | previous_authorizer)
+      principal_identity::validate_session_authorizer "$username" "$namespace_uid" || return 1
+      ;;
+    *)
+      recovery::die "unknown credential principal role: ${role}"
+      return 1
+      ;;
+  esac
+
   openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$key" > /dev/null 2>&1 || return 1
   chmod 0600 "$key" || return 1
   openssl req -new -sha256 -key "$key" -subj "/CN=${username}" -out "$csr" || return 1
   chmod 0600 "$csr" || return 1
-  [[ $(openssl req -in "$csr" -noout -subject -nameopt RFC2253) == "subject=CN=${username}" ]] || {
-    recovery::die "generated CSR subject is not the exact principal without Organization"
-    return 1
-  }
+  principal_identity::validate_csr "$role" "$username" "$csr" || return 1
   certificate_data=$(base64 < "$csr" | tr -d '\n') || return 1
   printf 'apiVersion: certificates.k8s.io/v1\nkind: CertificateSigningRequest\nmetadata:\n  name: %s\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\nspec:\n  request: %s\n  signerName: kubernetes.io/kube-apiserver-client\n  expirationSeconds: %d\n  usages:\n    - digital signature\n    - client auth\n' \
     "$csr_name" "$certificate_data" "$ATLAS_PHASE0_CERTIFICATE_SECONDS" > "$csr_manifest" || return 1
@@ -113,8 +124,7 @@ phase0_ceremony::_issue_principal() {
   $(yq -o=json -I=0 '.spec.usages' "$csr_snapshot") == '["digital signature","client auth"]' &&
   $(yq -r '.spec.expirationSeconds' "$csr_snapshot") == "$ATLAS_PHASE0_CERTIFICATE_SECONDS" ]] || return 1
 
-  subject=$(openssl x509 -in "$certificate" -noout -subject -nameopt RFC2253) || return 1
-  [[ $subject == "subject=CN=${username}" ]] || return 1
+  principal_identity::validate_certificate "$role" "$username" "$certificate" || return 1
   cmp -s <(openssl pkey -in "$key" -pubout 2> /dev/null) <(openssl x509 -in "$certificate" -pubkey -noout) || return 1
   openssl x509 -in "$certificate" -checkend 600 -noout > /dev/null || return 1
   if openssl x509 -in "$certificate" -checkend $((ATLAS_PHASE0_CERTIFICATE_SECONDS + 60)) -noout > /dev/null; then
@@ -163,13 +173,17 @@ phase0_ceremony::_issue_credentials() {
   ATLAS_PHASE0_OPERATION["authorizer_ca_file"]=$authorizer_ca
   prefix=${ATLAS_PHASE0_OPERATION[session_id]:0:12}
   phase0_ceremony::_issue_principal recovery "$(phase0_session::operation recovery_principal)" \
-    "atlas-bg-recovery-g2-${prefix}" "$recovery_directory" "$recovery_ca" || return 1
+    "atlas-bg-recovery-g$(phase0_session::target recovery_generation)-${prefix}" \
+    "$recovery_directory" "$recovery_ca" || return 1
   phase0_ceremony::_issue_principal previous_recovery "$(phase0_session::operation previous_recovery_principal)" \
-    "atlas-bg-recovery-g1-${prefix}" "$recovery_directory" "$recovery_ca" || return 1
+    "atlas-bg-recovery-g$(phase0_session::target previous_recovery_generation)-${prefix}" \
+    "$recovery_directory" "$recovery_ca" || return 1
   phase0_ceremony::_issue_principal authorizer "$(phase0_session::operation authorizer_principal)" \
-    "atlas-bg-authorizer-g2-${prefix}" "$authorizer_directory" "$authorizer_ca" || return 1
+    "atlas-bg-authorizer-g$(phase0_session::target authorizer_generation)-${prefix}" \
+    "$authorizer_directory" "$authorizer_ca" || return 1
   phase0_ceremony::_issue_principal previous_authorizer "$(phase0_session::operation previous_authorizer_principal)" \
-    "atlas-bg-authorizer-g1-${prefix}" "$authorizer_directory" "$authorizer_ca" || return 1
+    "atlas-bg-authorizer-g$(phase0_session::target previous_authorizer_generation)-${prefix}" \
+    "$authorizer_directory" "$authorizer_ca" || return 1
   phase0_ceremony::_capture_permission_baseline
 }
 
@@ -326,7 +340,7 @@ phase0_ceremony::_capture_permission_baseline() {
     fi
   done
   phase0_session::journal_append CREDENTIALS BASELINE \
-    "four g1/g2 credentials have identical namespace-complete non-mutating permission baselines" || return 1
+    "four current/previous credentials have identical namespace-complete non-mutating permission baselines" || return 1
 }
 
 phase0_ceremony::_verify_active_permissions() {
@@ -784,7 +798,7 @@ phase0_ceremony::_cleanup_credentials() {
     }
   done
   phase0_session::journal_append CREDENTIALS REVOKED \
-    "g1/g2 credentials returned exactly to their discovery-only baseline" || return 1
+    "current/previous credentials returned exactly to their discovery-only baseline" || return 1
   for key in recovery_key recovery_csr recovery_certificate recovery_kubeconfig \
     previous_recovery_key previous_recovery_csr previous_recovery_certificate previous_recovery_kubeconfig \
     authorizer_key authorizer_csr authorizer_certificate authorizer_kubeconfig \
@@ -940,9 +954,13 @@ phase0_ceremony::_run() {
 
 phase0_ceremony::run() {
   local cluster_name=$1 context=$2 admin_kubeconfig=$3 audit_directory=$4 creation_evidence=$5
-  local evidence_root=$6 credential_directory=$7 storage_assertion=$8 known_good_revision=$9 status release_status=0
+  local evidence_root=$6 credential_directory=$7 storage_assertion=$8 known_good_revision=$9
+  local recovery_generation=${10} previous_recovery_generation=${11}
+  local authorizer_generation=${12} previous_authorizer_generation=${13} status release_status=0
   phase0_session::resolve_target "$cluster_name" "$context" "$admin_kubeconfig" "$audit_directory" \
-    "$creation_evidence" "$evidence_root" "$credential_directory" "$storage_assertion" "$known_good_revision" || return 1
+    "$creation_evidence" "$evidence_root" "$credential_directory" "$storage_assertion" \
+    "$known_good_revision" "$recovery_generation" "$previous_recovery_generation" \
+    "$authorizer_generation" "$previous_authorizer_generation" || return 1
   phase0_session::_tool_preflight || return 1
   phase0_session::acquire_lock || return 1
   if phase0_session::prepare; then

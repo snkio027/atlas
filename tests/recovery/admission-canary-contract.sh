@@ -138,7 +138,7 @@ assert_username_rejected atlas:break-glass:not-a-uid:g1
 assert_username_rejected atlas:break-glass:12345678-1234-1234-1234-123456789abc:g0
 assert_username_rejected atlas:break-glass:12345678-1234-1234-1234-123456789abC:g1
 assert_username_rejected atlas:break-glass:12345678-1234-1234-1234-123456789abc:g1:group
-assert_username_rejected atlas:recovery-authorizer:12345678-1234-1234-1234-123456789abc:g1
+assert_username_rejected atlas:session-authz:12345678-1234-1234-1234-123456789abc:g1
 assert_username_rejected $'atlas:break-glass:12345678-1234-1234-1234-123456789abc:g1\nsecond-user'
 
 if "$recovery_cli" phase0 admission-canary-manifests > /dev/null 2>&1; then
