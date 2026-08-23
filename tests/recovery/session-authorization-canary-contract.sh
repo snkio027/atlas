@@ -276,8 +276,8 @@ fi
 test::pass "Guard add/remove cannot replace another data key"
 
 # Static routing matrix. Full projection hashes above bind these assertions to
-# the reviewed CEL; server-side type checking and request probes belong to the
-# separately authorized disposable-cluster runtime drill.
+# the reviewed CEL. Required CI performs server-side type checking; request
+# probes remain part of the separately authorized disposable-cluster drill.
 [[ $fence_match == *"request.userInfo.username == '${session_authorizer}'"* &&
   $fence_match == *"object.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* &&
   $fence_match == *"oldObject.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* ]] ||

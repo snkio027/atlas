@@ -5,6 +5,8 @@ IFS=$'\n\t'
 
 # shellcheck source=tests/lib/assert.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
+# shellcheck source=tests/recovery/vap-server-kind-inventory.sh
+source "$(dirname "${BASH_SOURCE[0]}")/vap-server-kind-inventory.sh"
 cd "$ATLAS_TEST_ROOT"
 
 [[ ${ATLAS_CI_KIND_VAP:-} == 1 ]] ||
@@ -80,7 +82,7 @@ cleanup() {
   trap - EXIT INT TERM
   if [[ $created == true ]]; then
     ci_kind delete cluster --name "$cluster_name" || cleanup_status=$?
-    if ci_kind get clusters --quiet | grep -Fqx "$cluster_name"; then
+    if ! vap_server_inventory::deleted_target_absent ci_kind "$cluster_name"; then
       cleanup_status=1
     fi
   fi
@@ -93,9 +95,8 @@ trap 'exit 130' INT TERM
 
 [[ ${#cluster_name} -le 63 && $cluster_name =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] ||
   test::fail "generated CI Kind cluster name is invalid"
-if ci_kind get clusters --quiet | grep -Fqx "$cluster_name"; then
-  test::fail "refusing to reuse an existing CI Kind cluster: ${cluster_name}"
-fi
+vap_server_inventory::creation_target_absent ci_kind "$cluster_name" ||
+  test::fail "CI Kind creation target is not safely absent: ${cluster_name}"
 
 created=true
 ci_kind create cluster \

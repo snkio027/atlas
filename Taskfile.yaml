@@ -49,6 +49,7 @@ tasks:
       - ./tests/recovery/repository-authority-contract.sh
       - ./tests/recovery/admission-canary-contract.sh
       - ./tests/recovery/session-authorization-canary-contract.sh
+      - ./tests/recovery/vap-server-kind-inventory-contract.sh
       - ./tests/recovery/canary-ceremony-contract.sh
       - ./tests/drill/kind-create-contract.sh
 
