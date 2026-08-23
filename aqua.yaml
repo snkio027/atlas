@@ -14,6 +14,7 @@ registries:
 packages:
   - name: go-task/task@v3.52.0
   - name: helm/helm@v4.2.3
+  - name: kubernetes-sigs/kind@v0.32.0
   - name: kubernetes/kubectl@v1.36.3
   - name: mikefarah/yq@v4.53.3
   - name: mvdan/sh@v3.13.1

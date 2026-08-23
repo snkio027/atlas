@@ -32,7 +32,7 @@ spec:
           (request.operation != 'DELETE' &&
             (object.metadata.name.startsWith('atlas-bg-canary-') ||
               (has(object.metadata.labels) &&
-                'atlas.io/recovery-session' in object.metadata.labels))))
+                'atlas.io/recovery-session' in object.metadata.labels)))))
   variables:
     - name: binding
       expression: "request.operation == 'DELETE' ? oldObject : object"
