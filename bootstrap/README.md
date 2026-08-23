@@ -63,6 +63,7 @@ bootstrap/
 │   └── lock.sh
 └── recovery/
     ├── atlas-recovery
+    ├── principal-identity.sh
     ├── admission-canary/
     │   ├── render.sh
     │   ├── fixture.yaml
@@ -97,6 +98,12 @@ removes the temporary grants and definitions while retaining evidence and the
 cluster. It cannot create or delete a cluster, use normal Atlas cluster names,
 activate production objects, modify GitOps or Tier-0, or perform Receipt
 recovery. The normal `bootstrap/atlas` command never imports it.
+
+`bootstrap/recovery/principal-identity.sh` is the sole constructor and validator
+for the length-bounded Recovery Operator and Session Authorizer identities
+defined by ADR-0004. Manifest rendering, credential issuance, the plan, audit
+correlation, and evidence consume those exact validated strings; they do not
+reconstruct or alias the usernames independently.
 
 `bootstrap/drill/atlas-kind-drill` is the separately gated cluster-lifecycle
 entry point. It can create one uniquely named audited Kind drill cluster, but

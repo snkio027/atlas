@@ -18,6 +18,8 @@ recovery::die() {
   return 1
 }
 
+# shellcheck source=bootstrap/recovery/principal-identity.sh
+source bootstrap/recovery/principal-identity.sh
 # shellcheck source=bootstrap/recovery/admission-canary/render.sh
 source bootstrap/recovery/admission-canary/render.sh
 # shellcheck source=bootstrap/recovery/session-authorization-canary/render.sh
@@ -114,16 +116,19 @@ grep -Fqx $'principal.kubeconfig\tdelete --raw /api/v1/namespaces/kube-system/co
 ATLAS_PHASE0_OPERATION[session_id]=0123456789abcdef0123456789abcdef
 ATLAS_PHASE0_OPERATION[operation_id]=abcdef0123456789abcdef0123456789
 ATLAS_PHASE0_OPERATION[target_fingerprint]=$(printf 'a%.0s' {1..64})
-ATLAS_PHASE0_OPERATION[authorizer_principal]=atlas:recovery-authorizer:00000000-0000-0000-0000-000000000000:g2
-ATLAS_PHASE0_OPERATION[recovery_principal]=atlas:break-glass:00000000-0000-0000-0000-000000000000:g2
-ATLAS_PHASE0_OPERATION[previous_authorizer_principal]=atlas:recovery-authorizer:00000000-0000-0000-0000-000000000000:g1
-ATLAS_PHASE0_OPERATION[previous_recovery_principal]=atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
+ATLAS_PHASE0_OPERATION[authorizer_principal]=atlas:session-authz:00000000-0000-0000-0000-000000000000:g2
+ATLAS_PHASE0_OPERATION[recovery_principal]=atlas:break-glass:00000000-0000-0000-0000-000000000000:g3
+ATLAS_PHASE0_OPERATION[previous_authorizer_principal]=atlas:session-authz:00000000-0000-0000-0000-000000000000:g1
+ATLAS_PHASE0_OPERATION[previous_recovery_principal]=atlas:break-glass:00000000-0000-0000-0000-000000000000:g2
 ATLAS_PHASE0_OPERATION[prepared_at]=2026-08-17T00:00:00Z
 ATLAS_PHASE0_OPERATION[plan_sha]=$(printf 'b%.0s' {1..64})
 ATLAS_PHASE0_OPERATION[action_id]=phase0-test
 ATLAS_PHASE0_OPERATION[actor]=501:test
 ATLAS_PHASE0_OPERATION[api_server]=https://127.0.0.1:6443
 ATLAS_PHASE0_OPERATION[namespace_uid]=00000000-0000-0000-0000-000000000000
+ATLAS_PHASE0_OPERATION[repository_url]=https://github.com/snkio027/atlas.git
+ATLAS_PHASE0_OPERATION[environment_name]=local-orbstack
+ATLAS_PHASE0_OPERATION[git_commit]=$(printf 'c%.0s' {1..40})
 ATLAS_PHASE0_OPERATION[git_tree]=$(printf 'd%.0s' {1..40})
 ATLAS_PHASE0_OPERATION[creation_plan_sha]=$(printf 'e%.0s' {1..64})
 ATLAS_PHASE0_OPERATION[creation_journal_tip]=$(printf 'f%.0s' {1..64})
@@ -133,6 +138,7 @@ ATLAS_PHASE0_OPERATION[versions_sha]=$(printf '3%.0s' {1..64})
 ATLAS_PHASE0_OPERATION[audit_policy_sha]=$(printf '4%.0s' {1..64})
 ATLAS_PHASE0_OPERATION[admin_kubeconfig_sha]=$(printf '5%.0s' {1..64})
 ATLAS_PHASE0_OPERATION[ca_data]=dGVzdA==
+ATLAS_PHASE0_OPERATION[ca_spki_sha]=$(printf '6%.0s' {1..64})
 ATLAS_PHASE0_TARGET[known_good_revision]=$(printf 'c%.0s' {1..40})
 ATLAS_PHASE0_TARGET[cluster_name]=atlas-recovery-drill-20260817t000000z-0123abcd
 ATLAS_PHASE0_TARGET[context]='kind-atlas-recovery-drill-20260817t000000z-0123abcd'
@@ -142,9 +148,44 @@ ATLAS_PHASE0_TARGET[creation_evidence]=/encrypted/creation/session
 ATLAS_PHASE0_TARGET[credential_directory]=/encrypted/credentials
 ATLAS_PHASE0_TARGET[storage_assertion]=encrypted-owner-controlled
 ATLAS_PHASE0_TARGET[KUBERNETES_VERSION]=1.36.1
+ATLAS_PHASE0_TARGET[environment_name]=local-orbstack
+ATLAS_PHASE0_TARGET[recovery_generation]=3
+ATLAS_PHASE0_TARGET[previous_recovery_generation]=2
+ATLAS_PHASE0_TARGET[authorizer_generation]=2
+ATLAS_PHASE0_TARGET[previous_authorizer_generation]=1
+
+invalid_credential_calls="${test_workspace}/invalid-credential-calls"
+(
+  : > "$invalid_credential_calls"
+  openssl() { printf 'openssl\n' >> "$invalid_credential_calls"; }
+  phase0_session::admin() { printf 'kubectl\n' >> "$invalid_credential_calls"; }
+  if phase0_ceremony::_issue_principal authorizer \
+    atlas:session-authz:00000000-0000-0000-0000-000000000000:g1000000 \
+    invalid-csr "${test_workspace}/invalid-credentials" /invalid/ca.crt > /dev/null 2>&1; then
+    test::fail "credential issuance accepted a 65-byte Session Authorizer identity"
+  fi
+)
+[[ ! -s $invalid_credential_calls ]] ||
+  test::fail "invalid principal reached credential-producing OpenSSL or kubectl"
+
+test_ca_key="${test_workspace}/test-ca.key"
+test_ca_certificate="${test_workspace}/test-ca.crt"
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+  -out "$test_ca_key" > /dev/null 2>&1
+openssl req -x509 -sha256 -key "$test_ca_key" -subj /CN=atlas-phase0-test-ca \
+  -out "$test_ca_certificate"
+test_ca_data=$(base64 < "$test_ca_certificate" | tr -d '\n')
+expected_ca_spki=$(openssl x509 -in "$test_ca_certificate" -pubkey -noout |
+  openssl pkey -pubin -outform DER |
+  shasum -a 256 | awk '{print $1}')
+[[ $(phase0_session::_ca_spki_sha256 "$test_ca_data") == "$expected_ca_spki" ]] ||
+  test::fail "API server CA SPKI binding drifted"
 
 verify_admin_target() (
   local mock_username=$1 mock_groups=$2 arguments
+  phase0_session::_ca_spki_sha256() {
+    printf '6%.0s' {1..64}
+  }
   phase0_session::admin() {
     local IFS=' '
     arguments=$*
@@ -183,6 +224,113 @@ for rejected_identity in \
   fi
 done
 
+(
+  principal_plan=''
+  principal_identity::session_authorizer() {
+    if [[ $2 == 1 ]]; then
+      printf 'invalid-previous-authorizer\n'
+    else
+      printf 'atlas:session-authz:%s:g%s\n' "$1" "$2"
+    fi
+  }
+  if principal_plan=$(principal_identity::plan \
+    00000000-0000-0000-0000-000000000000 3 2 2 1 2> /dev/null); then
+    test::fail "principal plan accepted an invalid previous generation"
+  fi
+  [[ -z $principal_plan ]] ||
+    test::fail "partial principal plan escaped validation"
+)
+
+verify_live_target_revalidation() {
+  local scenario=$1 expected=$2 namespace_uid=00000000-0000-0000-0000-000000000000
+  local principal_plan recovery_principal authorizer_principal
+  local previous_recovery_principal previous_authorizer_principal
+  local -A ATLAS_PHASE0_OPERATION=()
+  ATLAS_PHASE0_OPERATION[namespace_uid]=$namespace_uid
+  ATLAS_PHASE0_OPERATION[api_server]=https://127.0.0.1:6443
+  ATLAS_PHASE0_OPERATION[ca_data]=approved-ca
+  ATLAS_PHASE0_OPERATION[ca_spki_sha]=$(printf '6%.0s' {1..64})
+  ATLAS_PHASE0_OPERATION[repository_url]=https://github.com/snkio027/atlas.git
+  ATLAS_PHASE0_OPERATION[environment_name]=local-orbstack
+  principal_plan=$(principal_identity::plan "$namespace_uid" 3 2 2 1)
+  IFS=$'\t' read -r recovery_principal authorizer_principal \
+    previous_recovery_principal previous_authorizer_principal <<< "$principal_plan"
+  ATLAS_PHASE0_OPERATION[recovery_principal]=$recovery_principal
+  ATLAS_PHASE0_OPERATION[authorizer_principal]=$authorizer_principal
+  ATLAS_PHASE0_OPERATION[previous_recovery_principal]=$previous_recovery_principal
+  ATLAS_PHASE0_OPERATION[previous_authorizer_principal]=$previous_authorizer_principal
+  ATLAS_PHASE0_OPERATION[target_fingerprint]=$(phase0_session::_target_fingerprint)
+  [[ $scenario != principal ]] ||
+    ATLAS_PHASE0_OPERATION[previous_authorizer_principal]="atlas:session-authz:${namespace_uid}:g3"
+  phase0_session::_admin_target() {
+    case "$scenario" in
+      unavailable) return 1 ;;
+      endpoint) ATLAS_PHASE0_OPERATION[api_server]=https://127.0.0.1:7443 ;;
+      ca)
+        ATLAS_PHASE0_OPERATION[ca_data]=drifted-ca
+        ATLAS_PHASE0_OPERATION[ca_spki_sha]=$(printf '7%.0s' {1..64})
+        ;;
+      uid) ATLAS_PHASE0_OPERATION[namespace_uid]=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa ;;
+      exact | principal) ;;
+      *) return 1 ;;
+    esac
+  }
+  if phase0_session::_revalidate_live_target > /dev/null 2>&1; then
+    [[ $expected == accept ]] || test::fail "live target drift was accepted: ${scenario}"
+  else
+    [[ $expected == reject ]] || test::fail "exact live target was rejected"
+  fi
+}
+
+verify_live_target_revalidation exact accept
+for live_drift in endpoint ca uid unavailable principal; do
+  verify_live_target_revalidation "$live_drift" reject
+done
+
+expected_target_fingerprint=$(printf 'apiServerURL=%s\nkubeSystemNamespaceUID=%s\napiServerCASPKISHA256=%s\nrepositoryURL=%s\nenvironmentName=%s\n' \
+  "${ATLAS_PHASE0_OPERATION[api_server]}" "${ATLAS_PHASE0_OPERATION[namespace_uid]}" \
+  "${ATLAS_PHASE0_OPERATION[ca_spki_sha]}" "${ATLAS_PHASE0_OPERATION[repository_url]}" \
+  "${ATLAS_PHASE0_OPERATION[environment_name]}" | shasum -a 256 | awk '{print $1}')
+[[ $(phase0_session::_target_fingerprint) == "$expected_target_fingerprint" ]] ||
+  test::fail "target fingerprint is not the named ADR-0003 authority tuple"
+
+verify_git_authority_revalidation() {
+  local scenario=$1 expected=$2
+  local -A ATLAS_PHASE0_OPERATION=()
+  ATLAS_PHASE0_OPERATION[git_commit]=$(printf 'c%.0s' {1..40})
+  ATLAS_PHASE0_OPERATION[git_tree]=$(printf 'd%.0s' {1..40})
+  ATLAS_PHASE0_OPERATION[repository_url]=https://github.com/snkio027/atlas.git
+  ATLAS_PHASE0_OPERATION[environment_name]=local-orbstack
+  phase0_session::_git_authority() {
+    case "$scenario" in
+      exact)
+        printf '%s\t%s\thttps://github.com/snkio027/atlas.git\tlocal-orbstack\n' \
+          "${ATLAS_PHASE0_OPERATION[git_commit]}" "${ATLAS_PHASE0_OPERATION[git_tree]}"
+        ;;
+      repository)
+        printf '%s\t%s\thttps://github.com/foreign/atlas.git\tlocal-orbstack\n' \
+          "${ATLAS_PHASE0_OPERATION[git_commit]}" "${ATLAS_PHASE0_OPERATION[git_tree]}"
+        ;;
+      environment)
+        printf '%s\t%s\thttps://github.com/snkio027/atlas.git\ttest\n' \
+          "${ATLAS_PHASE0_OPERATION[git_commit]}" "${ATLAS_PHASE0_OPERATION[git_tree]}"
+        ;;
+      unavailable) return 1 ;;
+      *) return 1 ;;
+    esac
+  }
+  if phase0_session::_revalidate_git_authority > /dev/null 2>&1; then
+    [[ $expected == accept ]] || test::fail "Git authority drift was accepted: ${scenario}"
+  else
+    [[ $expected == reject ]] || test::fail "exact Git authority was rejected"
+  fi
+}
+
+verify_git_authority_revalidation exact accept
+for git_drift in repository environment unavailable; do
+  verify_git_authority_revalidation "$git_drift" reject
+done
+
 plan="${session}/plan.json"
 phase0_session::_write_plan "$plan"
 [[ $(yq -r '.adminKubeconfig' "$plan") == /encrypted/admin.kubeconfig &&
@@ -193,6 +341,13 @@ $(yq -r '.credentialDirectory' "$plan") == /encrypted/credentials &&
 $(yq -r '.credentialCustody' "$plan") == separate-principal-subdirectories-single-operator-drill &&
 $(yq -r '.recoveryPrincipal' "$plan") == "${ATLAS_PHASE0_OPERATION[recovery_principal]}" &&
 $(yq -r '.previousRecoveryPrincipal' "$plan") == "${ATLAS_PHASE0_OPERATION[previous_recovery_principal]}" &&
+$(yq -r '.apiServerCASPKISHA256' "$plan") == "${ATLAS_PHASE0_OPERATION[ca_spki_sha]}" &&
+$(yq -r '.repositoryURL' "$plan") == https://github.com/snkio027/atlas.git &&
+$(yq -r '.environmentName' "$plan") == local-orbstack &&
+$(yq -r '.recoveryGeneration' "$plan") == 3 &&
+$(yq -r '.previousRecoveryGeneration' "$plan") == 2 &&
+$(yq -r '.authorizerGeneration' "$plan") == 2 &&
+$(yq -r '.previousAuthorizerGeneration' "$plan") == 1 &&
 $(yq -r '.namespaceUID' "$plan") == 00000000-0000-0000-0000-000000000000 ]] ||
   test::fail "runtime plan does not bind every managed path and cluster identity"
 fence="${session}/authorization/fence.yaml"
@@ -465,10 +620,10 @@ if run_install_stage full-projection > /dev/null 2>&1; then
 fi
 
 permission_calls="${test_workspace}/permission-calls"
-ATLAS_PHASE0_OPERATION[recovery_kubeconfig]='recovery-g2.kubeconfig'
-ATLAS_PHASE0_OPERATION[previous_recovery_kubeconfig]='recovery-g1.kubeconfig'
-ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]='authorizer-g2.kubeconfig'
-ATLAS_PHASE0_OPERATION[previous_authorizer_kubeconfig]='authorizer-g1.kubeconfig'
+ATLAS_PHASE0_OPERATION[recovery_kubeconfig]='recovery-current-g3.kubeconfig'
+ATLAS_PHASE0_OPERATION[previous_recovery_kubeconfig]='recovery-previous-g2.kubeconfig'
+ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]='authorizer-current-g2.kubeconfig'
+ATLAS_PHASE0_OPERATION[previous_authorizer_kubeconfig]='authorizer-previous-g1.kubeconfig'
 printf 'baseline\n' > "${session}/authorization/previous_recovery-permissions-before.txt"
 printf 'baseline\n' > "${session}/authorization/previous_authorizer-permissions-before.txt"
 verify_active_permissions() (
@@ -484,15 +639,15 @@ verify_active_permissions() (
     command=$4
     resource=${5:-}
     printf '%s\t%s\t%s\n' "$kubeconfig" "$command" "$resource" >> "$permission_calls"
-    if [[ $kubeconfig == recovery-g2.kubeconfig && $command == patch ]]; then
+    if [[ $kubeconfig == recovery-current-g3.kubeconfig && $command == patch ]]; then
       printf 'yes\n'
       return
     fi
-    if [[ $kubeconfig == authorizer-g2.kubeconfig && $command == create ]]; then
+    if [[ $kubeconfig == authorizer-current-g2.kubeconfig && $command == create ]]; then
       printf 'yes\n'
       return
     fi
-    if [[ $allow_old == true && $kubeconfig == *-g1.kubeconfig ]]; then
+    if [[ $allow_old == true && $kubeconfig == *-previous-g*.kubeconfig ]]; then
       printf 'yes\n'
       return
     fi
@@ -502,7 +657,7 @@ verify_active_permissions() (
   phase0_ceremony::_verify_active_permissions
 )
 verify_active_permissions false
-[[ $(grep -c -- '-g1.kubeconfig' "$permission_calls") == 14 ]] ||
+[[ $(grep -c -- '-previous-g' "$permission_calls") == 14 ]] ||
   test::fail "old-generation denial did not cover the complete mutation matrix"
 if verify_active_permissions true > /dev/null 2>&1; then
   test::fail "active permission verification accepted an old-generation mutation grant"
@@ -526,6 +681,27 @@ path_revalidation_calls="${test_workspace}/path-revalidation-calls"
 )
 [[ $(< "$path_revalidation_calls") == paths ]] ||
   test::fail "path drift reached Git, OpenSSL, or kubectl after the Human Gate"
+
+git_revalidation_calls="${test_workspace}/git-revalidation-calls"
+(
+  : > "$git_revalidation_calls"
+  phase0_session::revalidate_target_paths() { printf 'paths\n' >> "$git_revalidation_calls"; }
+  phase0_session::_revalidate_git_authority() {
+    printf 'git-authority\n' >> "$git_revalidation_calls"
+    return 23
+  }
+  # shellcheck disable=SC2329 # Any later authority access is a test failure.
+  phase0_session::assert_file() { printf 'file\n' >> "$git_revalidation_calls"; }
+  # shellcheck disable=SC2329 # Any later cluster access is a test failure.
+  phase0_session::_admin_target() { printf 'kubectl\n' >> "$git_revalidation_calls"; }
+  # shellcheck disable=SC2329 # Credential production must remain unreachable.
+  openssl() { printf 'openssl\n' >> "$git_revalidation_calls"; }
+  if phase0_session::revalidate > /dev/null 2>&1; then
+    test::fail "Git authority revalidation failure returned success"
+  fi
+)
+[[ $(< "$git_revalidation_calls") == $'paths\ngit-authority' ]] ||
+  test::fail "repository or environment drift reached credentials or Kubernetes after the Human Gate"
 
 order="${test_workspace}/order"
 : > "$order"
@@ -555,7 +731,7 @@ phase0_session::revalidate() {
 phase0_session::journal_append() { printf 'journal-%s-%s\n' "$1" "$2" >> "$order"; }
 phase0_session::release_lock() { printf 'unlock\n' >> "$order"; }
 phase0_ceremony::_run() { test::fail "mutation ran after revalidation failed"; }
-if phase0_ceremony::run a b c d e f g h i; then
+if phase0_ceremony::run a b c d e f g h i 3 2 2 1; then
   test::fail "revalidation failure returned success"
 else
   [[ $? == 23 ]] || test::fail "revalidation failure exit code changed"

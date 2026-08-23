@@ -48,8 +48,9 @@ resourceVersion.
 
 The first canary definition bundle is intentionally limited to the Recovery
 Operator admission-escape boundary. Supply the planned exact X.509 username;
-the command accepts only the ADR-0003 form containing a lowercase
-`kube-system` Namespace UID and a positive generation:
+the command accepts only the ADR-0004 form containing the live lowercase
+`kube-system` Namespace UID and an unpadded generation from `1` through
+`999999`:
 
 ```bash
 recovery_operator=atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
@@ -97,7 +98,7 @@ planned principals. Both usernames must contain the same lowercase
 ```bash
 namespace_uid=00000000-0000-0000-0000-000000000000
 recovery_operator="atlas:break-glass:${namespace_uid}:g1"
-session_authorizer="atlas:recovery-authorizer:${namespace_uid}:g1"
+session_authorizer="atlas:session-authz:${namespace_uid}:g1"
 ./bootstrap/recovery/atlas-recovery phase0 \
   session-authorization-canary-manifests \
   --recovery-operator "$recovery_operator" \
@@ -129,6 +130,12 @@ The Binding Shape Policy similarly matches every RoleBinding mutation attempted
 by that principal, preventing omission of the session selector. Permission
 authorization compares the temporary RoleBinding's session, plan, target,
 revision, Fence UID, roleRef, and Recovery Operator subject to the Fence.
+
+Principal names are ASCII-only and are never shortened or normalized. Recovery
+Operator names are 57–62 bytes; Session Authorizer names are 59–64 bytes. A
+zero, padded, signed, empty, non-ASCII, or seven-digit generation is rejected,
+as is a malformed, uppercase, compact, foreign, or drifted Namespace UID. The
+rejected historical Session Authorizer prefix has no compatibility path.
 
 No Fence ConfigMap or temporary Recovery Operator RoleBinding is rendered, so
 the fixture and Guard permissions have no standing subject. No ClusterRole or
@@ -197,7 +204,11 @@ reviewed_revision=0000000000000000000000000000000000000000
   --evidence-root "/absolute/encrypted/runtime-evidence" \
   --credential-dir "/absolute/encrypted/runtime-credentials" \
   --storage-assertion encrypted-owner-controlled \
-  --known-good-revision "$reviewed_revision"
+  --known-good-revision "$reviewed_revision" \
+  --recovery-generation 3 \
+  --previous-recovery-generation 2 \
+  --authorizer-generation 2 \
+  --previous-authorizer-generation 1
 ```
 
 The placeholder revision deliberately cannot authorize a real run. Before the
@@ -205,10 +216,21 @@ interactive prompt, the command proves a clean exact Git authority, validates
 the complete cluster-creation evidence chain, matches its audit-policy snapshot
 to the reviewed revision, verifies the isolated single Ready node and loopback
 API endpoint, confirms Kubernetes and tool versions, checks that every canary
-object is absent, and binds the rendered bundles plus all authority inputs into
-an owner-only plan and pre-mutation hash. It then requires the exact, displayed
-`RUN PHASE0 <cluster> <approval-sha>` challenge and revalidates every approved
-input before the first CSR is created.
+object is absent, constructs and validates the independently selected current
+and previous identities for both roles, and binds the rendered bundles plus all
+authority inputs into an owner-only plan and pre-mutation hash. The target
+fingerprint
+is the named ADR-0003 tuple: API endpoint, live `kube-system` Namespace UID,
+API server CA SPKI SHA-256, canonical repository URL, and environment name.
+For Phase 0, `environmentName` is exactly `local-orbstack`; `repositoryURL` is
+normalized from the Git `origin` fetch URL and must equal the reviewed
+`env/local-orbstack.env` repository. It then requires the exact, displayed
+`RUN PHASE0 <cluster> <approval-sha>` challenge. After approval it performs new
+read-only Git and target discovery, revalidates repository and environment,
+re-reads the endpoint, CA and Namespace UID, recomputes the fingerprint and all
+four identities, and compares them byte for byte with the Plan before any
+credential directory, private key, CSR, certificate, or Kubernetes object can
+be created.
 
 The disposable Phase-0 ceremony uses one approved operator process, but keeps
 Recovery Operator and Session Authorizer material in separate owner-only
@@ -222,17 +244,19 @@ An approved ceremony executes this fixed sequence:
 
 1. record the audit log's exact pre-mutation line offset, prefix hash, and file
    identity;
-2. issue current `g2` and unbound previous `g1` one-hour certificates for both
-   principals with no Organization, verify subjects and key pairs, delete each
-   CSR with UID/resourceVersion preconditions, and prove all four credentials
-   share the same namespace-complete effective-permission baseline. Only
-   discovery and non-persistent self-access review creation may remain;
+2. issue the independently planned current and unbound previous one-hour
+   certificates for both principals with no Organization, verify each CSR and
+   certificate Common Name byte for byte against the Plan, verify the
+   authenticated username and key pairs, delete each CSR with
+   UID/resourceVersion preconditions, and prove all four credentials share the
+   same namespace-complete effective-permission baseline. Only discovery and
+   non-persistent self-access review creation may remain;
 3. install the 16 non-Authorizer definitions, require all five Policies to
    complete API-server CEL type checking without warnings, and compare every
    normalized live projection with the approved bundles;
 4. create the Session Authorizer RoleBinding last, compare all 17 live
-   projections, verify the current grants, and prove both `g1` credentials still
-   deny the complete mutation matrix;
+   projections, verify the current grants, and prove both previous-generation
+   credentials still deny the complete mutation matrix;
 5. prove ordinary mutation denial, suspend only the canary admission Binding to
    `{Audit}`, exercise and restore the fixture, restore `{Audit, Deny}`, and
    prove the canonical Binding projection plus denial again;
@@ -368,7 +392,9 @@ semantics, YAML-printable UTF-8 validation, owner-only custody, provider
 pinning, lifecycle locking, plan-bound approval, post-Gate hash revalidation,
 journaling with independently recomputed entry digests, retained-state evidence,
 physical isolation from normal Bootstrap, a fully mocked create/verify path,
-and the runtime ceremony's exact inventory, projections, probe ordering, cleanup
+the 57/62/59/64-byte identity boundaries, rejection of a 65-byte identity,
+Locale-independent principal validation, live target and principal drift, and
+the runtime ceremony's exact inventory, projections, probe ordering, cleanup
 preconditions, and credential revocation contract. It does not run Kind or
 contact a cluster and does not replace the separately authorized macOS/OrbStack
 runtime ceremony required by ADR-0003.
