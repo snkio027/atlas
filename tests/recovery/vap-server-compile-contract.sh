@@ -468,4 +468,50 @@ binding_uid_after=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admiss
   test::fail "server-side suspend/restore replaced a protected object UID"
 verify_live_projections full
 
-test::pass "all 17 definitions compile and the locked API Server completes suspend/restore plus the Fence/Permission/Guard matrix"
+cleanup_evidence="${test_workspace}/full-cleanup-evidence"
+cleanup_journal="${test_workspace}/full-cleanup-journal.tsv"
+mkdir -m 0700 "$cleanup_evidence" "$cleanup_evidence/authorization" "$cleanup_evidence/postflight"
+: > "$cleanup_journal"
+ATLAS_PHASE0_OPERATION[evidence_session]=$cleanup_evidence
+ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]=$session_authorizer_kubeconfig
+ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=$recovery_operator_kubeconfig
+ATLAS_PHASE0_TARGET[admin_kubeconfig]=$server_admin_kubeconfig
+phase0_session::admin() {
+  kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
+}
+phase0_session::_kubectl() {
+  local requested_kubeconfig=$1
+  shift
+  case "$requested_kubeconfig" in
+    "$session_authorizer_kubeconfig")
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" "$@"
+      ;;
+    "$recovery_operator_kubeconfig")
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" "$@"
+      ;;
+    "$server_admin_kubeconfig")
+      kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
+      ;;
+    *)
+      test::fail "full cleanup used an unapproved kubeconfig: ${requested_kubeconfig}"
+      ;;
+  esac
+}
+phase0_session::journal_append() {
+  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$cleanup_journal"
+}
+phase0_ceremony::_cleanup_cluster_resources
+phase0_session::_assert_runtime_absent
+[[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" auth can-i \
+  create configmaps -n kube-system 2> /dev/null) == no ]] ||
+  test::fail "full cleanup left Session Authorizer mutation authority"
+[[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" auth can-i \
+  patch validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary \
+  2> /dev/null) == no ]] ||
+  test::fail "full cleanup left Recovery Operator mutation authority"
+grep -Fq $'AUTHORIZER\tREVOKED' "$cleanup_journal" ||
+  test::fail "full cleanup did not journal Authorizer convergence"
+grep -Fq $'CLEANUP\tVERIFIED' "$cleanup_journal" ||
+  test::fail "full cleanup did not journal definition removal"
+
+test::pass "all 17 definitions compile and the locked API Server completes suspend/restore, the Fence/Permission/Guard matrix, and full production cleanup"

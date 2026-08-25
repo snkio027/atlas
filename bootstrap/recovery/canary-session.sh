@@ -13,28 +13,50 @@ ATLAS_PHASE0_JOURNAL_FILE_SHA=$ATLAS_PHASE0_JOURNAL_PREVIOUS_SHA
 ATLAS_PHASE0_LOCK_PATH=''
 ATLAS_PHASE0_LOCK_TOKEN=''
 ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+ATLAS_PHASE0_EXECUTION_STAGE=IDLE
 
 phase0_session::arm_unexpected_exit_guard() {
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=true
+  ATLAS_PHASE0_EXECUTION_STAGE=RUNTIME_LOCKED
 }
 
 phase0_session::disarm_unexpected_exit_guard() {
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+  ATLAS_PHASE0_EXECUTION_STAGE=IDLE
+}
+
+phase0_session::begin_evidence_finalization() {
+  [[ $ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD == true &&
+    $ATLAS_PHASE0_EXECUTION_STAGE == RUNTIME_LOCKED &&
+    -z $ATLAS_PHASE0_LOCK_PATH && -z $ATLAS_PHASE0_LOCK_TOKEN ]] || return 1
+  ATLAS_PHASE0_EXECUTION_STAGE=EVIDENCE_FINALIZATION
 }
 
 phase0_session::record_unexpected_exit() {
-  local status=$1 journal
+  local status=$1 journal message stage=$ATLAS_PHASE0_EXECUTION_STAGE
   [[ $ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD == true ]] || return 0
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+  ATLAS_PHASE0_EXECUTION_STAGE=IDLE
 
   # An unexpected shell exit must never attempt cleanup or lock release. Append
-  # a terminal record only when the approved session Journal is available; the
-  # retained lock and runtime state remain evidence for human disposition.
+  # a stage-accurate terminal record only when the approved session Journal is
+  # available; any retained state remains subject to human disposition.
   [[ -n ${ATLAS_PHASE0_OPERATION[journal_file]+present} ]] || return 0
   journal=${ATLAS_PHASE0_OPERATION[journal_file]}
   [[ -f $journal && ! -L $journal ]] || return 0
+  case "$stage" in
+    RUNTIME_LOCKED)
+      message="unexpected shell exit status=${status}; runtime state and lock retained for human review"
+      ;;
+    EVIDENCE_FINALIZATION)
+      message="unexpected shell exit status=${status}; runtime resources and lock already absent; evidence finalization incomplete"
+      ;;
+    *)
+      message="unexpected shell exit status=${status}; execution stage is unknown; human review required"
+      ;;
+  esac
   phase0_session::journal_append RESULT FAILED_RETAINED \
-    "unexpected shell exit status=${status}; runtime state and lock retained for human review"
+    "$message"
 }
 
 phase0_session::_unexpected_exit_trap() {
@@ -675,6 +697,16 @@ EOF
   ') || return 1
   [[ -z $retained ]] || {
     recovery::die "retained Phase-0 RoleBinding exists: ${retained}"
+    return 1
+  }
+
+  retained=$(phase0_session::admin get configmaps -n kube-system -o json | yq -r '
+    [.items[] | select(
+      .metadata.name | test("^atlas-phase0-noncanonical-")) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 probe ConfigMap exists: ${retained}"
     return 1
   }
 

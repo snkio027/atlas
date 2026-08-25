@@ -81,6 +81,26 @@ fi
 grep -Fq 'ATLAS_PHASE0_CONTRACT_UNBOUND: unbound variable' "$unexpected_exit_stderr" ||
   test::fail "unexpected-exit contract did not exercise Bash nounset"
 
+: > "$unexpected_exit_journal"
+if (
+  # Invoked indirectly by the installed EXIT trap.
+  # shellcheck disable=SC2329
+  phase0_session::journal_append() {
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" > "$unexpected_exit_record"
+  }
+  ATLAS_PHASE0_OPERATION[journal_file]=$unexpected_exit_journal
+  ATLAS_PHASE0_LOCK_PATH=''
+  ATLAS_PHASE0_LOCK_TOKEN=''
+  phase0_session::arm_unexpected_exit_guard
+  phase0_session::begin_evidence_finalization
+  phase0_session::install_unexpected_exit_trap
+  printf '%s\n' "$ATLAS_PHASE0_CONTRACT_UNBOUND"
+) 2> "$unexpected_exit_stderr"; then
+  test::fail "unexpected evidence-finalization exit returned success"
+fi
+[[ $(< "$unexpected_exit_record") == $'RESULT\tFAILED_RETAINED\tunexpected shell exit status=1; runtime resources and lock already absent; evidence finalization incomplete' ]] ||
+  test::fail "evidence-finalization exit reported retained runtime state"
+
 "$recovery_cli" --help | grep -Fq 'phase0 canary-drill'
 if "$recovery_cli" phase0 canary-drill --unknown value > /dev/null 2>&1; then
   test::fail "canary drill accepted an unknown option"
@@ -100,7 +120,7 @@ phase0_session::admin() {
   printf '%s\n' "$*" >> "$calls"
 }
 phase0_session::_assert_runtime_absent
-[[ $(wc -l < "$calls" | tr -d ' ') == 20 ]] || test::fail "runtime absence check did not cover fixed and dynamic canary objects"
+[[ $(wc -l < "$calls" | tr -d ' ') == 21 ]] || test::fail "runtime absence check did not cover fixed and dynamic canary objects"
 grep -Fqx 'get configmap atlas-bootstrap-admission-escape-canary --ignore-not-found -o name -n kube-system' "$calls" ||
   test::fail "runtime absence check omitted the admission fixture namespace"
 grep -Fqx 'get validatingadmissionpolicy atlas-bootstrap-recovery-guard-authorization-canary --ignore-not-found -o name' "$calls" ||
@@ -109,12 +129,14 @@ grep -Fqx 'get configmap atlas-bootstrap-operation-fence-canary --ignore-not-fou
   test::fail "runtime absence check omitted the canonical Fence"
 grep -Fqx 'get rolebindings -n kube-system -o json' "$calls" ||
   test::fail "runtime absence check omitted dynamic temporary RoleBindings"
+grep -Fqx 'get configmaps -n kube-system -o json' "$calls" ||
+  test::fail "runtime absence check omitted dynamic negative-probe ConfigMaps"
 grep -Fqx 'get certificatesigningrequests -o json' "$calls" ||
   test::fail "runtime absence check omitted retained credential CSRs"
 absence_calls="${test_workspace}/absence-calls"
 cp "$calls" "$absence_calls"
 
-for retained_kind in rolebinding csr; do
+for retained_kind in rolebinding configmap csr; do
   if (
     phase0_session::admin() {
       local IFS=' '
@@ -129,6 +151,13 @@ for retained_kind in rolebinding csr; do
         'get certificatesigningrequests -o json')
           if [[ $retained_kind == csr ]]; then
             printf '%s\n' '{"items":[{"metadata":{"name":"atlas-bg-authorizer-g2-retained"}}]}'
+          else
+            printf '%s\n' '{"items":[]}'
+          fi
+          ;;
+        'get configmaps -n kube-system -o json')
+          if [[ $retained_kind == configmap ]]; then
+            printf '%s\n' '{"items":[{"metadata":{"name":"atlas-phase0-noncanonical-retained"}}]}'
           else
             printf '%s\n' '{"items":[]}'
           fi
@@ -234,6 +263,59 @@ ATLAS_PHASE0_TARGET[recovery_generation]=3
 ATLAS_PHASE0_TARGET[previous_recovery_generation]=2
 ATLAS_PHASE0_TARGET[authorizer_generation]=2
 ATLAS_PHASE0_TARGET[previous_authorizer_generation]=1
+
+rbac_wait_calls="${test_workspace}/rbac-wait-calls"
+rbac_wait_sleeps="${test_workspace}/rbac-wait-sleeps"
+(
+  : > "$rbac_wait_calls"
+  : > "$rbac_wait_sleeps"
+  phase0_session::principal() {
+    printf 'probe\n' >> "$rbac_wait_calls"
+    if (($(wc -l < "$rbac_wait_calls") < 3)); then
+      printf 'no\n'
+      return 1
+    fi
+    printf 'yes\n'
+  }
+  sleep() { printf 'sleep\n' >> "$rbac_wait_sleeps"; }
+  phase0_ceremony::_wait_can_i principal.kubeconfig yes grant-convergence create configmaps -n kube-system
+)
+[[ $(wc -l < "$rbac_wait_calls" | tr -d ' ') == 3 &&
+$(wc -l < "$rbac_wait_sleeps" | tr -d ' ') == 2 &&
+$(< "$session/authorization/grant-convergence-can-i.tsv") == $'1\tno\n2\tno\n3\tyes' ]] ||
+  test::fail "RBAC grant waiter did not converge through valid opposite states"
+
+: > "$rbac_wait_calls"
+: > "$rbac_wait_sleeps"
+(
+  phase0_session::principal() {
+    printf 'probe\n' >> "$rbac_wait_calls"
+    if (($(wc -l < "$rbac_wait_calls") < 3)); then
+      printf 'yes\n'
+      return 0
+    fi
+    printf 'no\n'
+    return 1
+  }
+  sleep() { printf 'sleep\n' >> "$rbac_wait_sleeps"; }
+  phase0_ceremony::_wait_can_i principal.kubeconfig no revoke-convergence create configmaps -n kube-system
+)
+[[ $(wc -l < "$rbac_wait_calls" | tr -d ' ') == 3 &&
+$(wc -l < "$rbac_wait_sleeps" | tr -d ' ') == 2 &&
+$(< "$session/authorization/revoke-convergence-can-i.tsv") == $'1\tyes\n2\tyes\n3\tno' ]] ||
+  test::fail "RBAC revoke waiter did not converge through valid opposite states"
+
+if (
+  phase0_session::principal() {
+    printf 'no\n'
+    printf 'Warning: incomplete authorization result\n' >&2
+    return 1
+  }
+  sleep() { test::fail "RBAC waiter retried an invalid diagnostic"; }
+  phase0_ceremony::_wait_can_i principal.kubeconfig no diagnostic-rejected create configmaps -n kube-system
+) > /dev/null 2>&1; then
+  test::fail "RBAC waiter accepted an authorization diagnostic"
+fi
 
 missing_fence_log="${session}/authorization/rejected-permission-missing-fence.log"
 missing_fence_journal="${test_workspace}/missing-fence-journal"
@@ -794,9 +876,16 @@ phase0_session::principal() {
 phase0_session::journal_append() {
   printf 'journal\t%s\t%s\n' "$1" "$2" >> "$cleanup_calls"
 }
+phase0_ceremony::_wait_guard_admission_absent() {
+  printf 'wait\tguard-admission-absent\n' >> "$cleanup_calls"
+}
+phase0_ceremony::_wait_fixture_admission() {
+  printf 'wait\tadmission-fixture-allowed\n' >> "$cleanup_calls"
+}
 ATLAS_PHASE0_TARGET[admin_kubeconfig]=admin.kubeconfig
 ATLAS_PHASE0_TARGET[cluster_name]=atlas-recovery-drill-20260817t000000z-0123abcd
 ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]=authorizer.kubeconfig
+ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=recovery.kubeconfig
 phase0_ceremony::_cleanup_cluster_resources
 [[ $(grep -c '^delete' "$cleanup_calls") == 17 ]] || test::fail "cleanup did not delete every installed canary object"
 first_delete=$(grep '^delete' "$cleanup_calls" | sed -n '1p')
@@ -807,6 +896,21 @@ authorizer_probe_line=$(grep -n $'^principal\tauthorizer.kubeconfig\t' "$cleanup
 second_delete_line=$(grep -n '^delete' "$cleanup_calls" | sed -n '2s/:.*//p')
 ((authorizer_delete_line < authorizer_probe_line && authorizer_probe_line < second_delete_line)) ||
   test::fail "cleanup touched protected controls before verifying Authorizer revocation"
+guard_binding_delete_line=$(grep -n $'^delete\t.*/validatingadmissionpolicybindings/atlas-bootstrap-recovery-guard-authorization-canary' "$cleanup_calls" | cut -d: -f1)
+guard_wait_line=$(grep -n $'^wait\tguard-admission-absent$' "$cleanup_calls" | cut -d: -f1)
+guard_fixture_delete_line=$(grep -n $'^delete\t.*/configmaps/atlas-bootstrap-recovery-guard-canary' "$cleanup_calls" | cut -d: -f1)
+((guard_binding_delete_line < guard_wait_line && guard_wait_line < guard_fixture_delete_line)) ||
+  test::fail "cleanup removed the Guard fixture before Admission Binding deletion propagated"
+admission_binding_delete_line=$(grep -n $'^delete\t.*/validatingadmissionpolicybindings/atlas-bootstrap-admission-escape-canary' "$cleanup_calls" | cut -d: -f1)
+admission_wait_line=$(grep -n $'^wait\tadmission-fixture-allowed$' "$cleanup_calls" | cut -d: -f1)
+admission_fixture_delete_line=$(grep -n $'^delete\t.*/configmaps/atlas-bootstrap-admission-escape-canary' "$cleanup_calls" | cut -d: -f1)
+((admission_binding_delete_line < admission_wait_line && admission_wait_line < admission_fixture_delete_line)) ||
+  test::fail "cleanup removed the admission fixture before Binding deletion propagated"
+recovery_probe_line=$(grep -n $'^principal\trecovery.kubeconfig\t' "$cleanup_calls" | cut -d: -f1)
+escape_binding_delete_line=$(grep -n $'^delete\t.*/clusterrolebindings/atlas-bootstrap-break-glass-escape' "$cleanup_calls" | cut -d: -f1)
+escape_role_delete_line=$(grep -n $'^delete\t.*/clusterroles/atlas-bootstrap-break-glass-escape' "$cleanup_calls" | cut -d: -f1)
+((escape_binding_delete_line < recovery_probe_line && recovery_probe_line < escape_role_delete_line)) ||
+  test::fail "cleanup removed the Escape Role before verifying Recovery revocation"
 grep -Fq $'get\tget role atlas-bootstrap-recovery-canary --ignore-not-found -o name -n kube-system' "$cleanup_calls" ||
   test::fail "cleanup verification escaped the namespaced Role boundary"
 grep -Fq '/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-fence-authorization-canary' "$cleanup_calls" ||
@@ -814,7 +918,7 @@ grep -Fq '/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atla
 awk '/--ignore-not-found/ {print $2 "/" $3}' "$absence_calls" |
   grep -Fv 'configmap/atlas-bootstrap-operation-fence-canary' |
   sort > "${test_workspace}/absence-inventory"
-awk -F $'\t' '$1 != "delete" && $1 != "get" && $1 != "journal" && $1 != "principal" {print $1 "/" $2}' "$cleanup_calls" | sort > "${test_workspace}/cleanup-inventory"
+awk -F $'\t' '$1 != "delete" && $1 != "get" && $1 != "journal" && $1 != "principal" && $1 != "wait" {print $1 "/" $2}' "$cleanup_calls" | sort > "${test_workspace}/cleanup-inventory"
 cmp -s "${test_workspace}/absence-inventory" "${test_workspace}/cleanup-inventory" ||
   test::fail "preflight and cleanup definition inventories differ"
 
@@ -829,9 +933,9 @@ cleanup_failure_calls="${test_workspace}/cleanup-failure-calls"
     printf 'delete\t%s\n' "$2" >> "$cleanup_failure_calls"
   }
   phase0_session::admin() { :; }
-  phase0_session::principal() {
+  phase0_ceremony::_wait_can_i() {
     printf 'revocation-probe\n' >> "$cleanup_failure_calls"
-    printf 'yes\n'
+    return 1
   }
   phase0_session::journal_append() { :; }
   if phase0_ceremony::_cleanup_cluster_resources > /dev/null 2>&1; then
@@ -878,9 +982,9 @@ run_install_stage() (
     [[ $failure_stage != static-projection || $scope != static ]] || return 45
     [[ $failure_stage != full-projection || $scope != full ]] || return 46
   }
-  phase0_session::principal() {
-    printf 'principal\t%s\n' "$1" >> "$install_order"
-    printf 'yes\n'
+  phase0_ceremony::_wait_can_i() {
+    printf 'rbac-convergence\t%s\n' "$3" >> "$install_order"
+    [[ $failure_stage != rbac-convergence ]] || return 47
   }
   phase0_ceremony::_install_definitions
 )
@@ -905,6 +1009,9 @@ if run_install_stage activation > /dev/null 2>&1; then
 fi
 if run_install_stage full-projection > /dev/null 2>&1; then
   test::fail "injected activated-projection failure returned success"
+fi
+if run_install_stage rbac-convergence > /dev/null 2>&1; then
+  test::fail "injected Authorizer RBAC convergence failure returned success"
 fi
 
 permission_calls="${test_workspace}/permission-calls"
@@ -1055,12 +1162,13 @@ phase0_session::revalidate() { printf 'revalidate\n' >> "$order"; }
 phase0_session::journal_append() { printf 'journal-%s-%s\n' "$1" "$2" >> "$order"; }
 phase0_ceremony::_run() { printf 'runtime\n' >> "$order"; }
 phase0_session::release_lock() { printf 'unlock\n' >> "$order"; }
+phase0_session::begin_evidence_finalization() { printf 'evidence-stage\n' >> "$order"; }
 phase0_ceremony::_finalize_evidence() { printf 'evidence\n' >> "$order"; }
 phase0_session::disarm_unexpected_exit_guard() { printf 'guard-disarm\n' >> "$order"; }
 phase0_session::target() { printf 'test-value\n'; }
 phase0_session::operation() { printf 'test-value\n'; }
 phase0_ceremony::run a b c d e f g h i 3 2 2 1 > /dev/null
-[[ $(< "$order") == $'resolve\npreflight\nlock\nguard-arm\nprepare\ngate\nrevalidate\njournal-PREMUTATION-READY\nruntime\nunlock\nevidence\nguard-disarm' ]] ||
+[[ $(< "$order") == $'resolve\npreflight\nlock\nguard-arm\nprepare\ngate\nrevalidate\njournal-PREMUTATION-READY\nruntime\nunlock\nevidence-stage\nevidence\nguard-disarm' ]] ||
   test::fail "successful evidence was sealed before the runtime lock was released"
 
 for required_probe in shape-malformed-binding permission-missing-fence guard-data-replacement \
