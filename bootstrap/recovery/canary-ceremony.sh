@@ -1076,10 +1076,10 @@ cluster	validatingadmissionpolicy	atlas-bootstrap-recovery-fence-authorization-c
 kube-system	role	atlas-bootstrap-recovery-authorizer-canary	/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/roles/atlas-bootstrap-recovery-authorizer-canary	authorizer-role
 kube-system	role	atlas-bootstrap-recovery-canary	/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/roles/atlas-bootstrap-recovery-canary	recovery-role
 kube-system	configmap	atlas-bootstrap-recovery-guard-canary	/api/v1/namespaces/kube-system/configmaps/atlas-bootstrap-recovery-guard-canary	guard-fixture
-cluster	validatingadmissionpolicybinding	atlas-bootstrap-admission-escape-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicybindings/atlas-bootstrap-admission-escape-canary	admission-binding
-cluster	validatingadmissionpolicy	atlas-bootstrap-admission-escape-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-admission-escape-canary	admission-policy
 cluster	clusterrolebinding	atlas-bootstrap-break-glass-escape	/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/atlas-bootstrap-break-glass-escape	escape-binding
 cluster	clusterrole	atlas-bootstrap-break-glass-escape	/apis/rbac.authorization.k8s.io/v1/clusterroles/atlas-bootstrap-break-glass-escape	escape-role
+cluster	validatingadmissionpolicybinding	atlas-bootstrap-admission-escape-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicybindings/atlas-bootstrap-admission-escape-canary	admission-binding
+cluster	validatingadmissionpolicy	atlas-bootstrap-admission-escape-canary	/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-admission-escape-canary	admission-policy
 kube-system	configmap	atlas-bootstrap-admission-escape-canary	/api/v1/namespaces/kube-system/configmaps/atlas-bootstrap-admission-escape-canary	admission-fixture
 EOF
   phase0_session::journal_append CLEANUP VERIFIED "all canary definitions removed with exact API preconditions" || return 1

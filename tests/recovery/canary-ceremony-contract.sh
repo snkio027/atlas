@@ -909,7 +909,8 @@ admission_fixture_delete_line=$(grep -n $'^delete\t.*/configmaps/atlas-bootstrap
 recovery_probe_line=$(grep -n $'^principal\trecovery.kubeconfig\t' "$cleanup_calls" | cut -d: -f1)
 escape_binding_delete_line=$(grep -n $'^delete\t.*/clusterrolebindings/atlas-bootstrap-break-glass-escape' "$cleanup_calls" | cut -d: -f1)
 escape_role_delete_line=$(grep -n $'^delete\t.*/clusterroles/atlas-bootstrap-break-glass-escape' "$cleanup_calls" | cut -d: -f1)
-((escape_binding_delete_line < recovery_probe_line && recovery_probe_line < escape_role_delete_line)) ||
+((escape_binding_delete_line < recovery_probe_line && recovery_probe_line < escape_role_delete_line && \
+recovery_probe_line < admission_binding_delete_line)) ||
   test::fail "cleanup removed the Escape Role before verifying Recovery revocation"
 grep -Fq $'get\tget role atlas-bootstrap-recovery-canary --ignore-not-found -o name -n kube-system' "$cleanup_calls" ||
   test::fail "cleanup verification escaped the namespaced Role boundary"

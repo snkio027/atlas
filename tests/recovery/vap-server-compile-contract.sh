@@ -505,10 +505,9 @@ phase0_session::_assert_runtime_absent
 [[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" auth can-i \
   create configmaps -n kube-system 2> /dev/null) == no ]] ||
   test::fail "full cleanup left Session Authorizer mutation authority"
-[[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" auth can-i \
-  patch validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary \
-  2> /dev/null) == no ]] ||
-  test::fail "full cleanup left Recovery Operator mutation authority"
+[[ $(tail -n 1 "$cleanup_evidence/authorization/recovery-revoke-can-i.tsv" | cut -f2) == no &&
+! -s $cleanup_evidence/authorization/recovery-revoke-can-i.stderr ]] ||
+  test::fail "full cleanup lacks a clean Recovery Operator revocation convergence proof"
 grep -Fq $'AUTHORIZER\tREVOKED' "$cleanup_journal" ||
   test::fail "full cleanup did not journal Authorizer convergence"
 grep -Fq $'CLEANUP\tVERIFIED' "$cleanup_journal" ||
