@@ -260,7 +260,8 @@ missing_fence_name="atlas-bg-canary-${missing_fence_session}"
 [[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap \
   atlas-bootstrap-operation-fence-canary -n kube-system --ignore-not-found -o name) ]] ||
   test::fail "missing-Fence negative control unexpectedly found a Fence"
-[[ $(kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" auth can-i create \
+[[ $(kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" \
+  --as-group=system:authenticated auth can-i create \
   rolebindings.rbac.authorization.k8s.io -n kube-system 2> /dev/null) == yes ]] ||
   test::fail "exact Session Authorizer lacks the permission required by the negative control"
 phase0_session::journal_append() {
@@ -269,6 +270,7 @@ phase0_session::journal_append() {
 phase0_ceremony::_expect_rejected permission-missing-fence \
   "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
   kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" \
+  --as-group=system:authenticated \
   create --validate=strict -f "$missing_fence_binding"
 [[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding "$missing_fence_name" \
   -n kube-system --ignore-not-found -o name) ]] ||
@@ -303,10 +305,12 @@ phase0_session::_kubectl() {
   shift
   case "$requested_kubeconfig" in
     "$session_authorizer_kubeconfig")
-      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" \
+        --as-group=system:authenticated "$@"
       ;;
     "$recovery_operator_kubeconfig")
-      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" \
+        --as-group=system:authenticated "$@"
       ;;
     "$server_admin_kubeconfig")
       kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
@@ -380,7 +384,8 @@ run_escape_drill() {
         printf ' %q' "${@:2}"
         printf '\n'
       } >> "$recovery_calls"
-      kubectl --kubeconfig "$ci_admin_kubeconfig" --as="$recovery_operator" "$@"
+      kubectl --kubeconfig "$ci_admin_kubeconfig" --as="$recovery_operator" \
+        --as-group=system:authenticated "$@"
     elif [[ $requested_kubeconfig == "$ci_admin_kubeconfig" ]]; then
       kubectl --kubeconfig "$ci_admin_kubeconfig" "$@"
     else
@@ -439,7 +444,8 @@ verify_live_projections full
 escape_evidence="${test_workspace}/escape-evidence"
 escape_recovery_calls="${test_workspace}/escape-recovery-calls.txt"
 escape_journal="${test_workspace}/escape-journal.tsv"
-[[ $(kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" auth can-i patch \
+[[ $(kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" \
+  --as-group=system:authenticated auth can-i patch \
   "validatingadmissionpolicybindings.admissionregistration.k8s.io/${escape_binding}" 2> /dev/null) == yes ]] ||
   test::fail "exact Recovery principal lacks the canary escape permission"
 run_escape_drill "$escape_evidence" "$escape_recovery_calls" "$escape_journal"
@@ -484,10 +490,12 @@ phase0_session::_kubectl() {
   shift
   case "$requested_kubeconfig" in
     "$session_authorizer_kubeconfig")
-      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" \
+        --as-group=system:authenticated "$@"
       ;;
     "$recovery_operator_kubeconfig")
-      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" \
+        --as-group=system:authenticated "$@"
       ;;
     "$server_admin_kubeconfig")
       kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
@@ -502,7 +510,8 @@ phase0_session::journal_append() {
 }
 phase0_ceremony::_cleanup_cluster_resources
 phase0_session::_assert_runtime_absent
-[[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" auth can-i \
+[[ $(kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" \
+  --as-group=system:authenticated auth can-i \
   create configmaps -n kube-system 2> /dev/null) == no ]] ||
   test::fail "full cleanup left Session Authorizer mutation authority"
 [[ $(tail -n 1 "$cleanup_evidence/authorization/recovery-revoke-can-i.tsv" | cut -f2) == no &&
