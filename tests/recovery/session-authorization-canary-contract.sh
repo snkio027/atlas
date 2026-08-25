@@ -57,7 +57,7 @@ assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-fe
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-fence-authorization-canary \
   efb401217069eb264239bf58996c2e13f60045743f4216ea4e78c05fb65d25fc
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-binding-shape-authorization-canary \
-  0e7c7becded53de9ceb8a7b94f3551f1a3a1aeb259fe64eb989cd6a12a5b5312
+  0013994cb990e2296c35b022f3553401ee90c62950441e2d68f9e7ada0e52941
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-binding-shape-authorization-canary \
   3d09d0dcc836ccd65195a853b51105044da9e4dbd056e95cdf9decf4b5f103a2
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-permission-authorization-canary \
@@ -178,7 +178,7 @@ shape_policy=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorizatio
 shape_match=$(RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorization-canary yq ea -r \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(RESOURCE_NAME)) | .spec.matchConditions[0].expression' \
   "$first_bundle")
-expected_shape_match=$'request.userInfo.username == \'atlas:session-authz:12345678-1234-1234-1234-123456789abc:g4\' || (request.namespace == \'kube-system\' &&\n  ((request.operation != \'CREATE\' &&\n    (oldObject.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(oldObject.metadata.labels) &&\n        \'atlas.io/recovery-session\' in oldObject.metadata.labels))) ||\n  (request.operation != \'DELETE\' &&\n    (object.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(object.metadata.labels) &&\n        \'atlas.io/recovery-session\' in object.metadata.labels))))'
+expected_shape_match=$'request.userInfo.username == \'atlas:session-authz:12345678-1234-1234-1234-123456789abc:g4\' || (request.namespace == \'kube-system\' &&\n  ((request.operation != \'CREATE\' &&\n    (oldObject.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(oldObject.metadata.labels) &&\n        \'atlas.io/recovery-session\' in oldObject.metadata.labels))) ||\n  (request.operation != \'DELETE\' &&\n    (object.metadata.name.startsWith(\'atlas-bg-canary-\') ||\n      (has(object.metadata.labels) &&\n        \'atlas.io/recovery-session\' in object.metadata.labels)))))'
 [[ $shape_match == "$expected_shape_match" ]] ||
   test::fail "Binding Shape authorization does not select the exact old/new target union"
 
@@ -276,8 +276,8 @@ fi
 test::pass "Guard add/remove cannot replace another data key"
 
 # Static routing matrix. Full projection hashes above bind these assertions to
-# the reviewed CEL; server-side type checking and request probes belong to the
-# separately authorized disposable-cluster runtime drill.
+# the reviewed CEL. Required CI performs server-side type checking; request
+# probes remain part of the separately authorized disposable-cluster drill.
 [[ $fence_match == *"request.userInfo.username == '${session_authorizer}'"* &&
   $fence_match == *"object.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* &&
   $fence_match == *"oldObject.metadata.name == 'atlas-bootstrap-operation-fence-canary'"* ]] ||

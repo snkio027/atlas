@@ -32,3 +32,8 @@ jobs:
 
       - name: Run repository quality gate
         run: task quality
+
+      - name: Compile Phase-0 VAP CEL on locked Kubernetes
+        env:
+          ATLAS_CI_KIND_VAP: "1"
+        run: ./tests/recovery/vap-server-compile-contract.sh
