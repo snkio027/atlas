@@ -280,6 +280,7 @@ session_evidence="${test_workspace}/session-authorization-evidence"
 session_journal="${test_workspace}/session-authorization-journal.tsv"
 session_authorizer_kubeconfig='session-authorizer-impersonation'
 recovery_operator_kubeconfig='recovery-operator-impersonation'
+server_admin_kubeconfig=$kubeconfig
 mkdir -m 0700 "$session_evidence" "$session_evidence/authorization" "$session_evidence/postflight"
 : > "$session_journal"
 ATLAS_PHASE0_OPERATION[evidence_session]=$session_evidence
@@ -292,23 +293,23 @@ ATLAS_PHASE0_OPERATION[recovery_principal]=$recovery_operator
 ATLAS_PHASE0_OPERATION[authorizer_principal]=$session_authorizer
 ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]=$session_authorizer_kubeconfig
 ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=$recovery_operator_kubeconfig
-ATLAS_PHASE0_TARGET[admin_kubeconfig]=$kubeconfig
+ATLAS_PHASE0_TARGET[admin_kubeconfig]=$server_admin_kubeconfig
 ATLAS_PHASE0_TARGET[known_good_revision]=$(printf '4%.0s' {1..40})
 phase0_session::admin() {
-  kubectl --kubeconfig "$kubeconfig" "$@"
+  kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
 }
 phase0_session::_kubectl() {
   local requested_kubeconfig=$1
   shift
   case "$requested_kubeconfig" in
     "$session_authorizer_kubeconfig")
-      kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$session_authorizer" "$@"
       ;;
     "$recovery_operator_kubeconfig")
-      kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" "$@"
+      kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" "$@"
       ;;
-    "$kubeconfig")
-      kubectl --kubeconfig "$kubeconfig" "$@"
+    "$server_admin_kubeconfig")
+      kubectl --kubeconfig "$server_admin_kubeconfig" "$@"
       ;;
     *)
       test::fail "session authorization drill used an unapproved kubeconfig: ${requested_kubeconfig}"
