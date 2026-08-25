@@ -320,6 +320,21 @@ phase0_session::journal_append() {
   printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$session_journal"
 }
 phase0_ceremony::_session_authorization_drill
+
+guard_metadata_drift_patch="${test_workspace}/guard-metadata-drift-patch.json"
+printf '%s\n' '[{"op":"add","path":"/metadata/annotations","value":{"atlas.io/unapproved":"drift"}},{"op":"add","path":"/data/policy.atlas-recovery-freeze.csv","value":"p, role:atlas-recovery-guard-canary, applications, *, */*, deny"}]' \
+  > "$guard_metadata_drift_patch"
+phase0_ceremony::_expect_rejected guard-metadata-drift \
+  'Canary guard UPDATE changed a field outside the guarded projection' \
+  kubectl --kubeconfig "$server_admin_kubeconfig" --as="$recovery_operator" \
+  patch configmap atlas-bootstrap-recovery-guard-canary -n kube-system \
+  --type=json --patch-file "$guard_metadata_drift_patch"
+guard_after_metadata_probe=$(kubectl --kubeconfig "$server_admin_kubeconfig" get configmap \
+  atlas-bootstrap-recovery-guard-canary -n kube-system -o json)
+[[ $(yq 'has(.metadata.annotations)' <<< "$guard_after_metadata_probe") == false &&
+$(yq -o=json -I=0 '.data' <<< "$guard_after_metadata_probe") == '{"sentinel":"recovery-guard-canary"}' ]] ||
+  test::fail "rejected Guard metadata drift changed the live fixture"
+
 for expected_record in \
   $'FENCE\tACQUIRED' \
   $'PERMISSION\tINSTALLED' \
