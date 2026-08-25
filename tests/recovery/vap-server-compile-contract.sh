@@ -241,6 +241,7 @@ verify_live_projections full
 
 run_escape_drill() {
   local evidence_session=$1 recovery_calls=$2 journal=$3 principal_kubeconfig=recovery-impersonation
+  local ci_admin_kubeconfig=$kubeconfig
   mkdir -m 0700 "$evidence_session" "$evidence_session/authorization"
   : > "$recovery_calls"
   : > "$journal"
@@ -248,18 +249,18 @@ run_escape_drill() {
   ATLAS_PHASE0_OPERATION[admission_bundle]=$admission_bundle
   ATLAS_PHASE0_OPERATION[admission_bundle_sha]=$(phase0_session::_sha256 "$admission_bundle")
   ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=$principal_kubeconfig
-  ATLAS_PHASE0_TARGET[admin_kubeconfig]=$kubeconfig
+  ATLAS_PHASE0_TARGET[admin_kubeconfig]=$ci_admin_kubeconfig
   phase0_session::admin() {
-    kubectl --kubeconfig "$kubeconfig" "$@"
+    kubectl --kubeconfig "$ci_admin_kubeconfig" "$@"
   }
   phase0_session::_kubectl() {
     local requested_kubeconfig=$1
     shift
     if [[ $requested_kubeconfig == "$principal_kubeconfig" ]]; then
       printf '%s\n' "$*" >> "$recovery_calls"
-      kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" "$@"
-    elif [[ $requested_kubeconfig == "$kubeconfig" ]]; then
-      kubectl --kubeconfig "$kubeconfig" "$@"
+      kubectl --kubeconfig "$ci_admin_kubeconfig" --as="$recovery_operator" "$@"
+    elif [[ $requested_kubeconfig == "$ci_admin_kubeconfig" ]]; then
+      kubectl --kubeconfig "$ci_admin_kubeconfig" "$@"
     else
       test::fail "escape drill used an unapproved kubeconfig: ${requested_kubeconfig}"
     fi
