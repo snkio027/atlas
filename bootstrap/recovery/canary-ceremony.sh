@@ -1061,7 +1061,8 @@ phase0_ceremony::_cleanup_cluster_resources() {
       escape-binding)
         phase0_ceremony::_wait_can_i "$(phase0_session::operation recovery_kubeconfig)" no \
           recovery-revoke patch \
-          validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary || return 1
+          validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary \
+          --all-namespaces || return 1
         ;;
     esac
   done << 'EOF'

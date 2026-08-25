@@ -912,6 +912,8 @@ escape_role_delete_line=$(grep -n $'^delete\t.*/clusterroles/atlas-bootstrap-bre
 ((escape_binding_delete_line < recovery_probe_line && recovery_probe_line < escape_role_delete_line && \
 recovery_probe_line < admission_binding_delete_line)) ||
   test::fail "cleanup removed the Escape Role before verifying Recovery revocation"
+grep -Fq $'principal\trecovery.kubeconfig\tauth can-i patch validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary --all-namespaces' "$cleanup_calls" ||
+  test::fail "Recovery revocation probe did not declare the cluster-scoped authorization boundary"
 grep -Fq $'get\tget role atlas-bootstrap-recovery-canary --ignore-not-found -o name -n kube-system' "$cleanup_calls" ||
   test::fail "cleanup verification escaped the namespaced Role boundary"
 grep -Fq '/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-fence-authorization-canary' "$cleanup_calls" ||
