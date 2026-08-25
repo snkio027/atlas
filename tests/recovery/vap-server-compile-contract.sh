@@ -257,7 +257,11 @@ run_escape_drill() {
     local requested_kubeconfig=$1
     shift
     if [[ $requested_kubeconfig == "$principal_kubeconfig" ]]; then
-      printf '%s\n' "$*" >> "$recovery_calls"
+      {
+        printf '%q' "$1"
+        printf ' %q' "${@:2}"
+        printf '\n'
+      } >> "$recovery_calls"
       kubectl --kubeconfig "$ci_admin_kubeconfig" --as="$recovery_operator" "$@"
     elif [[ $requested_kubeconfig == "$ci_admin_kubeconfig" ]]; then
       kubectl --kubeconfig "$ci_admin_kubeconfig" "$@"
