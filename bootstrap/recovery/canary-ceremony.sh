@@ -367,7 +367,8 @@ phase0_ceremony::_verify_active_permissions() {
 }
 
 phase0_ceremony::_wait_policy_typecheck() {
-  local name=$1 destination attempt object generation observed warnings
+  local name=$1 destination=$2
+  local attempt object generation observed warnings
   for ((attempt = 0; attempt < ATLAS_PHASE0_WAIT_ATTEMPTS; attempt++)); do
     object=$(phase0_session::admin get validatingadmissionpolicy "$name" -o json) || return 1
     generation=$(yq -r '.metadata.generation' <<< "$object") || return 1
@@ -415,12 +416,40 @@ phase0_ceremony::_normalize_definition() {
       .metadata.creationTimestamp, .metadata.managedFields, .status) |
     (select(.spec.matchConstraints.matchPolicy == "Equivalent") |
       .spec.matchConstraints) |= del(.matchPolicy) |
+    (select(((.spec.matchConstraints.namespaceSelector | type) == "!!map") and
+      ((.spec.matchConstraints.namespaceSelector | length) == 0)) |
+      .spec.matchConstraints) |= del(.namespaceSelector) |
+    (select(((.spec.matchConstraints.objectSelector | type) == "!!map") and
+      ((.spec.matchConstraints.objectSelector | length) == 0)) |
+      .spec.matchConstraints) |= del(.objectSelector) |
     (select(.spec.matchResources.matchPolicy == "Equivalent") |
       .spec.matchResources) |= del(.matchPolicy) |
+    (select(((.spec.matchResources.namespaceSelector | type) == "!!map") and
+      ((.spec.matchResources.namespaceSelector | length) == 0)) |
+      .spec.matchResources) |= del(.namespaceSelector) |
+    (select(((.spec.matchResources.objectSelector | type) == "!!map") and
+      ((.spec.matchResources.objectSelector | length) == 0)) |
+      .spec.matchResources) |= del(.objectSelector) |
     (select(.kind == "ValidatingAdmissionPolicyBinding") |
       .spec.validationActions) |= sort |
     sort_keys(..)
   ' "$1"
+}
+
+phase0_ceremony::_normalized_definition_sha256() {
+  phase0_ceremony::_normalize_definition "$1" | shasum -a 256 | awk '{print $1}'
+}
+
+phase0_ceremony::_assert_validation_actions() {
+  local snapshot=$1 expected_sorted=$2 actions sorted count unique_count
+  actions=$(yq -o=json -I=0 '.spec.validationActions' "$snapshot") || return 1
+  sorted=$(yq -o=json -I=0 '.spec.validationActions | sort' "$snapshot") || return 1
+  count=$(yq -r '.spec.validationActions | length' "$snapshot") || return 1
+  unique_count=$(yq -r '.spec.validationActions | unique | length' "$snapshot") || return 1
+  [[ $actions != null && $count == "$unique_count" && $sorted == "$expected_sorted" ]] || {
+    recovery::die "admission Binding validationActions are drifted or contain duplicates"
+    return 1
+  }
 }
 
 phase0_ceremony::_desired_definition() {
@@ -442,11 +471,12 @@ phase0_ceremony::_verify_live_definitions() {
   : > "$hash_file" || return 1
   while IFS=$'\t' read -r phase namespace resource kind name label; do
     [[ $scope == full || $phase != activation ]] || continue
-    if [[ $phase == admission ]]; then
-      bundle=$(phase0_session::operation admission_bundle) || return 1
-    else
-      bundle=$(phase0_session::operation session_bundle) || return 1
-    fi
+    case "$phase" in
+      admission) bundle=$(phase0_session::operation admission_bundle) || return 1 ;;
+      static) bundle=$(phase0_session::operation session_static_bundle) || return 1 ;;
+      activation) bundle=$(phase0_session::operation authorizer_activation_bundle) || return 1 ;;
+      *) return 1 ;;
+    esac
     desired=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-desired.json") || return 1
     live=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-live.json") || return 1
     phase0_ceremony::_desired_definition "$bundle" "$kind" "$namespace" "$name" "$desired" || return 1
@@ -548,23 +578,67 @@ phase0_ceremony::_patch_fixture() {
 }
 
 phase0_ceremony::_admission_escape_drill() {
-  local recovery_kubeconfig admin_kubeconfig enforced suspended restored before_hash after_hash
+  local recovery_kubeconfig admin_kubeconfig admission_bundle admission_bundle_sha
+  local approved_policy approved_binding approved_policy_hash approved_binding_hash
+  local enforced_policy enforced_binding enforced_typechecked suspended restored_policy restored_binding restored_typechecked
+  local policy_uid binding_uid restored_actions
   recovery_kubeconfig=$(phase0_session::operation recovery_kubeconfig) || return 1
   admin_kubeconfig=$(phase0_session::target admin_kubeconfig) || return 1
-  enforced="$(phase0_ceremony::_evidence_file authorization/admission-binding-enforced.json)"
+  admission_bundle=$(phase0_session::operation admission_bundle) || return 1
+  admission_bundle_sha=$(phase0_session::operation admission_bundle_sha) || return 1
+  [[ $(phase0_session::_sha256 "$admission_bundle") == "$admission_bundle_sha" ]] || {
+    recovery::die "approved admission Bundle hash drifted before suspend"
+    return 1
+  }
+
+  approved_policy="$(phase0_ceremony::_evidence_file authorization/admission-policy-approved.json)"
+  approved_binding="$(phase0_ceremony::_evidence_file authorization/admission-binding-approved.json)"
+  phase0_ceremony::_desired_definition "$admission_bundle" ValidatingAdmissionPolicy cluster \
+    atlas-bootstrap-admission-escape-canary "$approved_policy" || return 1
+  phase0_ceremony::_desired_definition "$admission_bundle" ValidatingAdmissionPolicyBinding cluster \
+    atlas-bootstrap-admission-escape-canary "$approved_binding" || return 1
+  phase0_ceremony::_assert_validation_actions "$approved_binding" '["Audit","Deny"]' || return 1
+  [[ $(yq -o=json -I=0 '.spec.validationActions' "$approved_binding") == '["Audit","Deny"]' ]] || {
+    recovery::die "approved admission Bundle does not use canonical Audit+Deny order"
+    return 1
+  }
+  approved_policy_hash=$(phase0_session::_sha256 "$approved_policy") || return 1
+  approved_binding_hash=$(phase0_session::_sha256 "$approved_binding") || return 1
+
+  enforced_policy="$(phase0_ceremony::_evidence_file authorization/admission-policy-enforced.json)"
+  enforced_binding="$(phase0_ceremony::_evidence_file authorization/admission-binding-enforced.json)"
   suspended="$(phase0_ceremony::_evidence_file authorization/admission-binding-suspended.json)"
-  restored="$(phase0_ceremony::_evidence_file authorization/admission-binding-restored.json)"
+  restored_policy="$(phase0_ceremony::_evidence_file authorization/admission-policy-restored.json)"
+  restored_binding="$(phase0_ceremony::_evidence_file authorization/admission-binding-restored.json)"
+  enforced_typechecked="$(phase0_ceremony::_evidence_file authorization/admission-policy-enforced-typecheck.json)"
+  restored_typechecked="$(phase0_ceremony::_evidence_file authorization/admission-policy-restored-typecheck.json)"
+  phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicy \
+    atlas-bootstrap-admission-escape-canary "$enforced_policy" || return 1
   phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicybinding \
-    atlas-bootstrap-admission-escape-canary "$enforced" || return 1
-  before_hash=$(yq -o=json -I=0 '{apiVersion,kind,metadata:{name:.metadata.name,labels:.metadata.labels},spec} | sort_keys(..)' "$enforced" | shasum -a 256 | awk '{print $1}') || return 1
+    atlas-bootstrap-admission-escape-canary "$enforced_binding" || return 1
+  policy_uid=$(yq -r '.metadata.uid' "$enforced_policy") || return 1
+  binding_uid=$(yq -r '.metadata.uid' "$enforced_binding") || return 1
+  [[ $policy_uid =~ ^[0-9a-f-]{36}$ && $binding_uid =~ ^[0-9a-f-]{36}$ ]] || return 1
+  [[ $(phase0_ceremony::_normalized_definition_sha256 "$enforced_policy") == "$approved_policy_hash" &&
+  $(phase0_ceremony::_normalized_definition_sha256 "$enforced_binding") == "$approved_binding_hash" ]] || {
+    recovery::die "live admission Policy or Binding drifted from the approved Bundle before suspend"
+    return 1
+  }
+  phase0_ceremony::_assert_validation_actions "$enforced_binding" '["Audit","Deny"]' || return 1
+  phase0_ceremony::_wait_policy_typecheck atlas-bootstrap-admission-escape-canary \
+    "$enforced_typechecked" || return 1
+  [[ $(yq -r '.metadata.uid' "$enforced_typechecked") == "$policy_uid" &&
+  $(phase0_ceremony::_normalized_definition_sha256 "$enforced_typechecked") == "$approved_policy_hash" ]] || return 1
   phase0_ceremony::_expect_rejected admission-fixture-enforced \
     'Atlas admission escape canary mutation requires' \
     phase0_ceremony::_patch_fixture "$admin_kubeconfig" denied admission-enforced || return 1
 
   phase0_session::journal_append ADMISSION_SUSPEND STARTED "replacing only validationActions with Audit" || return 1
-  phase0_ceremony::_binding_patch "$recovery_kubeconfig" "$enforced" '["Audit"]' suspend || return 1
+  phase0_ceremony::_binding_patch "$recovery_kubeconfig" "$enforced_binding" '["Audit"]' suspend || return 1
   phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicybinding \
     atlas-bootstrap-admission-escape-canary "$suspended" || return 1
+  [[ $(yq -r '.metadata.uid' "$suspended") == "$binding_uid" ]] || return 1
+  phase0_ceremony::_assert_validation_actions "$suspended" '["Audit"]' || return 1
   [[ $(yq -o=json -I=0 '.spec.validationActions' "$suspended") == '["Audit"]' ]] || return 1
   phase0_ceremony::_patch_fixture "$admin_kubeconfig" suspended admission-suspended || return 1
   phase0_ceremony::_patch_fixture "$admin_kubeconfig" admission-escape-canary admission-reverted || return 1
@@ -572,14 +646,26 @@ phase0_ceremony::_admission_escape_drill() {
 
   phase0_session::journal_append ADMISSION_RESTORE STARTED "restoring canonical Audit+Deny actions" || return 1
   phase0_ceremony::_binding_patch "$recovery_kubeconfig" "$suspended" '["Audit","Deny"]' restore || return 1
+  phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicy \
+    atlas-bootstrap-admission-escape-canary "$restored_policy" || return 1
   phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicybinding \
-    atlas-bootstrap-admission-escape-canary "$restored" || return 1
-  after_hash=$(yq -o=json -I=0 '{apiVersion,kind,metadata:{name:.metadata.name,labels:.metadata.labels},spec} | sort_keys(..)' "$restored" | shasum -a 256 | awk '{print $1}') || return 1
-  [[ $before_hash == "$after_hash" ]] || return 1
+    atlas-bootstrap-admission-escape-canary "$restored_binding" || return 1
+  [[ $(yq -r '.metadata.uid' "$restored_policy") == "$policy_uid" &&
+  $(yq -r '.metadata.uid' "$restored_binding") == "$binding_uid" ]] || return 1
+  [[ $(phase0_ceremony::_normalized_definition_sha256 "$restored_policy") == "$approved_policy_hash" &&
+  $(phase0_ceremony::_normalized_definition_sha256 "$restored_binding") == "$approved_binding_hash" ]] || return 1
+  phase0_ceremony::_assert_validation_actions "$restored_binding" '["Audit","Deny"]' || return 1
+  restored_actions=$(yq -o=json -I=0 '.spec.validationActions' "$restored_binding") || return 1
+  [[ $restored_actions == '["Audit","Deny"]' ]] || return 1
+  phase0_ceremony::_wait_policy_typecheck atlas-bootstrap-admission-escape-canary \
+    "$restored_typechecked" || return 1
+  [[ $(yq -r '.metadata.uid' "$restored_typechecked") == "$policy_uid" &&
+  $(phase0_ceremony::_normalized_definition_sha256 "$restored_typechecked") == "$approved_policy_hash" ]] || return 1
   phase0_ceremony::_expect_rejected admission-fixture-restored \
     'Atlas admission escape canary mutation requires' \
     phase0_ceremony::_patch_fixture "$admin_kubeconfig" denied admission-restored || return 1
-  phase0_session::journal_append ADMISSION_RESTORE VERIFIED "projection hash restored and ordinary mutation denied" || return 1
+  phase0_session::journal_append ADMISSION_RESTORE VERIFIED \
+    "approved Policy and Binding projections, UIDs and Policy type-check restored; ordinary mutation denied" || return 1
 }
 
 phase0_ceremony::_write_fence() {
@@ -963,6 +1049,7 @@ phase0_ceremony::run() {
     "$authorizer_generation" "$previous_authorizer_generation" || return 1
   phase0_session::_tool_preflight || return 1
   phase0_session::acquire_lock || return 1
+  phase0_session::arm_unexpected_exit_guard
   if phase0_session::prepare; then
     if phase0_session::human_gate; then
       if phase0_session::revalidate; then
@@ -988,5 +1075,6 @@ phase0_ceremony::run() {
   fi
   phase0_session::release_lock || release_status=$?
   ((release_status == 0)) || return "$release_status"
+  phase0_session::disarm_unexpected_exit_guard
   return "$status"
 }

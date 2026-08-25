@@ -217,4 +217,5 @@ recovery::main() {
   esac
 }
 
+phase0_session::install_unexpected_exit_trap
 recovery::main "$@"

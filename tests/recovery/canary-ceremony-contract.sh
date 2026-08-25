@@ -31,6 +31,50 @@ source bootstrap/recovery/canary-ceremony.sh
 
 recovery_cli=./bootstrap/recovery/atlas-recovery
 
+typecheck_destination="${test_workspace}/typecheck-live.json"
+typecheck_destination_mode=''
+(
+  phase0_session::admin() {
+    printf '%s\n' '{"metadata":{"generation":1},"status":{"observedGeneration":1,"typeChecking":{"expressionWarnings":[]}}}'
+  }
+  phase0_ceremony::_wait_policy_typecheck atlas-bootstrap-test-policy "$typecheck_destination"
+)
+if [[ $(uname -s) == Darwin ]]; then
+  typecheck_destination_mode=$(stat -f '%Lp' "$typecheck_destination")
+else
+  typecheck_destination_mode=$(stat -c '%a' "$typecheck_destination")
+fi
+[[ -f $typecheck_destination && ! -L $typecheck_destination &&
+  $typecheck_destination_mode == 400 &&
+  $(yq -r '.status.typeChecking.expressionWarnings | length' "$typecheck_destination") == 0 ]] ||
+  test::fail "VAP type-check evidence was not written to the requested destination"
+
+unexpected_exit_record="${test_workspace}/unexpected-exit-record"
+unexpected_exit_journal="${test_workspace}/unexpected-exit-journal.jsonl"
+unexpected_exit_stderr="${test_workspace}/unexpected-exit-stderr"
+: > "$unexpected_exit_journal"
+if (
+  # Both functions are invoked indirectly by the installed EXIT trap.
+  # shellcheck disable=SC2329
+  phase0_session::journal_append() {
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" > "$unexpected_exit_record"
+  }
+  # shellcheck disable=SC2329
+  phase0_session::release_lock() {
+    printf 'released\n' >> "$unexpected_exit_record"
+  }
+  ATLAS_PHASE0_OPERATION[journal_file]=$unexpected_exit_journal
+  phase0_session::arm_unexpected_exit_guard
+  phase0_session::install_unexpected_exit_trap
+  printf '%s\n' "$ATLAS_PHASE0_CONTRACT_UNBOUND"
+) 2> "$unexpected_exit_stderr"; then
+  test::fail "unexpected nounset exit returned success"
+fi
+[[ $(< "$unexpected_exit_record") == $'RESULT\tFAILED_RETAINED\tunexpected shell exit status=1; runtime state and lock retained for human review' ]] ||
+  test::fail "unexpected shell exit did not append the retained-state terminal record"
+grep -Fq 'ATLAS_PHASE0_CONTRACT_UNBOUND: unbound variable' "$unexpected_exit_stderr" ||
+  test::fail "unexpected-exit contract did not exercise Bash nounset"
+
 "$recovery_cli" --help | grep -Fq 'phase0 canary-drill'
 if "$recovery_cli" phase0 canary-drill --unknown value > /dev/null 2>&1; then
   test::fail "canary drill accepted an unknown option"
@@ -379,6 +423,19 @@ yq ea 'select(.kind != "RoleBinding" or .metadata.name != "atlas-bootstrap-recov
 yq ea 'select(.kind == "RoleBinding" and .metadata.name == "atlas-bootstrap-recovery-authorizer-canary")' \
   "$approved_session" > "$approved_activation"
 chmod 0400 "$approved_static" "$approved_activation"
+
+binding_projection_a="${session}/authorization/admission-binding-projection-a.json"
+binding_projection_b="${session}/authorization/admission-binding-projection-b.json"
+RESOURCE_NAME=atlas-bootstrap-admission-escape-canary yq ea -o=json -I=0 '
+  select(.kind == "ValidatingAdmissionPolicyBinding" and .metadata.name == env(RESOURCE_NAME))
+' "$approved_admission" > "$binding_projection_a"
+yq -o=json -I=0 '
+  .metadata.uid = "00000000-0000-0000-0000-000000000001" |
+  .metadata.resourceVersion = "100" |
+  .spec.validationActions = ["Deny", "Audit"]
+' "$binding_projection_a" > "$binding_projection_b"
+[[ $(phase0_ceremony::_normalized_definition_sha256 "$binding_projection_a") == "$(phase0_ceremony::_normalized_definition_sha256 "$binding_projection_b")" ]] ||
+  test::fail "normalized definition hash does not preserve server metadata and set semantics"
 ATLAS_PHASE0_OPERATION[admission_bundle]=$approved_admission
 ATLAS_PHASE0_OPERATION[session_bundle]=$approved_session
 ATLAS_PHASE0_OPERATION[session_static_bundle]=$approved_static
@@ -389,7 +446,12 @@ phase0_session::admin() {
   [[ $command == get ]] || return 1
   while IFS=$'\t' read -r phase namespace inventory_resource kind inventory_name label; do
     [[ $resource == "$inventory_resource" && $name == "$inventory_name" ]] || continue
-    if [[ $phase == admission ]]; then bundle=$approved_admission; else bundle=$approved_session; fi
+    case "$phase" in
+      admission) bundle=$approved_admission ;;
+      static) bundle=$approved_static ;;
+      activation) bundle=$approved_activation ;;
+      *) return 1 ;;
+    esac
     if [[ $projection_drift == "$label" ]]; then
       KIND=$kind NAMESPACE=$namespace NAME=$inventory_name yq ea -o=json -I=0 \
         'select(.kind == env(KIND) and .metadata.name == env(NAME) and
@@ -416,7 +478,113 @@ if phase0_ceremony::_verify_live_definitions full > /dev/null 2>&1; then
 fi
 projection_drift=''
 
+# The scenario owns local authority maps inside an intentional subshell; the
+# surrounding test authority must remain unchanged.
+# shellcheck disable=SC2030,SC2031
+exercise_admission_escape_mock() (
+  local scenario=$1 scenario_root policy_live binding_live mock_binding_state=enforced
+  local patch_calls=0 fixture_calls=0 resource destination actions
+  local -A ATLAS_PHASE0_OPERATION=()
+  local -A ATLAS_PHASE0_TARGET=()
+  scenario_root="${test_workspace}/admission-escape-${scenario}"
+  mkdir -m 0700 "$scenario_root" "$scenario_root/authorization"
+  policy_live="${scenario_root}/policy-live.json"
+  binding_live="${scenario_root}/binding-live.json"
+  KIND=ValidatingAdmissionPolicy NAME=atlas-bootstrap-admission-escape-canary yq ea -o=json -I=0 '
+    select(.kind == env(KIND) and .metadata.name == env(NAME)) |
+    .metadata.uid = "00000000-0000-0000-0000-000000000101" |
+    .metadata.resourceVersion = "101" |
+    .metadata.generation = 1 |
+    .status = {"observedGeneration":1,"typeChecking":{"expressionWarnings":[]}}
+  ' "$approved_admission" > "$policy_live"
+  KIND=ValidatingAdmissionPolicyBinding NAME=atlas-bootstrap-admission-escape-canary yq ea -o=json -I=0 '
+    select(.kind == env(KIND) and .metadata.name == env(NAME)) |
+    .metadata.uid = "00000000-0000-0000-0000-000000000102" |
+    .metadata.resourceVersion = "201"
+  ' "$approved_admission" > "$binding_live"
+  if [[ $scenario == drift ]]; then
+    yq -i '.metadata.labels."atlas.io/test-drift" = "present"' "$binding_live"
+  fi
+
+  ATLAS_PHASE0_OPERATION[evidence_session]=$scenario_root
+  ATLAS_PHASE0_OPERATION[admission_bundle]=$approved_admission
+  ATLAS_PHASE0_OPERATION[admission_bundle_sha]=$(phase0_session::_sha256 "$approved_admission")
+  ATLAS_PHASE0_OPERATION[recovery_kubeconfig]='recovery-current-g3.kubeconfig'
+  ATLAS_PHASE0_TARGET[admin_kubeconfig]=admin.kubeconfig
+  phase0_session::journal_append() { :; }
+  phase0_ceremony::_record_object() {
+    resource=$2
+    destination=$4
+    case "$resource" in
+      validatingadmissionpolicy) cp "$policy_live" "$destination" ;;
+      validatingadmissionpolicybinding)
+        case "$mock_binding_state" in
+          enforced) cp "$binding_live" "$destination" ;;
+          suspended)
+            yq -o=json -I=0 \
+              '.metadata.resourceVersion = "202" | .spec.validationActions = ["Audit"]' \
+              "$binding_live" > "$destination"
+            ;;
+          *) return 1 ;;
+        esac
+        ;;
+      *) return 1 ;;
+    esac
+    chmod 0400 "$destination"
+  }
+  phase0_ceremony::_binding_patch() {
+    actions=$3
+    patch_calls=$((patch_calls + 1))
+    case "$actions" in
+      '["Audit"]')
+        [[ $mock_binding_state == enforced ]] || return 1
+        mock_binding_state=suspended
+        ;;
+      '["Audit","Deny"]')
+        [[ $mock_binding_state == suspended ]] || return 1
+        mock_binding_state=enforced
+        ;;
+      *) return 1 ;;
+    esac
+  }
+  phase0_ceremony::_patch_fixture() {
+    fixture_calls=$((fixture_calls + 1))
+    if [[ $mock_binding_state == enforced ]]; then
+      printf 'Atlas admission escape canary mutation requires the exact Recovery Operator\n' >&2
+      return 1
+    fi
+  }
+  phase0_ceremony::_wait_policy_typecheck() {
+    cp "$policy_live" "$2"
+    chmod 0400 "$2"
+  }
+
+  if [[ $scenario == drift ]]; then
+    if phase0_ceremony::_admission_escape_drill > /dev/null 2>&1; then
+      test::fail "admission escape accepted a pre-suspend Binding drift"
+    fi
+    [[ $patch_calls == 0 && $fixture_calls == 0 && $mock_binding_state == enforced ]] ||
+      test::fail "pre-suspend Binding drift reached a fixture or Binding mutation"
+    return 0
+  fi
+
+  phase0_ceremony::_admission_escape_drill
+  [[ $patch_calls == 2 && $fixture_calls == 4 && $mock_binding_state == enforced ]] ||
+    test::fail "admission escape did not complete exact suspend and restore"
+  [[ $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-policy-restored.json") == 00000000-0000-0000-0000-000000000101 &&
+  $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-binding-restored.json") == 00000000-0000-0000-0000-000000000102 &&
+  $(yq -r '.status.typeChecking.expressionWarnings | length' \
+    "$scenario_root/authorization/admission-policy-restored-typecheck.json") == 0 ]] ||
+    test::fail "admission restore evidence omitted UID or type-check continuity"
+)
+
+exercise_admission_escape_mock exact
+exercise_admission_escape_mock drift
+
 audit_delta="${session}/audit/current-session-test.jsonl"
+# The local authority maps in the isolated escape scenarios cannot modify the
+# surrounding session map used by this audit fixture.
+# shellcheck disable=SC2031
 printf '%s\n' \
   "{\"kind\":\"Event\",\"requestURI\":\"/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bg-canary-${ATLAS_PHASE0_OPERATION[session_id]}\",\"user\":{\"username\":\"${ATLAS_PHASE0_OPERATION[authorizer_principal]}\"},\"responseStatus\":{\"code\":201},\"requestObject\":{\"metadata\":{\"labels\":{\"atlas.io/recovery-session\":\"${ATLAS_PHASE0_OPERATION[session_id]}\"}}}}" \
   "{\"kind\":\"Event\",\"requestURI\":\"/api/v1/namespaces/kube-system/configmaps/rejected\",\"user\":{\"username\":\"${ATLAS_PHASE0_OPERATION[authorizer_principal]}\"},\"responseStatus\":{\"code\":403},\"annotations\":{\"validation.policy.admission.k8s.io/fence\":\"denied\"}}" \
@@ -722,6 +890,7 @@ phase0_ceremony::_run > /dev/null
 phase0_session::resolve_target() { printf 'resolve\n' >> "$order"; }
 phase0_session::_tool_preflight() { printf 'preflight\n' >> "$order"; }
 phase0_session::acquire_lock() { printf 'lock\n' >> "$order"; }
+phase0_session::arm_unexpected_exit_guard() { printf 'guard-arm\n' >> "$order"; }
 phase0_session::prepare() { printf 'prepare\n' >> "$order"; }
 phase0_session::human_gate() { printf 'gate\n' >> "$order"; }
 phase0_session::revalidate() {
@@ -730,13 +899,14 @@ phase0_session::revalidate() {
 }
 phase0_session::journal_append() { printf 'journal-%s-%s\n' "$1" "$2" >> "$order"; }
 phase0_session::release_lock() { printf 'unlock\n' >> "$order"; }
+phase0_session::disarm_unexpected_exit_guard() { printf 'guard-disarm\n' >> "$order"; }
 phase0_ceremony::_run() { test::fail "mutation ran after revalidation failed"; }
 if phase0_ceremony::run a b c d e f g h i 3 2 2 1; then
   test::fail "revalidation failure returned success"
 else
   [[ $? == 23 ]] || test::fail "revalidation failure exit code changed"
 fi
-[[ $(< "$order") == $'resolve\npreflight\nlock\nprepare\ngate\nrevalidate-denied\njournal-PREMUTATION-DENIED\nunlock' ]] ||
+[[ $(< "$order") == $'resolve\npreflight\nlock\nguard-arm\nprepare\ngate\nrevalidate-denied\njournal-PREMUTATION-DENIED\nunlock\nguard-disarm' ]] ||
   test::fail "pre-mutation denial did not release the lifecycle lock"
 
 for required_probe in shape-malformed-binding permission-missing-fence guard-data-replacement \

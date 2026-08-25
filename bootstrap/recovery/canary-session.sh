@@ -12,6 +12,46 @@ ATLAS_PHASE0_JOURNAL_PREVIOUS_SHA=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b93
 ATLAS_PHASE0_JOURNAL_FILE_SHA=$ATLAS_PHASE0_JOURNAL_PREVIOUS_SHA
 ATLAS_PHASE0_LOCK_PATH=''
 ATLAS_PHASE0_LOCK_TOKEN=''
+ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+
+phase0_session::arm_unexpected_exit_guard() {
+  ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=true
+}
+
+phase0_session::disarm_unexpected_exit_guard() {
+  ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+}
+
+phase0_session::record_unexpected_exit() {
+  local status=$1 journal
+  [[ $ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD == true ]] || return 0
+  ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+
+  # An unexpected shell exit must never attempt cleanup or lock release. Append
+  # a terminal record only when the approved session Journal is available; the
+  # retained lock and runtime state remain evidence for human disposition.
+  [[ -n ${ATLAS_PHASE0_OPERATION[journal_file]+present} ]] || return 0
+  journal=${ATLAS_PHASE0_OPERATION[journal_file]}
+  [[ -f $journal && ! -L $journal ]] || return 0
+  phase0_session::journal_append RESULT FAILED_RETAINED \
+    "unexpected shell exit status=${status}; runtime state and lock retained for human review"
+}
+
+phase0_session::_unexpected_exit_trap() {
+  local status=$1 guarded=$ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD
+  trap - EXIT
+  set +e
+  set +u
+  set +o pipefail
+  [[ $guarded != true || $status -ne 0 ]] || status=1
+  phase0_session::record_unexpected_exit "$status" ||
+    printf 'atlas-recovery: failed to journal unexpected Phase-0 exit; retained state requires human review\n' >&2
+  exit "$status"
+}
+
+phase0_session::install_unexpected_exit_trap() {
+  trap 'phase0_session::_unexpected_exit_trap "$?"' EXIT
+}
 
 phase0_session::target() {
   local key=$1
