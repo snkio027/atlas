@@ -478,7 +478,113 @@ if phase0_ceremony::_verify_live_definitions full > /dev/null 2>&1; then
 fi
 projection_drift=''
 
+# The scenario owns local authority maps inside an intentional subshell; the
+# surrounding test authority must remain unchanged.
+# shellcheck disable=SC2030,SC2031
+exercise_admission_escape_mock() (
+  local scenario=$1 scenario_root policy_live binding_live mock_binding_state=enforced
+  local patch_calls=0 fixture_calls=0 resource destination actions
+  local -A ATLAS_PHASE0_OPERATION=()
+  local -A ATLAS_PHASE0_TARGET=()
+  scenario_root="${test_workspace}/admission-escape-${scenario}"
+  mkdir -m 0700 "$scenario_root" "$scenario_root/authorization"
+  policy_live="${scenario_root}/policy-live.json"
+  binding_live="${scenario_root}/binding-live.json"
+  KIND=ValidatingAdmissionPolicy NAME=atlas-bootstrap-admission-escape-canary yq ea -o=json -I=0 '
+    select(.kind == env(KIND) and .metadata.name == env(NAME)) |
+    .metadata.uid = "00000000-0000-0000-0000-000000000101" |
+    .metadata.resourceVersion = "101" |
+    .metadata.generation = 1 |
+    .status = {"observedGeneration":1,"typeChecking":{"expressionWarnings":[]}}
+  ' "$approved_admission" > "$policy_live"
+  KIND=ValidatingAdmissionPolicyBinding NAME=atlas-bootstrap-admission-escape-canary yq ea -o=json -I=0 '
+    select(.kind == env(KIND) and .metadata.name == env(NAME)) |
+    .metadata.uid = "00000000-0000-0000-0000-000000000102" |
+    .metadata.resourceVersion = "201"
+  ' "$approved_admission" > "$binding_live"
+  if [[ $scenario == drift ]]; then
+    yq -i '.metadata.labels."atlas.io/test-drift" = "present"' "$binding_live"
+  fi
+
+  ATLAS_PHASE0_OPERATION[evidence_session]=$scenario_root
+  ATLAS_PHASE0_OPERATION[admission_bundle]=$approved_admission
+  ATLAS_PHASE0_OPERATION[admission_bundle_sha]=$(phase0_session::_sha256 "$approved_admission")
+  ATLAS_PHASE0_OPERATION[recovery_kubeconfig]='recovery-current-g3.kubeconfig'
+  ATLAS_PHASE0_TARGET[admin_kubeconfig]=admin.kubeconfig
+  phase0_session::journal_append() { :; }
+  phase0_ceremony::_record_object() {
+    resource=$2
+    destination=$4
+    case "$resource" in
+      validatingadmissionpolicy) cp "$policy_live" "$destination" ;;
+      validatingadmissionpolicybinding)
+        case "$mock_binding_state" in
+          enforced) cp "$binding_live" "$destination" ;;
+          suspended)
+            yq -o=json -I=0 \
+              '.metadata.resourceVersion = "202" | .spec.validationActions = ["Audit"]' \
+              "$binding_live" > "$destination"
+            ;;
+          *) return 1 ;;
+        esac
+        ;;
+      *) return 1 ;;
+    esac
+    chmod 0400 "$destination"
+  }
+  phase0_ceremony::_binding_patch() {
+    actions=$3
+    patch_calls=$((patch_calls + 1))
+    case "$actions" in
+      '["Audit"]')
+        [[ $mock_binding_state == enforced ]] || return 1
+        mock_binding_state=suspended
+        ;;
+      '["Audit","Deny"]')
+        [[ $mock_binding_state == suspended ]] || return 1
+        mock_binding_state=enforced
+        ;;
+      *) return 1 ;;
+    esac
+  }
+  phase0_ceremony::_patch_fixture() {
+    fixture_calls=$((fixture_calls + 1))
+    if [[ $mock_binding_state == enforced ]]; then
+      printf 'Atlas admission escape canary mutation requires the exact Recovery Operator\n' >&2
+      return 1
+    fi
+  }
+  phase0_ceremony::_wait_policy_typecheck() {
+    cp "$policy_live" "$2"
+    chmod 0400 "$2"
+  }
+
+  if [[ $scenario == drift ]]; then
+    if phase0_ceremony::_admission_escape_drill > /dev/null 2>&1; then
+      test::fail "admission escape accepted a pre-suspend Binding drift"
+    fi
+    [[ $patch_calls == 0 && $fixture_calls == 0 && $mock_binding_state == enforced ]] ||
+      test::fail "pre-suspend Binding drift reached a fixture or Binding mutation"
+    return 0
+  fi
+
+  phase0_ceremony::_admission_escape_drill
+  [[ $patch_calls == 2 && $fixture_calls == 4 && $mock_binding_state == enforced ]] ||
+    test::fail "admission escape did not complete exact suspend and restore"
+  [[ $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-policy-restored.json") == 00000000-0000-0000-0000-000000000101 &&
+  $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-binding-restored.json") == 00000000-0000-0000-0000-000000000102 &&
+  $(yq -r '.status.typeChecking.expressionWarnings | length' \
+    "$scenario_root/authorization/admission-policy-restored-typecheck.json") == 0 ]] ||
+    test::fail "admission restore evidence omitted UID or type-check continuity"
+)
+
+exercise_admission_escape_mock exact
+exercise_admission_escape_mock drift
+
 audit_delta="${session}/audit/current-session-test.jsonl"
+# The local authority maps in the isolated escape scenarios cannot modify the
+# surrounding session map used by this audit fixture.
+# shellcheck disable=SC2031
 printf '%s\n' \
   "{\"kind\":\"Event\",\"requestURI\":\"/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bg-canary-${ATLAS_PHASE0_OPERATION[session_id]}\",\"user\":{\"username\":\"${ATLAS_PHASE0_OPERATION[authorizer_principal]}\"},\"responseStatus\":{\"code\":201},\"requestObject\":{\"metadata\":{\"labels\":{\"atlas.io/recovery-session\":\"${ATLAS_PHASE0_OPERATION[session_id]}\"}}}}" \
   "{\"kind\":\"Event\",\"requestURI\":\"/api/v1/namespaces/kube-system/configmaps/rejected\",\"user\":{\"username\":\"${ATLAS_PHASE0_OPERATION[authorizer_principal]}\"},\"responseStatus\":{\"code\":403},\"annotations\":{\"validation.policy.admission.k8s.io/fence\":\"denied\"}}" \

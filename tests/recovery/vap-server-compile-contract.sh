@@ -239,4 +239,105 @@ verify_live_projections static
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$authorizer_activation" > /dev/null
 verify_live_projections full
 
-test::pass "all 17 Phase-0 definitions compile and match the locked Kubernetes API Server"
+run_escape_drill() {
+  local evidence_session=$1 recovery_calls=$2 journal=$3 principal_kubeconfig=recovery-impersonation
+  mkdir -m 0700 "$evidence_session" "$evidence_session/authorization"
+  : > "$recovery_calls"
+  : > "$journal"
+  ATLAS_PHASE0_OPERATION[evidence_session]=$evidence_session
+  ATLAS_PHASE0_OPERATION[admission_bundle]=$admission_bundle
+  ATLAS_PHASE0_OPERATION[admission_bundle_sha]=$(phase0_session::_sha256 "$admission_bundle")
+  ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=$principal_kubeconfig
+  ATLAS_PHASE0_TARGET[admin_kubeconfig]=$kubeconfig
+  phase0_session::admin() {
+    kubectl --kubeconfig "$kubeconfig" "$@"
+  }
+  phase0_session::_kubectl() {
+    local requested_kubeconfig=$1
+    shift
+    if [[ $requested_kubeconfig == "$principal_kubeconfig" ]]; then
+      printf '%s\n' "$*" >> "$recovery_calls"
+      kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" "$@"
+    elif [[ $requested_kubeconfig == "$kubeconfig" ]]; then
+      kubectl --kubeconfig "$kubeconfig" "$@"
+    else
+      test::fail "escape drill used an unapproved kubeconfig: ${requested_kubeconfig}"
+    fi
+  }
+  phase0_session::journal_append() {
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$journal"
+  }
+  phase0_ceremony::_admission_escape_drill
+}
+
+escape_binding=atlas-bootstrap-admission-escape-canary
+drift_before="${test_workspace}/drift-binding-before.json"
+drift_after="${test_workspace}/drift-binding-after.json"
+drift_projection_before="${test_workspace}/drift-binding-before.projection.json"
+drift_projection_after="${test_workspace}/drift-binding-after.projection.json"
+drift_recovery_calls="${test_workspace}/drift-recovery-calls.txt"
+drift_evidence="${test_workspace}/drift-escape-evidence"
+drift_journal="${test_workspace}/drift-escape-journal.tsv"
+
+kubectl --kubeconfig "$kubeconfig" patch validatingadmissionpolicybinding "$escape_binding" \
+  --type=merge -p '{"metadata":{"labels":{"atlas.io/test-drift":"present"}}}' > /dev/null
+kubectl --kubeconfig "$kubeconfig" get validatingadmissionpolicybinding "$escape_binding" \
+  -o json > "$drift_before"
+if (
+  recovery::die() {
+    printf '%s\n' "$*" >&2
+    return 1
+  }
+  run_escape_drill "$drift_evidence" "$drift_recovery_calls" "$drift_journal"
+) > "${test_workspace}/drift.stdout" 2> "${test_workspace}/drift.stderr"; then
+  test::fail "server-side escape drill accepted a pre-suspend Binding drift"
+fi
+grep -Fq 'drifted from the approved Bundle before suspend' "${test_workspace}/drift.stderr" ||
+  test::fail "pre-suspend drift did not fail at the approved projection gate"
+[[ ! -s $drift_recovery_calls ]] ||
+  test::fail "pre-suspend drift reached the exact Recovery principal mutation path"
+kubectl --kubeconfig "$kubeconfig" get validatingadmissionpolicybinding "$escape_binding" \
+  -o json > "$drift_after"
+yq -o=json -I=0 '
+  {"uid":.metadata.uid,"resourceVersion":.metadata.resourceVersion,
+   "labels":.metadata.labels,"annotations":.metadata.annotations,"spec":.spec} | sort_keys(..)
+' "$drift_before" > "$drift_projection_before"
+yq -o=json -I=0 '
+  {"uid":.metadata.uid,"resourceVersion":.metadata.resourceVersion,
+   "labels":.metadata.labels,"annotations":.metadata.annotations,"spec":.spec} | sort_keys(..)
+' "$drift_after" > "$drift_projection_after"
+cmp -s "$drift_projection_before" "$drift_projection_after" ||
+  test::fail "pre-suspend drift failure changed the Binding"
+
+kubectl --kubeconfig "$kubeconfig" patch validatingadmissionpolicybinding "$escape_binding" \
+  --type=json -p '[{"op":"remove","path":"/metadata/labels/atlas.io~1test-drift"}]' > /dev/null
+verify_live_projections full
+
+escape_evidence="${test_workspace}/escape-evidence"
+escape_recovery_calls="${test_workspace}/escape-recovery-calls.txt"
+escape_journal="${test_workspace}/escape-journal.tsv"
+[[ $(kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" auth can-i patch \
+  "validatingadmissionpolicybindings.admissionregistration.k8s.io/${escape_binding}" 2> /dev/null) == yes ]] ||
+  test::fail "exact Recovery principal lacks the canary escape permission"
+run_escape_drill "$escape_evidence" "$escape_recovery_calls" "$escape_journal"
+[[ $(wc -l < "$escape_recovery_calls" | tr -d ' ') == 2 ]] ||
+  test::fail "server-side escape drill did not use the exact Recovery principal twice"
+grep -Fq $'ADMISSION_SUSPEND\tVERIFIED' "$escape_journal" ||
+  test::fail "server-side escape drill did not verify suspension"
+grep -Fq $'ADMISSION_RESTORE\tVERIFIED' "$escape_journal" ||
+  test::fail "server-side escape drill did not verify exact restore"
+[[ $(yq -o=json -I=0 '.spec.validationActions' \
+  "$escape_evidence/authorization/admission-binding-restored.json") == '["Audit","Deny"]' ]] ||
+  test::fail "server-side escape drill did not restore canonical validationActions"
+[[ $(yq -r '.status.typeChecking.expressionWarnings | length' \
+  "$escape_evidence/authorization/admission-policy-restored-typecheck.json") == 0 ]] ||
+  test::fail "restored Policy did not retain a warning-free type-check"
+policy_uid_before=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admission-policy-enforced.json")
+policy_uid_after=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admission-policy-restored.json")
+binding_uid_before=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admission-binding-enforced.json")
+binding_uid_after=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admission-binding-restored.json")
+[[ $policy_uid_before == "$policy_uid_after" && $binding_uid_before == "$binding_uid_after" ]] ||
+  test::fail "server-side suspend/restore replaced a protected object UID"
+verify_live_projections full
+
+test::pass "all 17 Phase-0 definitions compile, match, and complete exact server-side suspend/restore"
