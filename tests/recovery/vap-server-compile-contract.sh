@@ -9,6 +9,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vap-server-kind-inventory.sh"
 cd "$ATLAS_TEST_ROOT"
 
+recovery::die() {
+  test::fail "$*"
+}
+
+readonly ATLAS_RECOVERY_ROOT_DIR=$ATLAS_TEST_ROOT
+# shellcheck source=bootstrap/recovery/canary-session.sh
+source bootstrap/recovery/canary-session.sh
+# shellcheck source=bootstrap/recovery/canary-ceremony.sh
+source bootstrap/recovery/canary-ceremony.sh
+
 [[ ${ATLAS_CI_KIND_VAP:-} == 1 ]] ||
   test::fail "server-side VAP compilation requires the explicit CI gate"
 [[ $(uname -s) == Linux ]] ||
@@ -118,6 +128,8 @@ admission_bundle="${test_workspace}/admission.yaml"
 session_bundle="${test_workspace}/session.yaml"
 policies="${test_workspace}/policies.yaml"
 negative_policy="${test_workspace}/negative-policy.yaml"
+session_static="${test_workspace}/session-static.yaml"
+authorizer_activation="${test_workspace}/authorizer-activation.yaml"
 
 ./bootstrap/recovery/atlas-recovery phase0 admission-canary-manifests \
   --recovery-operator "$recovery_operator" > "$admission_bundle"
@@ -126,8 +138,15 @@ negative_policy="${test_workspace}/negative-policy.yaml"
   --session-authorizer "$session_authorizer" > "$session_bundle"
 yq ea 'select(.kind == "ValidatingAdmissionPolicy")' \
   "$admission_bundle" "$session_bundle" > "$policies"
+yq ea 'select(.kind != "RoleBinding" or .metadata.name != "atlas-bootstrap-recovery-authorizer-canary")' \
+  "$session_bundle" > "$session_static"
+yq ea 'select(.kind == "RoleBinding" and .metadata.name == "atlas-bootstrap-recovery-authorizer-canary")' \
+  "$session_bundle" > "$authorizer_activation"
 [[ $(yq ea '[.] | length' "$policies") -eq 5 ]] ||
   test::fail "server-side contract did not render exactly five VAPs"
+[[ $(yq ea '[.] | length' "$session_static") -eq 11 &&
+$(yq ea '[.] | length' "$authorizer_activation") -eq 1 ]] ||
+  test::fail "server-side contract did not split the Session Authorizer activation"
 
 negative_name=atlas-bootstrap-recovery-binding-shape-authorization-negative
 RESOURCE_NAME=atlas-bootstrap-recovery-binding-shape-authorization-canary \
@@ -148,7 +167,8 @@ grep -Fq "missing ')'" "${test_workspace}/negative.stderr" ||
 [[ -z $(kubectl --kubeconfig "$kubeconfig" get validatingadmissionpolicy "$negative_name" \
   --ignore-not-found -o name) ]] || test::fail "negative CEL control persisted unexpectedly"
 
-kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$policies" > /dev/null
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$admission_bundle" > /dev/null
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$session_static" > /dev/null
 
 wait_for_typecheck() {
   local name=$1 attempt object generation observed warnings
@@ -179,4 +199,44 @@ live_policy_count=$(kubectl --kubeconfig "$kubeconfig" get validatingadmissionpo
   -l app.kubernetes.io/part-of=atlas-recovery -o json | yq '.items | length')
 ((live_policy_count == 5)) || test::fail "locked API Server does not contain exactly five tested VAPs"
 
-test::pass "all five Phase-0 VAPs compile on the locked Kubernetes API Server"
+verify_live_projections() {
+  local scope=$1 phase namespace resource kind name label bundle count=0 expected=17
+  local desired_raw desired live_raw live
+  while IFS=$'\t' read -r phase namespace resource kind name label; do
+    [[ $scope == full || $phase != activation ]] || continue
+    case "$phase" in
+      admission) bundle=$admission_bundle ;;
+      static) bundle=$session_static ;;
+      activation) bundle=$authorizer_activation ;;
+      *) test::fail "unknown definition phase: ${phase}" ;;
+    esac
+    desired_raw="${test_workspace}/${scope}-${label}-desired-raw.json"
+    desired="${test_workspace}/${scope}-${label}-desired.json"
+    live_raw="${test_workspace}/${scope}-${label}-live-raw.json"
+    live="${test_workspace}/${scope}-${label}-live.json"
+    KIND=$kind NAMESPACE=$namespace NAME=$name yq ea -o=json -I=0 '
+      select(.kind == env(KIND) and .metadata.name == env(NAME) and
+        (.metadata.namespace // "cluster") == env(NAMESPACE))
+    ' "$bundle" > "$desired_raw"
+    [[ $(wc -l < "$desired_raw" | tr -d ' ') == 1 ]] ||
+      test::fail "approved bundle projection is not unique: ${label}"
+    phase0_ceremony::_normalize_definition "$desired_raw" > "$desired"
+    if [[ $namespace == cluster ]]; then
+      kubectl --kubeconfig "$kubeconfig" get "$resource" "$name" -o json > "$live_raw"
+    else
+      kubectl --kubeconfig "$kubeconfig" get "$resource" "$name" -n "$namespace" -o json > "$live_raw"
+    fi
+    phase0_ceremony::_normalize_definition "$live_raw" > "$live"
+    cmp -s "$desired" "$live" ||
+      test::fail "locked API Server projection differs from the approved bundle: ${label}"
+    ((count += 1))
+  done < <(phase0_ceremony::_definition_inventory)
+  [[ $scope == full ]] || expected=16
+  ((count == expected)) || test::fail "server-side projection inventory is incomplete: ${scope}"
+}
+
+verify_live_projections static
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$authorizer_activation" > /dev/null
+verify_live_projections full
+
+test::pass "all 17 Phase-0 definitions compile and match the locked Kubernetes API Server"

@@ -367,7 +367,8 @@ phase0_ceremony::_verify_active_permissions() {
 }
 
 phase0_ceremony::_wait_policy_typecheck() {
-  local name=$1 destination attempt object generation observed warnings
+  local name=$1 destination=$2
+  local attempt object generation observed warnings
   for ((attempt = 0; attempt < ATLAS_PHASE0_WAIT_ATTEMPTS; attempt++)); do
     object=$(phase0_session::admin get validatingadmissionpolicy "$name" -o json) || return 1
     generation=$(yq -r '.metadata.generation' <<< "$object") || return 1
@@ -415,12 +416,28 @@ phase0_ceremony::_normalize_definition() {
       .metadata.creationTimestamp, .metadata.managedFields, .status) |
     (select(.spec.matchConstraints.matchPolicy == "Equivalent") |
       .spec.matchConstraints) |= del(.matchPolicy) |
+    (select(((.spec.matchConstraints.namespaceSelector | type) == "!!map") and
+      ((.spec.matchConstraints.namespaceSelector | length) == 0)) |
+      .spec.matchConstraints) |= del(.namespaceSelector) |
+    (select(((.spec.matchConstraints.objectSelector | type) == "!!map") and
+      ((.spec.matchConstraints.objectSelector | length) == 0)) |
+      .spec.matchConstraints) |= del(.objectSelector) |
     (select(.spec.matchResources.matchPolicy == "Equivalent") |
       .spec.matchResources) |= del(.matchPolicy) |
+    (select(((.spec.matchResources.namespaceSelector | type) == "!!map") and
+      ((.spec.matchResources.namespaceSelector | length) == 0)) |
+      .spec.matchResources) |= del(.namespaceSelector) |
+    (select(((.spec.matchResources.objectSelector | type) == "!!map") and
+      ((.spec.matchResources.objectSelector | length) == 0)) |
+      .spec.matchResources) |= del(.objectSelector) |
     (select(.kind == "ValidatingAdmissionPolicyBinding") |
       .spec.validationActions) |= sort |
     sort_keys(..)
   ' "$1"
+}
+
+phase0_ceremony::_normalized_definition_sha256() {
+  phase0_ceremony::_normalize_definition "$1" | shasum -a 256 | awk '{print $1}'
 }
 
 phase0_ceremony::_desired_definition() {
@@ -442,11 +459,12 @@ phase0_ceremony::_verify_live_definitions() {
   : > "$hash_file" || return 1
   while IFS=$'\t' read -r phase namespace resource kind name label; do
     [[ $scope == full || $phase != activation ]] || continue
-    if [[ $phase == admission ]]; then
-      bundle=$(phase0_session::operation admission_bundle) || return 1
-    else
-      bundle=$(phase0_session::operation session_bundle) || return 1
-    fi
+    case "$phase" in
+      admission) bundle=$(phase0_session::operation admission_bundle) || return 1 ;;
+      static) bundle=$(phase0_session::operation session_static_bundle) || return 1 ;;
+      activation) bundle=$(phase0_session::operation authorizer_activation_bundle) || return 1 ;;
+      *) return 1 ;;
+    esac
     desired=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-desired.json") || return 1
     live=$(phase0_ceremony::_evidence_file "authorization/${scope}-${label}-live.json") || return 1
     phase0_ceremony::_desired_definition "$bundle" "$kind" "$namespace" "$name" "$desired" || return 1
@@ -556,7 +574,7 @@ phase0_ceremony::_admission_escape_drill() {
   restored="$(phase0_ceremony::_evidence_file authorization/admission-binding-restored.json)"
   phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicybinding \
     atlas-bootstrap-admission-escape-canary "$enforced" || return 1
-  before_hash=$(yq -o=json -I=0 '{apiVersion,kind,metadata:{name:.metadata.name,labels:.metadata.labels},spec} | sort_keys(..)' "$enforced" | shasum -a 256 | awk '{print $1}') || return 1
+  before_hash=$(phase0_ceremony::_normalized_definition_sha256 "$enforced") || return 1
   phase0_ceremony::_expect_rejected admission-fixture-enforced \
     'Atlas admission escape canary mutation requires' \
     phase0_ceremony::_patch_fixture "$admin_kubeconfig" denied admission-enforced || return 1
@@ -574,7 +592,7 @@ phase0_ceremony::_admission_escape_drill() {
   phase0_ceremony::_binding_patch "$recovery_kubeconfig" "$suspended" '["Audit","Deny"]' restore || return 1
   phase0_ceremony::_record_object "$admin_kubeconfig" validatingadmissionpolicybinding \
     atlas-bootstrap-admission-escape-canary "$restored" || return 1
-  after_hash=$(yq -o=json -I=0 '{apiVersion,kind,metadata:{name:.metadata.name,labels:.metadata.labels},spec} | sort_keys(..)' "$restored" | shasum -a 256 | awk '{print $1}') || return 1
+  after_hash=$(phase0_ceremony::_normalized_definition_sha256 "$restored") || return 1
   [[ $before_hash == "$after_hash" ]] || return 1
   phase0_ceremony::_expect_rejected admission-fixture-restored \
     'Atlas admission escape canary mutation requires' \
@@ -963,6 +981,7 @@ phase0_ceremony::run() {
     "$authorizer_generation" "$previous_authorizer_generation" || return 1
   phase0_session::_tool_preflight || return 1
   phase0_session::acquire_lock || return 1
+  phase0_session::arm_unexpected_exit_guard
   if phase0_session::prepare; then
     if phase0_session::human_gate; then
       if phase0_session::revalidate; then
@@ -988,5 +1007,6 @@ phase0_ceremony::run() {
   fi
   phase0_session::release_lock || release_status=$?
   ((release_status == 0)) || return "$release_status"
+  phase0_session::disarm_unexpected_exit_guard
   return "$status"
 }
