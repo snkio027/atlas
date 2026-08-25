@@ -76,6 +76,33 @@ phase0_ceremony::_write_principal_kubeconfig() {
   }
 }
 
+phase0_ceremony::_write_csr_manifest() {
+  local destination=$1 csr_name=$2 certificate_request=$3
+  ATLAS_JSON_CSR_NAME=$csr_name \
+    ATLAS_JSON_CERTIFICATE_REQUEST=$certificate_request \
+    ATLAS_JSON_CERTIFICATE_SECONDS=$ATLAS_PHASE0_CERTIFICATE_SECONDS \
+    yq -n -o=json -I=0 '
+      {
+        "apiVersion": "certificates.k8s.io/v1",
+        "kind": "CertificateSigningRequest",
+        "metadata": {
+          "name": strenv(ATLAS_JSON_CSR_NAME),
+          "labels": {
+            "app.kubernetes.io/part-of": "atlas-recovery",
+            "atlas.io/recovery-scope": "canary"
+          }
+        },
+        "spec": {
+          "request": strenv(ATLAS_JSON_CERTIFICATE_REQUEST),
+          "signerName": "kubernetes.io/kube-apiserver-client",
+          "expirationSeconds": (strenv(ATLAS_JSON_CERTIFICATE_SECONDS) | tonumber),
+          "usages": ["digital signature", "client auth"]
+        }
+      }
+    ' > "$destination" || return 1
+  chmod 0400 "$destination" || return 1
+}
+
 phase0_ceremony::_issue_principal() {
   local role=$1 username=$2 csr_name=$3 directory=$4 ca_file=$5
   local key csr certificate kubeconfig csr_manifest csr_snapshot certificate_data
@@ -84,7 +111,7 @@ phase0_ceremony::_issue_principal() {
   csr="${directory}/${role}.csr"
   certificate="${directory}/${role}.crt"
   kubeconfig="${directory}/${role}.kubeconfig"
-  csr_manifest="$(phase0_ceremony::_evidence_file "authorization/${role}-csr.yaml")"
+  csr_manifest="$(phase0_ceremony::_evidence_file "authorization/${role}-csr.json")"
   csr_snapshot="$(phase0_ceremony::_evidence_file "authorization/${role}-csr-issued.json")"
   metadata_file="$(phase0_ceremony::_evidence_file "authorization/${role}-certificate.json")"
 
@@ -108,9 +135,7 @@ phase0_ceremony::_issue_principal() {
   chmod 0600 "$csr" || return 1
   principal_identity::validate_csr "$role" "$username" "$csr" || return 1
   certificate_data=$(base64 < "$csr" | tr -d '\n') || return 1
-  printf 'apiVersion: certificates.k8s.io/v1\nkind: CertificateSigningRequest\nmetadata:\n  name: %s\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\nspec:\n  request: %s\n  signerName: kubernetes.io/kube-apiserver-client\n  expirationSeconds: %d\n  usages:\n    - digital signature\n    - client auth\n' \
-    "$csr_name" "$certificate_data" "$ATLAS_PHASE0_CERTIFICATE_SECONDS" > "$csr_manifest" || return 1
-  chmod 0400 "$csr_manifest" || return 1
+  phase0_ceremony::_write_csr_manifest "$csr_manifest" "$csr_name" "$certificate_data" || return 1
 
   phase0_session::journal_append "CREDENTIAL_${role^^}" STARTED "creating and approving isolated CSR ${csr_name}" || return 1
   phase0_session::admin create --validate=strict -f "$csr_manifest" > /dev/null || return 1
@@ -698,22 +723,100 @@ phase0_ceremony::_admission_escape_drill() {
 }
 
 phase0_ceremony::_write_fence() {
-  local destination=$1
-  printf 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: atlas-bootstrap-operation-fence-canary\n  namespace: kube-system\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\n    atlas.io/recovery-session: %s\nimmutable: true\ndata:\n  schema: atlas.io/bootstrap-operation-fence/v1\n  operationID: %s\n  mode: recovery\n  clusterFingerprintSHA256: %s\n  holderUsername: %s\n  createdAt: %s\n  sessionID: %s\n  recoveryPrincipal: %s\n  authorizerPrincipal: %s\n  planSHA256: %s\n  knownGoodRevision: %s\n' \
-    "$(phase0_session::operation session_id)" "$(phase0_session::operation operation_id)" \
-    "$(phase0_session::operation target_fingerprint)" "$(phase0_session::operation authorizer_principal)" \
-    "$(phase0_session::operation prepared_at)" "$(phase0_session::operation session_id)" \
-    "$(phase0_session::operation recovery_principal)" "$(phase0_session::operation authorizer_principal)" \
-    "$(phase0_session::operation plan_sha)" "$(phase0_session::target known_good_revision)" > "$destination" || return 1
+  local destination=$1 session_id operation_id target_fingerprint authorizer
+  local prepared_at recovery plan_sha revision
+  session_id=$(phase0_session::operation session_id) || return 1
+  operation_id=$(phase0_session::operation operation_id) || return 1
+  target_fingerprint=$(phase0_session::operation target_fingerprint) || return 1
+  authorizer=$(phase0_session::operation authorizer_principal) || return 1
+  prepared_at=$(phase0_session::operation prepared_at) || return 1
+  recovery=$(phase0_session::operation recovery_principal) || return 1
+  plan_sha=$(phase0_session::operation plan_sha) || return 1
+  revision=$(phase0_session::target known_good_revision) || return 1
+  ATLAS_JSON_SESSION_ID=$session_id \
+    ATLAS_JSON_OPERATION_ID=$operation_id \
+    ATLAS_JSON_TARGET_FINGERPRINT=$target_fingerprint \
+    ATLAS_JSON_AUTHORIZER_PRINCIPAL=$authorizer \
+    ATLAS_JSON_PREPARED_AT=$prepared_at \
+    ATLAS_JSON_RECOVERY_PRINCIPAL=$recovery \
+    ATLAS_JSON_PLAN_SHA=$plan_sha \
+    ATLAS_JSON_KNOWN_GOOD_REVISION=$revision \
+    yq -n -o=json -I=0 '
+      {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {
+          "name": "atlas-bootstrap-operation-fence-canary",
+          "namespace": "kube-system",
+          "labels": {
+            "app.kubernetes.io/part-of": "atlas-recovery",
+            "atlas.io/recovery-scope": "canary",
+            "atlas.io/recovery-session": strenv(ATLAS_JSON_SESSION_ID)
+          }
+        },
+        "immutable": true,
+        "data": {
+          "schema": "atlas.io/bootstrap-operation-fence/v1",
+          "operationID": strenv(ATLAS_JSON_OPERATION_ID),
+          "mode": "recovery",
+          "clusterFingerprintSHA256": strenv(ATLAS_JSON_TARGET_FINGERPRINT),
+          "holderUsername": strenv(ATLAS_JSON_AUTHORIZER_PRINCIPAL),
+          "createdAt": strenv(ATLAS_JSON_PREPARED_AT),
+          "sessionID": strenv(ATLAS_JSON_SESSION_ID),
+          "recoveryPrincipal": strenv(ATLAS_JSON_RECOVERY_PRINCIPAL),
+          "authorizerPrincipal": strenv(ATLAS_JSON_AUTHORIZER_PRINCIPAL),
+          "planSHA256": strenv(ATLAS_JSON_PLAN_SHA),
+          "knownGoodRevision": strenv(ATLAS_JSON_KNOWN_GOOD_REVISION)
+        }
+      }
+    ' > "$destination" || return 1
   chmod 0400 "$destination" || return 1
 }
 
 phase0_ceremony::_write_permission_binding() {
   local destination=$1 fence_uid=$2 plan_sha=$3
-  printf 'apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: atlas-bg-canary-%s\n  namespace: kube-system\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\n    atlas.io/recovery-session: %s\n  annotations:\n    atlas.io/recovery-fence-uid: %s\n    atlas.io/recovery-plan-sha256: %s\n    atlas.io/recovery-target-sha256: %s\n    atlas.io/recovery-revision: %s\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: Role\n  name: atlas-bootstrap-recovery-canary\nsubjects:\n  - apiGroup: rbac.authorization.k8s.io\n    kind: User\n    name: %s\n' \
-    "$(phase0_session::operation session_id)" "$(phase0_session::operation session_id)" \
-    "$fence_uid" "$plan_sha" "$(phase0_session::operation target_fingerprint)" \
-    "$(phase0_session::target known_good_revision)" "$(phase0_session::operation recovery_principal)" > "$destination" || return 1
+  local session_id target_fingerprint revision recovery
+  session_id=$(phase0_session::operation session_id) || return 1
+  target_fingerprint=$(phase0_session::operation target_fingerprint) || return 1
+  revision=$(phase0_session::target known_good_revision) || return 1
+  recovery=$(phase0_session::operation recovery_principal) || return 1
+  ATLAS_JSON_SESSION_ID=$session_id \
+    ATLAS_JSON_FENCE_UID=$fence_uid \
+    ATLAS_JSON_PLAN_SHA=$plan_sha \
+    ATLAS_JSON_TARGET_FINGERPRINT=$target_fingerprint \
+    ATLAS_JSON_KNOWN_GOOD_REVISION=$revision \
+    ATLAS_JSON_RECOVERY_PRINCIPAL=$recovery \
+    yq -n -o=json -I=0 '
+      {
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "kind": "RoleBinding",
+        "metadata": {
+          "name": ("atlas-bg-canary-" + strenv(ATLAS_JSON_SESSION_ID)),
+          "namespace": "kube-system",
+          "labels": {
+            "app.kubernetes.io/part-of": "atlas-recovery",
+            "atlas.io/recovery-scope": "canary",
+            "atlas.io/recovery-session": strenv(ATLAS_JSON_SESSION_ID)
+          },
+          "annotations": {
+            "atlas.io/recovery-fence-uid": strenv(ATLAS_JSON_FENCE_UID),
+            "atlas.io/recovery-plan-sha256": strenv(ATLAS_JSON_PLAN_SHA),
+            "atlas.io/recovery-target-sha256": strenv(ATLAS_JSON_TARGET_FINGERPRINT),
+            "atlas.io/recovery-revision": strenv(ATLAS_JSON_KNOWN_GOOD_REVISION)
+          }
+        },
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "atlas-bootstrap-recovery-canary"
+        },
+        "subjects": [{
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "User",
+          "name": strenv(ATLAS_JSON_RECOVERY_PRINCIPAL)
+        }]
+      }
+    ' > "$destination" || return 1
   chmod 0400 "$destination" || return 1
 }
 
@@ -752,11 +855,11 @@ phase0_ceremony::_session_authorization_drill() {
   authorizer=$(phase0_session::operation authorizer_kubeconfig) || return 1
   recovery=$(phase0_session::operation recovery_kubeconfig) || return 1
   admin=$(phase0_session::target admin_kubeconfig) || return 1
-  fence_file="$(phase0_ceremony::_evidence_file authorization/fence.yaml)"
+  fence_file="$(phase0_ceremony::_evidence_file authorization/fence.json)"
   fence_snapshot="$(phase0_ceremony::_evidence_file authorization/fence-live.json)"
-  binding_missing="$(phase0_ceremony::_evidence_file authorization/binding-missing-fence.yaml)"
-  binding_wrong="$(phase0_ceremony::_evidence_file authorization/binding-wrong-lineage.yaml)"
-  binding_exact="$(phase0_ceremony::_evidence_file authorization/binding-exact.yaml)"
+  binding_missing="$(phase0_ceremony::_evidence_file authorization/binding-missing-fence.json)"
+  binding_wrong="$(phase0_ceremony::_evidence_file authorization/binding-wrong-lineage.json)"
+  binding_exact="$(phase0_ceremony::_evidence_file authorization/binding-exact.json)"
   binding_snapshot="$(phase0_ceremony::_evidence_file authorization/binding-live.json)"
   unrelated="$(phase0_ceremony::_evidence_file authorization/unrelated-binding.yaml)"
   noncanonical="$(phase0_ceremony::_evidence_file authorization/noncanonical-configmap.yaml)"
@@ -769,7 +872,7 @@ phase0_ceremony::_session_authorization_drill() {
     'Canary Fence requests must target' \
     phase0_session::_kubectl "$authorizer" create --validate=strict -f "$noncanonical" || return 1
 
-  printf 'apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: atlas-bg-canary-malformed\n  namespace: kube-system\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: Role\n  name: atlas-bootstrap-recovery-canary\nsubjects:\n  - apiGroup: rbac.authorization.k8s.io\n    kind: User\n    name: %s\n' \
+  printf "apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: atlas-bg-canary-malformed\n  namespace: kube-system\n  labels:\n    app.kubernetes.io/part-of: atlas-recovery\n    atlas.io/recovery-scope: canary\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: Role\n  name: atlas-bootstrap-recovery-canary\nsubjects:\n  - apiGroup: rbac.authorization.k8s.io\n    kind: User\n    name: '%s'\n" \
     "$(phase0_session::operation recovery_principal)" > "$malformed_binding" || return 1
   chmod 0400 "$malformed_binding" || return 1
   phase0_ceremony::_expect_rejected shape-malformed-binding \
@@ -1015,6 +1118,10 @@ phase0_ceremony::_verify_audit_delta() {
 
 phase0_ceremony::_finalize_evidence() {
   local session audit_copy audit_prefix audit_delta result manifest file relative boundary_lines
+  [[ -z $ATLAS_PHASE0_LOCK_PATH && -z $ATLAS_PHASE0_LOCK_TOKEN ]] || {
+    recovery::die "Phase-0 evidence cannot close while the runtime lock is held"
+    return 1
+  }
   session=$(phase0_session::operation evidence_session) || return 1
   audit_copy="${session}/audit/kube-apiserver-audit.log"
   audit_prefix="${session}/audit/verified-pre-mutation-prefix.jsonl"
@@ -1039,7 +1146,7 @@ phase0_ceremony::_finalize_evidence() {
   fi
   phase0_session::journal_append RESULT SUCCEEDED "Phase-0 runtime closure evidence completed; drill cluster retained" || return 1
   result="${session}/result.json"
-  printf '{"status":"SUCCEEDED","clusterName":"%s","targetFingerprintSHA256":"%s","sessionID":"%s","canaryResources":"ABSENT","temporaryCredentials":"ABSENT","drillCluster":"RETAINED","journalTipSHA256":"%s"}\n' \
+  printf '{"status":"SUCCEEDED","clusterName":"%s","targetFingerprintSHA256":"%s","sessionID":"%s","canaryResources":"ABSENT","temporaryCredentials":"ABSENT","runtimeLock":"ABSENT","drillCluster":"RETAINED","journalTipSHA256":"%s"}\n' \
     "$(phase0_session::target cluster_name)" "$(phase0_session::operation target_fingerprint)" \
     "$(phase0_session::operation session_id)" "$ATLAS_PHASE0_JOURNAL_PREVIOUS_SHA" > "$result" || return 1
   chmod 0400 "$result" || return 1
@@ -1062,9 +1169,6 @@ phase0_ceremony::_run() {
   phase0_ceremony::_session_authorization_drill || return 1
   phase0_ceremony::_cleanup_cluster_resources || return 1
   phase0_ceremony::_cleanup_credentials || return 1
-  phase0_ceremony::_finalize_evidence || return 1
-  printf 'phase0-runtime\tCLOSED\t%s\t%s\n' \
-    "$(phase0_session::target cluster_name)" "$(phase0_session::operation evidence_session)"
 }
 
 phase0_ceremony::run() {
@@ -1104,6 +1208,16 @@ phase0_ceremony::run() {
   fi
   phase0_session::release_lock || release_status=$?
   ((release_status == 0)) || return "$release_status"
+  if ((status == 0)); then
+    if phase0_ceremony::_finalize_evidence; then
+      printf 'phase0-runtime\tCLOSED\t%s\t%s\n' \
+        "$(phase0_session::target cluster_name)" "$(phase0_session::operation evidence_session)"
+    else
+      status=$?
+      phase0_session::journal_append RESULT FAILED \
+        "runtime resources closed but final evidence sealing failed" || true
+    fi
+  fi
   phase0_session::disarm_unexpected_exit_guard
   return "$status"
 }

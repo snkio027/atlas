@@ -76,12 +76,24 @@ phase0_session::_sha256() {
 }
 
 phase0_session::_json_escape() {
-  local value=$1
+  local value=$1 code octal character escape
+  local LC_ALL=C
   value=${value//\\/\\\\}
   value=${value//\"/\\\"}
   value=${value//$'\n'/\\n}
   value=${value//$'\r'/\\r}
   value=${value//$'\t'/\\t}
+  value=${value//$'\b'/\\b}
+  value=${value//$'\f'/\\f}
+  for ((code = 1; code < 32; code++)); do
+    case "$code" in
+      8 | 9 | 10 | 12 | 13) continue ;;
+    esac
+    printf -v octal '%03o' "$code"
+    printf -v character '%b' "\\${octal}"
+    printf -v escape '\\u%04x' "$code"
+    value=${value//"$character"/$escape}
+  done
   printf '%s' "$value"
 }
 
@@ -621,7 +633,7 @@ phase0_session::_target_fingerprint() {
 }
 
 phase0_session::_assert_runtime_absent() {
-  local namespace resource name output
+  local namespace resource name output retained
   local -a arguments
   while IFS=$'\t' read -r namespace resource name; do
     arguments=(get "$resource" "$name" --ignore-not-found -o name)
@@ -651,6 +663,34 @@ kube-system	rolebinding	atlas-bootstrap-recovery-authorizer-canary
 kube-system	configmap	atlas-bootstrap-recovery-guard-canary
 kube-system	configmap	atlas-bootstrap-operation-fence-canary
 EOF
+
+  retained=$(phase0_session::admin get rolebindings -n kube-system -o json | yq -r '
+    [.items[] | select(
+      .metadata.name == "atlas-bg-canary-malformed" or
+      (.metadata.name | test("^atlas-bg-canary-")) or
+      (.metadata.name | test("^atlas-phase0-unrelated-")) or
+      (has(.metadata.labels) and
+        (.metadata.labels | has("atlas.io/recovery-session")))) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 RoleBinding exists: ${retained}"
+    return 1
+  }
+
+  retained=$(phase0_session::admin get certificatesigningrequests -o json | yq -r '
+    [.items[] | select(
+      (.metadata.name | test("^atlas-bg-recovery-")) or
+      (.metadata.name | test("^atlas-bg-authorizer-")) or
+      (has(.metadata.labels) and
+        .metadata.labels["app.kubernetes.io/part-of"] == "atlas-recovery" and
+        .metadata.labels["atlas.io/recovery-scope"] == "canary")) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 CSR exists: ${retained}"
+    return 1
+  }
 }
 
 phase0_session::_audit_ready() {

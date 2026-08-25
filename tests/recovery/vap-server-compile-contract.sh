@@ -240,7 +240,7 @@ kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$authorizer_acti
 verify_live_projections full
 
 missing_fence_session=0123456789abcdef0123456789abcdef
-missing_fence_binding="${test_workspace}/binding-missing-fence.yaml"
+missing_fence_binding="${test_workspace}/binding-missing-fence.json"
 missing_fence_evidence="${test_workspace}/missing-fence-evidence"
 missing_fence_journal="${test_workspace}/missing-fence-journal.tsv"
 mkdir -m 0700 "$missing_fence_evidence" "$missing_fence_evidence/authorization"
@@ -275,6 +275,84 @@ phase0_ceremony::_expect_rejected permission-missing-fence \
   test::fail "missing-Fence negative control persisted a RoleBinding"
 grep -Fqx $'PROBE\tREJECTED\tpermission-missing-fence' "$missing_fence_journal" ||
   test::fail "server-side missing-Fence rejection was not journaled"
+
+session_evidence="${test_workspace}/session-authorization-evidence"
+session_journal="${test_workspace}/session-authorization-journal.tsv"
+session_authorizer_kubeconfig='session-authorizer-impersonation'
+recovery_operator_kubeconfig='recovery-operator-impersonation'
+mkdir -m 0700 "$session_evidence" "$session_evidence/authorization" "$session_evidence/postflight"
+: > "$session_journal"
+ATLAS_PHASE0_OPERATION[evidence_session]=$session_evidence
+ATLAS_PHASE0_OPERATION[session_id]=01234567890123456789012345678901
+ATLAS_PHASE0_OPERATION[operation_id]=12345678901234567890123456789012
+ATLAS_PHASE0_OPERATION[target_fingerprint]=$(printf '2%.0s' {1..64})
+ATLAS_PHASE0_OPERATION[plan_sha]=$(printf '3%.0s' {1..64})
+ATLAS_PHASE0_OPERATION[prepared_at]=2026-08-25T17:46:00Z
+ATLAS_PHASE0_OPERATION[recovery_principal]=$recovery_operator
+ATLAS_PHASE0_OPERATION[authorizer_principal]=$session_authorizer
+ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]=$session_authorizer_kubeconfig
+ATLAS_PHASE0_OPERATION[recovery_kubeconfig]=$recovery_operator_kubeconfig
+ATLAS_PHASE0_TARGET[admin_kubeconfig]=$kubeconfig
+ATLAS_PHASE0_TARGET[known_good_revision]=$(printf '4%.0s' {1..40})
+phase0_session::admin() {
+  kubectl --kubeconfig "$kubeconfig" "$@"
+}
+phase0_session::_kubectl() {
+  local requested_kubeconfig=$1
+  shift
+  case "$requested_kubeconfig" in
+    "$session_authorizer_kubeconfig")
+      kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" "$@"
+      ;;
+    "$recovery_operator_kubeconfig")
+      kubectl --kubeconfig "$kubeconfig" --as="$recovery_operator" "$@"
+      ;;
+    "$kubeconfig")
+      kubectl --kubeconfig "$kubeconfig" "$@"
+      ;;
+    *)
+      test::fail "session authorization drill used an unapproved kubeconfig: ${requested_kubeconfig}"
+      ;;
+  esac
+}
+phase0_session::journal_append() {
+  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$session_journal"
+}
+phase0_ceremony::_session_authorization_drill
+for expected_record in \
+  $'FENCE\tACQUIRED' \
+  $'PERMISSION\tINSTALLED' \
+  $'GUARD\tVERIFIED' \
+  $'PERMISSION\tREMOVED' \
+  $'FENCE\tRELEASED'; do
+  grep -Fq "$expected_record" "$session_journal" ||
+    test::fail "server-side session authorization drill omitted ${expected_record}"
+done
+grep -Fq 'Canary permission Binding does not match the Fence lineage' \
+  "$session_evidence/authorization/rejected-permission-wrong-lineage.log" ||
+  test::fail "numeric wrong-lineage probe did not reach the Permission VAP"
+[[ $(yq -r '[.metadata.labels."atlas.io/recovery-session", .data.operationID,
+  .data.clusterFingerprintSHA256, .data.sessionID, .data.planSHA256,
+  .data.knownGoodRevision] | map(tag) | unique | .[]' \
+  "$session_evidence/authorization/fence.json") == '!!str' ]] ||
+  test::fail "numeric Fence lineage was not emitted as Kubernetes strings"
+[[ $(yq -r '[.metadata.labels."atlas.io/recovery-session",
+  .metadata.annotations."atlas.io/recovery-fence-uid",
+  .metadata.annotations."atlas.io/recovery-plan-sha256",
+  .metadata.annotations."atlas.io/recovery-target-sha256",
+  .metadata.annotations."atlas.io/recovery-revision"] | map(tag) | unique | .[]' \
+  "$session_evidence/authorization/binding-wrong-lineage.json") == '!!str' ]] ||
+  test::fail "numeric permission lineage was not emitted as Kubernetes strings"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap \
+  atlas-bootstrap-operation-fence-canary -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "server-side session authorization drill left the Fence"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding \
+  "atlas-bg-canary-${ATLAS_PHASE0_OPERATION[session_id]}" \
+  -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "server-side session authorization drill left temporary permission"
+[[ $(kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-recovery-guard-canary \
+  -n kube-system -o json | yq -o=json -I=0 '.data') == '{"sentinel":"recovery-guard-canary"}' ]] ||
+  test::fail "server-side session authorization drill did not restore the inert Guard"
 
 run_escape_drill() {
   local evidence_session=$1 recovery_calls=$2 journal=$3 principal_kubeconfig=recovery-impersonation
@@ -387,4 +465,4 @@ binding_uid_after=$(yq -r '.metadata.uid' "$escape_evidence/authorization/admiss
   test::fail "server-side suspend/restore replaced a protected object UID"
 verify_live_projections full
 
-test::pass "all 17 Phase-0 definitions compile, match, and complete exact server-side suspend/restore"
+test::pass "all 17 definitions compile and the locked API Server completes suspend/restore plus the Fence/Permission/Guard matrix"

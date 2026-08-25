@@ -29,6 +29,12 @@ source bootstrap/recovery/canary-session.sh
 # shellcheck source=bootstrap/recovery/canary-ceremony.sh
 source bootstrap/recovery/canary-ceremony.sh
 
+control_value=$'prefix\001\b\f\037suffix'
+escaped_control=$(phase0_session::_json_escape "$control_value")
+round_trip_control=$(printf '{"value":"%s"}\n' "$escaped_control" | yq -p=json -r '.value')
+[[ $round_trip_control == "$control_value" ]] ||
+  test::fail "JSON evidence escaping does not cover the complete non-NUL C0 range"
+
 recovery_cli=./bootstrap/recovery/atlas-recovery
 
 typecheck_destination="${test_workspace}/typecheck-live.json"
@@ -94,15 +100,46 @@ phase0_session::admin() {
   printf '%s\n' "$*" >> "$calls"
 }
 phase0_session::_assert_runtime_absent
-[[ $(wc -l < "$calls" | tr -d ' ') == 18 ]] || test::fail "runtime absence check did not cover all canary objects"
+[[ $(wc -l < "$calls" | tr -d ' ') == 20 ]] || test::fail "runtime absence check did not cover fixed and dynamic canary objects"
 grep -Fqx 'get configmap atlas-bootstrap-admission-escape-canary --ignore-not-found -o name -n kube-system' "$calls" ||
   test::fail "runtime absence check omitted the admission fixture namespace"
 grep -Fqx 'get validatingadmissionpolicy atlas-bootstrap-recovery-guard-authorization-canary --ignore-not-found -o name' "$calls" ||
   test::fail "runtime absence check omitted a four-control Policy"
 grep -Fqx 'get configmap atlas-bootstrap-operation-fence-canary --ignore-not-found -o name -n kube-system' "$calls" ||
   test::fail "runtime absence check omitted the canonical Fence"
+grep -Fqx 'get rolebindings -n kube-system -o json' "$calls" ||
+  test::fail "runtime absence check omitted dynamic temporary RoleBindings"
+grep -Fqx 'get certificatesigningrequests -o json' "$calls" ||
+  test::fail "runtime absence check omitted retained credential CSRs"
 absence_calls="${test_workspace}/absence-calls"
 cp "$calls" "$absence_calls"
+
+for retained_kind in rolebinding csr; do
+  if (
+    phase0_session::admin() {
+      local IFS=' '
+      case "$*" in
+        'get rolebindings -n kube-system -o json')
+          if [[ $retained_kind == rolebinding ]]; then
+            printf '%s\n' '{"items":[{"metadata":{"name":"atlas-bg-canary-01234567890123456789012345678901"}}]}'
+          else
+            printf '%s\n' '{"items":[]}'
+          fi
+          ;;
+        'get certificatesigningrequests -o json')
+          if [[ $retained_kind == csr ]]; then
+            printf '%s\n' '{"items":[{"metadata":{"name":"atlas-bg-authorizer-g2-retained"}}]}'
+          else
+            printf '%s\n' '{"items":[]}'
+          fi
+          ;;
+      esac
+    }
+    phase0_session::_assert_runtime_absent
+  ) > /dev/null 2>&1; then
+    test::fail "runtime absence check accepted a retained ${retained_kind}"
+  fi
+done
 
 : > "$calls"
 phase0_session::_kubectl() {
@@ -431,21 +468,51 @@ $(yq -r '.authorizerGeneration' "$plan") == 2 &&
 $(yq -r '.previousAuthorizerGeneration' "$plan") == 1 &&
 $(yq -r '.namespaceUID' "$plan") == 00000000-0000-0000-0000-000000000000 ]] ||
   test::fail "runtime plan does not bind every managed path and cluster identity"
-fence="${session}/authorization/fence.yaml"
-binding="${session}/authorization/binding.yaml"
+original_session_id=${ATLAS_PHASE0_OPERATION[session_id]}
+original_operation_id=${ATLAS_PHASE0_OPERATION[operation_id]}
+original_target_fingerprint=${ATLAS_PHASE0_OPERATION[target_fingerprint]}
+original_plan_sha=${ATLAS_PHASE0_OPERATION[plan_sha]}
+original_revision=${ATLAS_PHASE0_TARGET[known_good_revision]}
+ATLAS_PHASE0_OPERATION[session_id]=01234567890123456789012345678901
+ATLAS_PHASE0_OPERATION[operation_id]=12345678901234567890123456789012
+ATLAS_PHASE0_OPERATION[target_fingerprint]=$(printf '3%.0s' {1..64})
+ATLAS_PHASE0_OPERATION[plan_sha]=$(printf '4%.0s' {1..64})
+ATLAS_PHASE0_TARGET[known_good_revision]=$(printf '5%.0s' {1..40})
+fence="${session}/authorization/fence.json"
+binding="${session}/authorization/binding.json"
 phase0_ceremony::_write_fence "$fence"
 phase0_ceremony::_write_permission_binding "$binding" \
   00000000-0000-0000-0000-000000000001 "${ATLAS_PHASE0_OPERATION[plan_sha]}"
 [[ $(yq -r '.metadata.namespace' "$fence") == kube-system &&
 $(yq -r '.immutable' "$fence") == true &&
 $(yq -r '.data | length' "$fence") == 11 &&
-$(yq -r '.data.sessionID' "$fence") == "${ATLAS_PHASE0_OPERATION[session_id]}" ]] ||
+$(yq -r '.data.sessionID' "$fence") == "${ATLAS_PHASE0_OPERATION[session_id]}" &&
+$(yq -r '[.metadata.labels."atlas.io/recovery-session", .data.operationID,
+  .data.clusterFingerprintSHA256, .data.sessionID, .data.planSHA256,
+  .data.knownGoodRevision] | map(tag) | unique | .[]' "$fence") == '!!str' ]] ||
   test::fail "Fence projection is not exact"
 [[ $(yq -r '.metadata.name' "$binding") == "atlas-bg-canary-${ATLAS_PHASE0_OPERATION[session_id]}" &&
 $(yq -r '.metadata.annotations."atlas.io/recovery-fence-uid"' "$binding") == 00000000-0000-0000-0000-000000000001 &&
 $(yq -r '.subjects | length' "$binding") == 1 &&
-$(yq -r '.subjects[0].name' "$binding") == "${ATLAS_PHASE0_OPERATION[recovery_principal]}" ]] ||
+$(yq -r '.subjects[0].name' "$binding") == "${ATLAS_PHASE0_OPERATION[recovery_principal]}" &&
+$(yq -r '[.metadata.labels."atlas.io/recovery-session",
+  .metadata.annotations."atlas.io/recovery-fence-uid",
+  .metadata.annotations."atlas.io/recovery-plan-sha256",
+  .metadata.annotations."atlas.io/recovery-target-sha256",
+  .metadata.annotations."atlas.io/recovery-revision"] | map(tag) | unique | .[]' "$binding") == '!!str' ]] ||
   test::fail "temporary permission Binding projection is not exact"
+csr_manifest="${session}/authorization/numeric-csr.json"
+phase0_ceremony::_write_csr_manifest "$csr_manifest" 12345678901234567890123456789012 \
+  1234567890123456789012345678901234567890
+[[ $(yq -r '.metadata.name | tag' "$csr_manifest") == '!!str' &&
+$(yq -r '.spec.request | tag' "$csr_manifest") == '!!str' &&
+$(yq -r '.spec.expirationSeconds | tag' "$csr_manifest") == '!!int' ]] ||
+  test::fail "runtime object writers do not preserve explicit Kubernetes field types"
+ATLAS_PHASE0_OPERATION[session_id]=$original_session_id
+ATLAS_PHASE0_OPERATION[operation_id]=$original_operation_id
+ATLAS_PHASE0_OPERATION[target_fingerprint]=$original_target_fingerprint
+ATLAS_PHASE0_OPERATION[plan_sha]=$original_plan_sha
+ATLAS_PHASE0_TARGET[known_good_revision]=$original_revision
 
 approved_admission="${session}/authorization/approved-admission.yaml"
 approved_session="${session}/authorization/approved-session.yaml"
@@ -744,7 +811,9 @@ grep -Fq $'get\tget role atlas-bootstrap-recovery-canary --ignore-not-found -o n
   test::fail "cleanup verification escaped the namespaced Role boundary"
 grep -Fq '/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/atlas-bootstrap-recovery-fence-authorization-canary' "$cleanup_calls" ||
   test::fail "cleanup omitted the Fence Policy"
-awk '{print $2 "/" $3}' "$absence_calls" | grep -Fv 'configmap/atlas-bootstrap-operation-fence-canary' | sort > "${test_workspace}/absence-inventory"
+awk '/--ignore-not-found/ {print $2 "/" $3}' "$absence_calls" |
+  grep -Fv 'configmap/atlas-bootstrap-operation-fence-canary' |
+  sort > "${test_workspace}/absence-inventory"
 awk -F $'\t' '$1 != "delete" && $1 != "get" && $1 != "journal" && $1 != "principal" {print $1 "/" $2}' "$cleanup_calls" | sort > "${test_workspace}/cleanup-inventory"
 cmp -s "${test_workspace}/absence-inventory" "${test_workspace}/cleanup-inventory" ||
   test::fail "preflight and cleanup definition inventories differ"
@@ -932,10 +1001,16 @@ phase0_ceremony::_admission_escape_drill() { printf 'escape\n' >> "$order"; }
 phase0_ceremony::_session_authorization_drill() { printf 'controls\n' >> "$order"; }
 phase0_ceremony::_cleanup_cluster_resources() { printf 'resources-clean\n' >> "$order"; }
 phase0_ceremony::_cleanup_credentials() { printf 'credentials-clean\n' >> "$order"; }
-phase0_ceremony::_finalize_evidence() { printf 'evidence\n' >> "$order"; }
 phase0_ceremony::_run > /dev/null
-[[ $(< "$order") == $'audit-boundary\ncredentials\ndefinitions\npermissions-active\nescape\ncontrols\nresources-clean\ncredentials-clean\nevidence' ]] ||
+[[ $(< "$order") == $'audit-boundary\ncredentials\ndefinitions\npermissions-active\nescape\ncontrols\nresources-clean\ncredentials-clean' ]] ||
   test::fail "runtime ceremony order changed"
+if (
+  ATLAS_PHASE0_LOCK_PATH=/tmp/atlas-phase0-runtime-lock
+  ATLAS_PHASE0_LOCK_TOKEN=held
+  phase0_ceremony::_finalize_evidence
+) > /dev/null 2>&1; then
+  test::fail "successful evidence was sealed while the runtime lock remained held"
+fi
 
 : > "$order"
 phase0_session::resolve_target() { printf 'resolve\n' >> "$order"; }
@@ -959,6 +1034,25 @@ else
 fi
 [[ $(< "$order") == $'resolve\npreflight\nlock\nguard-arm\nprepare\ngate\nrevalidate-denied\njournal-PREMUTATION-DENIED\nunlock\nguard-disarm' ]] ||
   test::fail "pre-mutation denial did not release the lifecycle lock"
+
+: > "$order"
+phase0_session::resolve_target() { printf 'resolve\n' >> "$order"; }
+phase0_session::_tool_preflight() { printf 'preflight\n' >> "$order"; }
+phase0_session::acquire_lock() { printf 'lock\n' >> "$order"; }
+phase0_session::arm_unexpected_exit_guard() { printf 'guard-arm\n' >> "$order"; }
+phase0_session::prepare() { printf 'prepare\n' >> "$order"; }
+phase0_session::human_gate() { printf 'gate\n' >> "$order"; }
+phase0_session::revalidate() { printf 'revalidate\n' >> "$order"; }
+phase0_session::journal_append() { printf 'journal-%s-%s\n' "$1" "$2" >> "$order"; }
+phase0_ceremony::_run() { printf 'runtime\n' >> "$order"; }
+phase0_session::release_lock() { printf 'unlock\n' >> "$order"; }
+phase0_ceremony::_finalize_evidence() { printf 'evidence\n' >> "$order"; }
+phase0_session::disarm_unexpected_exit_guard() { printf 'guard-disarm\n' >> "$order"; }
+phase0_session::target() { printf 'test-value\n'; }
+phase0_session::operation() { printf 'test-value\n'; }
+phase0_ceremony::run a b c d e f g h i 3 2 2 1 > /dev/null
+[[ $(< "$order") == $'resolve\npreflight\nlock\nguard-arm\nprepare\ngate\nrevalidate\njournal-PREMUTATION-READY\nruntime\nunlock\nevidence\nguard-disarm' ]] ||
+  test::fail "successful evidence was sealed before the runtime lock was released"
 
 for required_probe in shape-malformed-binding permission-missing-fence guard-data-replacement \
   'CREDENTIALS REVOKED' typeChecking; do
