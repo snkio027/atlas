@@ -991,6 +991,14 @@ git_revalidation_calls="${test_workspace}/git-revalidation-calls"
 [[ $(< "$git_revalidation_calls") == $'paths\ngit-authority' ]] ||
   test::fail "repository or environment drift reached credentials or Kubernetes after the Human Gate"
 
+if (
+  ATLAS_PHASE0_LOCK_PATH=''
+  ATLAS_PHASE0_LOCK_TOKEN=''
+  phase0_ceremony::_capture_runtime_evidence
+) > /dev/null 2>&1; then
+  test::fail "runtime audit evidence was captured without the lifecycle lock"
+fi
+
 order="${test_workspace}/order"
 : > "$order"
 phase0_ceremony::_capture_audit_boundary() { printf 'audit-boundary\n' >> "$order"; }
@@ -1001,8 +1009,9 @@ phase0_ceremony::_admission_escape_drill() { printf 'escape\n' >> "$order"; }
 phase0_ceremony::_session_authorization_drill() { printf 'controls\n' >> "$order"; }
 phase0_ceremony::_cleanup_cluster_resources() { printf 'resources-clean\n' >> "$order"; }
 phase0_ceremony::_cleanup_credentials() { printf 'credentials-clean\n' >> "$order"; }
+phase0_ceremony::_capture_runtime_evidence() { printf 'audit-evidence\n' >> "$order"; }
 phase0_ceremony::_run > /dev/null
-[[ $(< "$order") == $'audit-boundary\ncredentials\ndefinitions\npermissions-active\nescape\ncontrols\nresources-clean\ncredentials-clean' ]] ||
+[[ $(< "$order") == $'audit-boundary\ncredentials\ndefinitions\npermissions-active\nescape\ncontrols\nresources-clean\ncredentials-clean\naudit-evidence' ]] ||
   test::fail "runtime ceremony order changed"
 if (
   ATLAS_PHASE0_LOCK_PATH=/tmp/atlas-phase0-runtime-lock

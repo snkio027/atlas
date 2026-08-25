@@ -1124,10 +1124,10 @@ phase0_ceremony::_verify_audit_delta() {
   }
 }
 
-phase0_ceremony::_finalize_evidence() {
-  local session audit_copy audit_prefix audit_delta result manifest file relative boundary_lines
-  [[ -z $ATLAS_PHASE0_LOCK_PATH && -z $ATLAS_PHASE0_LOCK_TOKEN ]] || {
-    recovery::die "Phase-0 evidence cannot close while the runtime lock is held"
+phase0_ceremony::_capture_runtime_evidence() {
+  local session audit_copy audit_prefix audit_delta boundary_lines
+  [[ -n $ATLAS_PHASE0_LOCK_PATH && -n $ATLAS_PHASE0_LOCK_TOKEN ]] || {
+    recovery::die "Phase-0 audit evidence requires the held runtime lock"
     return 1
   }
   session=$(phase0_session::operation evidence_session) || return 1
@@ -1148,6 +1148,17 @@ phase0_ceremony::_finalize_evidence() {
   sed -n "$((boundary_lines + 1)),\$p" "$audit_copy" > "$audit_delta" || return 1
   chmod 0400 "$audit_prefix" "$audit_delta" || return 1
   phase0_ceremony::_verify_audit_delta "$audit_delta" || return 1
+  phase0_session::journal_append AUDIT_DELTA VERIFIED \
+    "current-session audit evidence frozen under the runtime lock" || return 1
+}
+
+phase0_ceremony::_finalize_evidence() {
+  local session result manifest file relative
+  [[ -z $ATLAS_PHASE0_LOCK_PATH && -z $ATLAS_PHASE0_LOCK_TOKEN ]] || {
+    recovery::die "Phase-0 evidence cannot close while the runtime lock is held"
+    return 1
+  }
+  session=$(phase0_session::operation evidence_session) || return 1
   if grep -ERq 'BEGIN ([A-Z ]+)?PRIVATE KEY|client-key-data|bearerToken|"token"[[:space:]]*:' "$session"; then
     recovery::die "credential material was detected in Phase-0 evidence"
     return 1
@@ -1177,6 +1188,7 @@ phase0_ceremony::_run() {
   phase0_ceremony::_session_authorization_drill || return 1
   phase0_ceremony::_cleanup_cluster_resources || return 1
   phase0_ceremony::_cleanup_credentials || return 1
+  phase0_ceremony::_capture_runtime_evidence || return 1
 }
 
 phase0_ceremony::run() {
