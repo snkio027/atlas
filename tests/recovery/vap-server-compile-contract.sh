@@ -321,8 +321,13 @@ escape_journal="${test_workspace}/escape-journal.tsv"
   "validatingadmissionpolicybindings.admissionregistration.k8s.io/${escape_binding}" 2> /dev/null) == yes ]] ||
   test::fail "exact Recovery principal lacks the canary escape permission"
 run_escape_drill "$escape_evidence" "$escape_recovery_calls" "$escape_journal"
-[[ $(wc -l < "$escape_recovery_calls" | tr -d ' ') == 2 ]] ||
-  test::fail "server-side escape drill did not use the exact Recovery principal twice"
+mapfile -t escape_recovery_commands < "$escape_recovery_calls"
+expected_suspend_command="patch validatingadmissionpolicybinding atlas-bootstrap-admission-escape-canary --type=json --patch-file ${escape_evidence}/authorization/suspend-patch.json"
+expected_restore_command="patch validatingadmissionpolicybinding atlas-bootstrap-admission-escape-canary --type=json --patch-file ${escape_evidence}/authorization/restore-patch.json"
+[[ ${#escape_recovery_commands[@]} == 2 &&
+  ${escape_recovery_commands[0]} == "$expected_suspend_command" &&
+  ${escape_recovery_commands[1]} == "$expected_restore_command" ]] ||
+  test::fail "server-side escape drill did not limit the exact Recovery principal to suspend and restore"
 grep -Fq $'ADMISSION_SUSPEND\tVERIFIED' "$escape_journal" ||
   test::fail "server-side escape drill did not verify suspension"
 grep -Fq $'ADMISSION_RESTORE\tVERIFIED' "$escape_journal" ||
