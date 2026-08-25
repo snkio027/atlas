@@ -1055,6 +1055,7 @@ phase0_ceremony::run a b c d e f g h i 3 2 2 1 > /dev/null
   test::fail "successful evidence was sealed before the runtime lock was released"
 
 for required_probe in shape-malformed-binding permission-missing-fence guard-data-replacement \
+  guard-metadata-replacement \
   'CREDENTIALS REVOKED' typeChecking; do
   grep -Fq "$required_probe" bootstrap/recovery/canary-ceremony.sh ||
     test::fail "runtime ceremony omitted required probe: ${required_probe}"

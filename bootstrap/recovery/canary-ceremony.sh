@@ -842,6 +842,10 @@ phase0_ceremony::_guard_patch() {
       printf '[{"op":"test","path":"/metadata/uid","value":"%s"},{"op":"test","path":"/metadata/resourceVersion","value":"%s"},{"op":"remove","path":"%s"},{"op":"add","path":"/data/unexpected","value":"replacement"}]\n' \
         "$uid" "$resource_version" "$path" > "$patch"
       ;;
+    metadata-bypass)
+      printf '[{"op":"test","path":"/metadata/uid","value":"%s"},{"op":"test","path":"/metadata/resourceVersion","value":"%s"},{"op":"add","path":"/metadata/annotations","value":{"atlas.io/unapproved":"drift"}},{"op":"add","path":"%s","value":"%s"}]\n' \
+        "$uid" "$resource_version" "$path" "$ATLAS_PHASE0_GUARD_VALUE" > "$patch"
+      ;;
     *) return 1 ;;
   esac
   chmod 0400 "$patch" || return 1
@@ -924,6 +928,9 @@ phase0_ceremony::_session_authorization_drill() {
   phase0_ceremony::_expect_rejected guard-ordinary-add \
     'Canary guard mutation requires the exact Recovery Operator' \
     phase0_ceremony::_guard_patch "$admin" add guard-ordinary-add || return 1
+  phase0_ceremony::_expect_rejected guard-metadata-replacement \
+    'Canary guard UPDATE changed a field outside the guarded projection' \
+    phase0_ceremony::_guard_patch "$recovery" metadata-bypass guard-metadata-replacement || return 1
   phase0_ceremony::_guard_patch "$recovery" add guard-add || return 1
   phase0_ceremony::_expect_rejected guard-data-replacement \
     'Canary guard UPDATE changed a field outside the guarded projection' \
@@ -932,7 +939,8 @@ phase0_ceremony::_session_authorization_drill() {
     'Canary guard mutation requires the exact Recovery Operator' \
     phase0_ceremony::_guard_patch "$admin" remove guard-ordinary-remove || return 1
   phase0_ceremony::_guard_patch "$recovery" remove guard-remove || return 1
-  phase0_session::journal_append GUARD VERIFIED "exact add/remove allowed; ordinary and replacement mutations denied" || return 1
+  phase0_session::journal_append GUARD VERIFIED \
+    "exact add/remove allowed; ordinary, metadata, and data replacement mutations denied" || return 1
 
   phase0_ceremony::_delete_with_preconditions "$authorizer" \
     "/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bg-canary-$(phase0_session::operation session_id)" \
