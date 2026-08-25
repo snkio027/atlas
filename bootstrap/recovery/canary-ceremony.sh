@@ -299,49 +299,53 @@ phase0_ceremony::_assert_permission_inventory_non_mutating() {
   done < "$inventory"
 }
 
-phase0_ceremony::_assert_can_i() {
-  local kubeconfig=$1 expected=$2 output status
-  shift 2
-  if output=$(phase0_session::principal "$kubeconfig" auth can-i "$@"); then
+phase0_ceremony::_can_i_state() {
+  local kubeconfig=$1 diagnostics=$2 label=$3 output status
+  shift 3
+  : > "$diagnostics" || return 1
+  if output=$(phase0_session::principal "$kubeconfig" auth can-i "$@" 2> "$diagnostics"); then
     status=0
   else
     status=$?
   fi
-  case "$expected" in
-    yes) [[ $status == 0 && $output == yes ]] ;;
-    no) [[ $status == 1 && $output == no ]] ;;
-    *) return 1 ;;
+  if [[ -s $diagnostics ]]; then
+    chmod 0400 "$diagnostics" || return 1
+    recovery::die "authorization probe produced an unexpected diagnostic: ${label}"
+    return 1
+  fi
+  case "${status}:${output}" in
+    0:yes) printf 'yes\n' ;;
+    1:no) printf 'no\n' ;;
+    *)
+      chmod 0400 "$diagnostics" || return 1
+      recovery::die "authorization probe returned an invalid result: ${label}"
+      return 1
+      ;;
   esac
 }
 
+phase0_ceremony::_assert_can_i() {
+  local kubeconfig=$1 expected=$2 diagnostics state
+  shift 2
+  [[ $expected == yes || $expected == no ]] || return 1
+  diagnostics=$(phase0_ceremony::_evidence_file authorization/assert-can-i.stderr.tmp) || return 1
+  state=$(phase0_ceremony::_can_i_state "$kubeconfig" "$diagnostics" single-assertion "$@") || return 1
+  rm -f -- "$diagnostics" || return 1
+  [[ $state == "$expected" ]]
+}
+
 phase0_ceremony::_wait_can_i() {
-  local kubeconfig=$1 expected=$2 label=$3 attempt output status state diagnostics observations
+  local kubeconfig=$1 expected=$2 label=$3 attempt state diagnostics observations
   shift 3
   [[ $expected == yes || $expected == no ]] || return 1
   diagnostics=$(phase0_ceremony::_evidence_file "authorization/${label}-can-i.stderr") || return 1
   observations=$(phase0_ceremony::_evidence_file "authorization/${label}-can-i.tsv") || return 1
   : > "$observations" || return 1
   for ((attempt = 1; attempt <= ATLAS_PHASE0_WAIT_ATTEMPTS; attempt++)); do
-    : > "$diagnostics" || return 1
-    if output=$(phase0_session::principal "$kubeconfig" auth can-i "$@" 2> "$diagnostics"); then
-      status=0
-    else
-      status=$?
-    fi
-    if [[ -s $diagnostics ]]; then
-      chmod 0400 "$diagnostics" "$observations" || return 1
-      recovery::die "RBAC convergence probe produced an unexpected diagnostic: ${label}"
+    state=$(phase0_ceremony::_can_i_state "$kubeconfig" "$diagnostics" "RBAC convergence ${label}" "$@") || {
+      chmod 0400 "$observations" || return 1
       return 1
-    fi
-    case "${status}:${output}" in
-      0:yes) state=yes ;;
-      1:no) state=no ;;
-      *)
-        chmod 0400 "$diagnostics" "$observations" || return 1
-        recovery::die "RBAC convergence probe returned an invalid result: ${label}"
-        return 1
-        ;;
-    esac
+    }
     printf '%d\t%s\n' "$attempt" "$state" >> "$observations" || return 1
     if [[ $state == "$expected" ]]; then
       chmod 0400 "$diagnostics" "$observations" || return 1
@@ -358,7 +362,7 @@ phase0_ceremony::_assert_mutation_denied() {
   local kubeconfig=$1 label=$2 verb resource namespace
   while IFS=$'\t' read -r verb resource namespace; do
     if [[ $namespace == cluster ]]; then
-      phase0_ceremony::_assert_can_i "$kubeconfig" no "$verb" "$resource" || {
+      phase0_ceremony::_assert_can_i "$kubeconfig" no "$verb" "$resource" --all-namespaces || {
         recovery::die "credential unexpectedly retains mutation permission: ${label} ${verb} ${resource} ${namespace}"
         return 1
       }
@@ -410,8 +414,10 @@ phase0_ceremony::_capture_permission_baseline() {
 
 phase0_ceremony::_verify_active_permissions() {
   local role kubeconfig baseline active
-  phase0_ceremony::_assert_can_i "$(phase0_session::operation recovery_kubeconfig)" yes \
-    patch validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary || return 1
+  phase0_ceremony::_wait_can_i "$(phase0_session::operation recovery_kubeconfig)" yes \
+    recovery-escape-grant patch \
+    validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary \
+    --all-namespaces || return 1
   phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" yes \
     create configmaps -n kube-system || return 1
   phase0_ceremony::_assert_can_i "$(phase0_session::operation authorizer_kubeconfig)" yes \
@@ -1012,6 +1018,12 @@ phase0_ceremony::_session_authorization_drill() {
     "/apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/atlas-bg-canary-$(phase0_session::operation session_id)" \
     "$binding_snapshot" permission-binding || return 1
   phase0_session::journal_append PERMISSION REMOVED "temporary RoleBinding deleted with UID/resourceVersion preconditions" || return 1
+  phase0_ceremony::_wait_can_i "$recovery" no recovery-guard-patch-revoke \
+    patch configmaps/atlas-bootstrap-recovery-guard-canary -n kube-system || return 1
+  phase0_ceremony::_wait_can_i "$recovery" no recovery-guard-update-revoke \
+    update configmaps/atlas-bootstrap-recovery-guard-canary -n kube-system || return 1
+  phase0_session::journal_append PERMISSION REVOKED \
+    "temporary Recovery patch/update authority converged to denied" || return 1
   phase0_ceremony::_delete_with_preconditions "$authorizer" \
     /api/v1/namespaces/kube-system/configmaps/atlas-bootstrap-operation-fence-canary \
     "$fence_snapshot" fence || return 1

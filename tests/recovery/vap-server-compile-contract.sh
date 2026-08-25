@@ -323,15 +323,30 @@ phase0_session::_kubectl() {
 phase0_session::journal_append() {
   printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$session_journal"
 }
+phase0_ceremony::_wait_can_i "$recovery_operator_kubeconfig" yes \
+  recovery-escape-grant patch \
+  validatingadmissionpolicybindings.admissionregistration.k8s.io/atlas-bootstrap-admission-escape-canary \
+  --all-namespaces
 phase0_ceremony::_session_authorization_drill
 for expected_record in \
   $'FENCE\tACQUIRED' \
   $'PERMISSION\tINSTALLED' \
   $'GUARD\tVERIFIED' \
   $'PERMISSION\tREMOVED' \
+  $'PERMISSION\tREVOKED' \
   $'FENCE\tRELEASED'; do
   grep -Fq "$expected_record" "$session_journal" ||
     test::fail "server-side session authorization drill omitted ${expected_record}"
+done
+for convergence_proof in \
+  recovery-escape-grant:yes \
+  recovery-guard-patch-revoke:no \
+  recovery-guard-update-revoke:no; do
+  proof_label=${convergence_proof%%:*}
+  proof_state=${convergence_proof#*:}
+  [[ $(tail -n 1 "$session_evidence/authorization/${proof_label}-can-i.tsv" | cut -f2) == "$proof_state" &&
+  ! -s $session_evidence/authorization/${proof_label}-can-i.stderr ]] ||
+    test::fail "server-side Ceremony lacks a clean ${proof_label} convergence proof"
 done
 grep -Fq 'Canary permission Binding does not match the Fence lineage' \
   "$session_evidence/authorization/rejected-permission-wrong-lineage.log" ||

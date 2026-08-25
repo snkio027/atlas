@@ -317,6 +317,22 @@ if (
   test::fail "RBAC waiter accepted an authorization diagnostic"
 fi
 
+assert_can_i_diagnostic="${session}/authorization/assert-can-i.stderr.tmp"
+if (
+  phase0_session::principal() {
+    printf 'no\n'
+    printf 'Warning: cluster scope was not explicit\n' >&2
+    return 1
+  }
+  phase0_ceremony::_assert_can_i principal.kubeconfig no patch \
+    validatingadmissionpolicies.admissionregistration.k8s.io/test --all-namespaces
+) > /dev/null 2>&1; then
+  test::fail "single authorization assertion accepted a diagnostic"
+fi
+grep -Fqx 'Warning: cluster scope was not explicit' "$assert_can_i_diagnostic" ||
+  test::fail "single authorization assertion did not preserve its rejected diagnostic"
+rm -f -- "$assert_can_i_diagnostic"
+
 missing_fence_log="${session}/authorization/rejected-permission-missing-fence.log"
 missing_fence_journal="${test_workspace}/missing-fence-journal"
 (
@@ -1022,21 +1038,25 @@ ATLAS_PHASE0_OPERATION[recovery_kubeconfig]='recovery-current-g3.kubeconfig'
 ATLAS_PHASE0_OPERATION[previous_recovery_kubeconfig]='recovery-previous-g2.kubeconfig'
 ATLAS_PHASE0_OPERATION[authorizer_kubeconfig]='authorizer-current-g2.kubeconfig'
 ATLAS_PHASE0_OPERATION[previous_authorizer_kubeconfig]='authorizer-previous-g1.kubeconfig'
-printf 'baseline\n' > "${session}/authorization/previous_recovery-permissions-before.txt"
-printf 'baseline\n' > "${session}/authorization/previous_authorizer-permissions-before.txt"
 verify_active_permissions() (
-  local allow_old=$1 kubeconfig command resource
+  local allow_old=$1 kubeconfig command resource scenario_evidence
   : > "$permission_calls"
+  scenario_evidence="${test_workspace}/active-permissions-${allow_old}"
+  mkdir -m 0700 "$scenario_evidence" "$scenario_evidence/authorization"
+  ATLAS_PHASE0_OPERATION[evidence_session]=$scenario_evidence
+  printf 'baseline\n' > "${scenario_evidence}/authorization/previous_recovery-permissions-before.txt"
+  printf 'baseline\n' > "${scenario_evidence}/authorization/previous_authorizer-permissions-before.txt"
   phase0_session::journal_append() { :; }
   phase0_ceremony::_permission_inventory() {
     printf 'baseline\n' > "$2"
     chmod 0400 "$2"
   }
   phase0_session::principal() {
+    local IFS=' '
     kubeconfig=$1
     command=$4
     resource=${5:-}
-    printf '%s\t%s\t%s\n' "$kubeconfig" "$command" "$resource" >> "$permission_calls"
+    printf '%s\t%s\t%s\t%s\n' "$kubeconfig" "$command" "$resource" "$*" >> "$permission_calls"
     if [[ $kubeconfig == recovery-current-g3.kubeconfig && $command == patch ]]; then
       printf 'yes\n'
       return
@@ -1057,6 +1077,8 @@ verify_active_permissions() (
 verify_active_permissions false
 [[ $(grep -c -- '-previous-g' "$permission_calls") == 14 ]] ||
   test::fail "old-generation denial did not cover the complete mutation matrix"
+grep -Fq -- '--all-namespaces' "$permission_calls" ||
+  test::fail "cluster-scoped permission assertions did not declare their scope"
 if verify_active_permissions true > /dev/null 2>&1; then
   test::fail "active permission verification accepted an old-generation mutation grant"
 fi
