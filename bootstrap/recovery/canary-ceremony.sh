@@ -563,7 +563,9 @@ phase0_ceremony::_binding_patch() {
 }
 
 phase0_ceremony::_patch_fixture() {
-  local kubeconfig=$1 value=$2 label=$3 snapshot uid resource_version patch
+  local kubeconfig=$1 value=$2 label=$3 dry_run=${4:-false} snapshot uid resource_version patch
+  local -a arguments
+  [[ $dry_run == true || $dry_run == false ]] || return 1
   snapshot="$(phase0_ceremony::_evidence_file "authorization/${label}-fixture-before.json")"
   phase0_ceremony::_record_object "$(phase0_session::target admin_kubeconfig)" configmap \
     atlas-bootstrap-admission-escape-canary "$snapshot" || return 1
@@ -573,8 +575,34 @@ phase0_ceremony::_patch_fixture() {
   printf '[{"op":"test","path":"/metadata/uid","value":"%s"},{"op":"test","path":"/metadata/resourceVersion","value":"%s"},{"op":"replace","path":"/data/sentinel","value":"%s"}]\n' \
     "$uid" "$resource_version" "$value" > "$patch" || return 1
   chmod 0400 "$patch" || return 1
-  phase0_session::_kubectl "$kubeconfig" patch configmap atlas-bootstrap-admission-escape-canary \
-    -n kube-system --type=json --patch-file "$patch" > /dev/null
+  arguments=(patch configmap atlas-bootstrap-admission-escape-canary
+    -n kube-system --type=json --patch-file "$patch")
+  [[ $dry_run == false ]] || arguments+=(--dry-run=server)
+  phase0_session::_kubectl "$kubeconfig" "${arguments[@]}" > /dev/null
+}
+
+phase0_ceremony::_wait_fixture_admission() {
+  local kubeconfig=$1 expected=$2 value=$3 label=$4 expected_diagnostic=$5
+  local attempt attempt_label diagnostic
+  [[ $expected == allowed || $expected == denied ]] || return 1
+  for ((attempt = 1; attempt <= ATLAS_PHASE0_WAIT_ATTEMPTS; attempt++)); do
+    attempt_label="${label}-$(printf '%02d' "$attempt")"
+    diagnostic="$(phase0_ceremony::_evidence_file "authorization/${attempt_label}.stderr")" || return 1
+    if phase0_ceremony::_patch_fixture "$kubeconfig" "$value" "$attempt_label" true 2> "$diagnostic"; then
+      chmod 0400 "$diagnostic" || return 1
+      [[ $expected == allowed ]] && return 0
+    else
+      chmod 0400 "$diagnostic" || return 1
+      grep -Fqi "$expected_diagnostic" "$diagnostic" || {
+        recovery::die "admission propagation probe failed for an unexpected reason: ${label}"
+        return 1
+      }
+      [[ $expected == denied ]] && return 0
+    fi
+    sleep 1
+  done
+  recovery::die "admission propagation did not reach the approved ${expected} state: ${label}"
+  return 1
 }
 
 phase0_ceremony::_admission_escape_drill() {
@@ -640,6 +668,8 @@ phase0_ceremony::_admission_escape_drill() {
   [[ $(yq -r '.metadata.uid' "$suspended") == "$binding_uid" ]] || return 1
   phase0_ceremony::_assert_validation_actions "$suspended" '["Audit"]' || return 1
   [[ $(yq -o=json -I=0 '.spec.validationActions' "$suspended") == '["Audit"]' ]] || return 1
+  phase0_ceremony::_wait_fixture_admission "$admin_kubeconfig" allowed suspended \
+    admission-suspended-propagation 'Atlas admission escape canary mutation requires' || return 1
   phase0_ceremony::_patch_fixture "$admin_kubeconfig" suspended admission-suspended || return 1
   phase0_ceremony::_patch_fixture "$admin_kubeconfig" admission-escape-canary admission-reverted || return 1
   phase0_session::journal_append ADMISSION_SUSPEND VERIFIED "ordinary mutation audited while suspended and fixture restored" || return 1
@@ -661,11 +691,10 @@ phase0_ceremony::_admission_escape_drill() {
     "$restored_typechecked" || return 1
   [[ $(yq -r '.metadata.uid' "$restored_typechecked") == "$policy_uid" &&
   $(phase0_ceremony::_normalized_definition_sha256 "$restored_typechecked") == "$approved_policy_hash" ]] || return 1
-  phase0_ceremony::_expect_rejected admission-fixture-restored \
-    'Atlas admission escape canary mutation requires' \
-    phase0_ceremony::_patch_fixture "$admin_kubeconfig" denied admission-restored || return 1
+  phase0_ceremony::_wait_fixture_admission "$admin_kubeconfig" denied denied \
+    admission-restored-propagation 'Atlas admission escape canary mutation requires' || return 1
   phase0_session::journal_append ADMISSION_RESTORE VERIFIED \
-    "approved Policy and Binding projections, UIDs and Policy type-check restored; ordinary mutation denied" || return 1
+    "approved Policy and Binding projections, UIDs and Policy type-check restored; server-side ordinary mutation denied" || return 1
 }
 
 phase0_ceremony::_write_fence() {

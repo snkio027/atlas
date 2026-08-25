@@ -483,7 +483,7 @@ projection_drift=''
 # shellcheck disable=SC2030,SC2031
 exercise_admission_escape_mock() (
   local scenario=$1 scenario_root policy_live binding_live mock_binding_state=enforced
-  local patch_calls=0 fixture_calls=0 resource destination actions
+  local patch_calls=0 fixture_calls=0 propagation_pending='' resource destination actions dry_run
   local -A ATLAS_PHASE0_OPERATION=()
   local -A ATLAS_PHASE0_TARGET=()
   scenario_root="${test_workspace}/admission-escape-${scenario}"
@@ -539,21 +539,34 @@ exercise_admission_escape_mock() (
       '["Audit"]')
         [[ $mock_binding_state == enforced ]] || return 1
         mock_binding_state=suspended
+        propagation_pending=suspend
         ;;
       '["Audit","Deny"]')
         [[ $mock_binding_state == suspended ]] || return 1
         mock_binding_state=enforced
+        propagation_pending=restore
         ;;
       *) return 1 ;;
     esac
   }
   phase0_ceremony::_patch_fixture() {
+    dry_run=${4:-false}
     fixture_calls=$((fixture_calls + 1))
+    if [[ $dry_run == true && $propagation_pending == suspend ]]; then
+      propagation_pending=''
+      printf 'Atlas admission escape canary mutation requires the exact Recovery Operator\n' >&2
+      return 1
+    fi
+    if [[ $dry_run == true && $propagation_pending == restore ]]; then
+      propagation_pending=''
+      return 0
+    fi
     if [[ $mock_binding_state == enforced ]]; then
       printf 'Atlas admission escape canary mutation requires the exact Recovery Operator\n' >&2
       return 1
     fi
   }
+  sleep() { :; }
   phase0_ceremony::_wait_policy_typecheck() {
     cp "$policy_live" "$2"
     chmod 0400 "$2"
@@ -569,8 +582,9 @@ exercise_admission_escape_mock() (
   fi
 
   phase0_ceremony::_admission_escape_drill
-  [[ $patch_calls == 2 && $fixture_calls == 4 && $mock_binding_state == enforced ]] ||
-    test::fail "admission escape did not complete exact suspend and restore"
+  [[ $patch_calls == 2 && $fixture_calls == 7 && $mock_binding_state == enforced &&
+    -z $propagation_pending ]] ||
+    test::fail "admission escape did not wait for exact suspend and restore propagation"
   [[ $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-policy-restored.json") == 00000000-0000-0000-0000-000000000101 &&
   $(yq -r '.metadata.uid' "$scenario_root/authorization/admission-binding-restored.json") == 00000000-0000-0000-0000-000000000102 &&
   $(yq -r '.status.typeChecking.expressionWarnings | length' \
