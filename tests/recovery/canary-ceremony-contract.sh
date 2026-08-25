@@ -198,6 +198,43 @@ ATLAS_PHASE0_TARGET[previous_recovery_generation]=2
 ATLAS_PHASE0_TARGET[authorizer_generation]=2
 ATLAS_PHASE0_TARGET[previous_authorizer_generation]=1
 
+missing_fence_log="${session}/authorization/rejected-permission-missing-fence.log"
+missing_fence_journal="${test_workspace}/missing-fence-journal"
+(
+  phase0_session::journal_append() {
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$missing_fence_journal"
+  }
+  # Invoked indirectly by _expect_rejected.
+  # shellcheck disable=SC2329
+  missing_fence_denial() {
+    printf '%s\n' \
+      "failed to configure binding: no params found for policy binding with \`Deny\` parameterNotFoundAction" >&2
+    return 1
+  }
+  phase0_ceremony::_expect_rejected permission-missing-fence \
+    "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
+    missing_fence_denial
+)
+grep -Fq "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
+  "$missing_fence_log" ||
+  test::fail "current Kubernetes missing-Fence denial was not accepted"
+grep -Fqx $'PROBE\tREJECTED\tpermission-missing-fence' "$missing_fence_journal" ||
+  test::fail "accepted missing-Fence denial was not journaled"
+if (
+  phase0_session::journal_append() { :; }
+  # Invoked indirectly by _expect_rejected.
+  # shellcheck disable=SC2329
+  unrelated_denial() {
+    printf '%s\n' 'forbidden by an unrelated authorization layer' >&2
+    return 1
+  }
+  phase0_ceremony::_expect_rejected permission-missing-fence-unrelated \
+    "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
+    unrelated_denial
+) > /dev/null 2>&1; then
+  test::fail "missing-Fence classifier accepted an unrelated denial"
+fi
+
 invalid_credential_calls="${test_workspace}/invalid-credential-calls"
 (
   : > "$invalid_credential_calls"

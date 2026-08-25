@@ -239,6 +239,43 @@ verify_live_projections static
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$authorizer_activation" > /dev/null
 verify_live_projections full
 
+missing_fence_session=0123456789abcdef0123456789abcdef
+missing_fence_binding="${test_workspace}/binding-missing-fence.yaml"
+missing_fence_evidence="${test_workspace}/missing-fence-evidence"
+missing_fence_journal="${test_workspace}/missing-fence-journal.tsv"
+mkdir -m 0700 "$missing_fence_evidence" "$missing_fence_evidence/authorization"
+: > "$missing_fence_journal"
+ATLAS_PHASE0_OPERATION["evidence_session"]=$missing_fence_evidence
+ATLAS_PHASE0_OPERATION["session_id"]=$missing_fence_session
+ATLAS_PHASE0_OPERATION["target_fingerprint"]=$(printf 'a%.0s' {1..64})
+ATLAS_PHASE0_OPERATION["plan_sha"]=$(printf 'b%.0s' {1..64})
+ATLAS_PHASE0_OPERATION["recovery_principal"]=$recovery_operator
+ATLAS_PHASE0_TARGET["known_good_revision"]=$(printf 'c%.0s' {1..40})
+phase0_ceremony::_write_permission_binding "$missing_fence_binding" \
+  00000000-0000-0000-0000-000000000000 "${ATLAS_PHASE0_OPERATION[plan_sha]}"
+missing_fence_name="atlas-bg-canary-${missing_fence_session}"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding "$missing_fence_name" \
+  -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "missing-Fence negative control already exists"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap \
+  atlas-bootstrap-operation-fence-canary -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "missing-Fence negative control unexpectedly found a Fence"
+[[ $(kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" auth can-i create \
+  rolebindings.rbac.authorization.k8s.io -n kube-system 2> /dev/null) == yes ]] ||
+  test::fail "exact Session Authorizer lacks the permission required by the negative control"
+phase0_session::journal_append() {
+  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$missing_fence_journal"
+}
+phase0_ceremony::_expect_rejected permission-missing-fence \
+  "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
+  kubectl --kubeconfig "$kubeconfig" --as="$session_authorizer" \
+  create --validate=strict -f "$missing_fence_binding"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding "$missing_fence_name" \
+  -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "missing-Fence negative control persisted a RoleBinding"
+grep -Fqx $'PROBE\tREJECTED\tpermission-missing-fence' "$missing_fence_journal" ||
+  test::fail "server-side missing-Fence rejection was not journaled"
+
 run_escape_drill() {
   local evidence_session=$1 recovery_calls=$2 journal=$3 principal_kubeconfig=recovery-impersonation
   local ci_admin_kubeconfig=$kubeconfig
