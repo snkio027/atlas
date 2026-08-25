@@ -64,10 +64,11 @@ spec:
       reason: Forbidden
     - expression: >-
         request.operation != 'UPDATE' ||
-        (object.metadata.labels == oldObject.metadata.labels &&
-          object.metadata.annotations == oldObject.metadata.annotations &&
-          object.metadata.finalizers == oldObject.metadata.finalizers &&
-          object.metadata.ownerReferences == oldObject.metadata.ownerReferences &&
+        (has(object.metadata.labels) && has(oldObject.metadata.labels) &&
+          object.metadata.labels == oldObject.metadata.labels &&
+          !has(object.metadata.annotations) && !has(oldObject.metadata.annotations) &&
+          !has(object.metadata.finalizers) && !has(oldObject.metadata.finalizers) &&
+          !has(object.metadata.ownerReferences) && !has(oldObject.metadata.ownerReferences) &&
           !has(object.binaryData) && !has(oldObject.binaryData) &&
           !has(object.immutable) && !has(oldObject.immutable) &&
           has(object.data) && has(oldObject.data) &&

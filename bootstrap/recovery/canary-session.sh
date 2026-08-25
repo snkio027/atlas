@@ -13,28 +13,50 @@ ATLAS_PHASE0_JOURNAL_FILE_SHA=$ATLAS_PHASE0_JOURNAL_PREVIOUS_SHA
 ATLAS_PHASE0_LOCK_PATH=''
 ATLAS_PHASE0_LOCK_TOKEN=''
 ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+ATLAS_PHASE0_EXECUTION_STAGE=IDLE
 
 phase0_session::arm_unexpected_exit_guard() {
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=true
+  ATLAS_PHASE0_EXECUTION_STAGE=RUNTIME_LOCKED
 }
 
 phase0_session::disarm_unexpected_exit_guard() {
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+  ATLAS_PHASE0_EXECUTION_STAGE=IDLE
+}
+
+phase0_session::begin_evidence_finalization() {
+  [[ $ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD == true &&
+    $ATLAS_PHASE0_EXECUTION_STAGE == RUNTIME_LOCKED &&
+    -z $ATLAS_PHASE0_LOCK_PATH && -z $ATLAS_PHASE0_LOCK_TOKEN ]] || return 1
+  ATLAS_PHASE0_EXECUTION_STAGE=EVIDENCE_FINALIZATION
 }
 
 phase0_session::record_unexpected_exit() {
-  local status=$1 journal
+  local status=$1 journal message stage=$ATLAS_PHASE0_EXECUTION_STAGE
   [[ $ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD == true ]] || return 0
   ATLAS_PHASE0_UNEXPECTED_EXIT_GUARD=false
+  ATLAS_PHASE0_EXECUTION_STAGE=IDLE
 
   # An unexpected shell exit must never attempt cleanup or lock release. Append
-  # a terminal record only when the approved session Journal is available; the
-  # retained lock and runtime state remain evidence for human disposition.
+  # a stage-accurate terminal record only when the approved session Journal is
+  # available; any retained state remains subject to human disposition.
   [[ -n ${ATLAS_PHASE0_OPERATION[journal_file]+present} ]] || return 0
   journal=${ATLAS_PHASE0_OPERATION[journal_file]}
   [[ -f $journal && ! -L $journal ]] || return 0
+  case "$stage" in
+    RUNTIME_LOCKED)
+      message="unexpected shell exit status=${status}; runtime state and lock retained for human review"
+      ;;
+    EVIDENCE_FINALIZATION)
+      message="unexpected shell exit status=${status}; runtime resources and lock already absent; evidence finalization incomplete"
+      ;;
+    *)
+      message="unexpected shell exit status=${status}; execution stage is unknown; human review required"
+      ;;
+  esac
   phase0_session::journal_append RESULT FAILED_RETAINED \
-    "unexpected shell exit status=${status}; runtime state and lock retained for human review"
+    "$message"
 }
 
 phase0_session::_unexpected_exit_trap() {
@@ -76,12 +98,24 @@ phase0_session::_sha256() {
 }
 
 phase0_session::_json_escape() {
-  local value=$1
+  local value=$1 code octal character escape
+  local LC_ALL=C
   value=${value//\\/\\\\}
   value=${value//\"/\\\"}
   value=${value//$'\n'/\\n}
   value=${value//$'\r'/\\r}
   value=${value//$'\t'/\\t}
+  value=${value//$'\b'/\\b}
+  value=${value//$'\f'/\\f}
+  for ((code = 1; code < 32; code++)); do
+    case "$code" in
+      8 | 9 | 10 | 12 | 13) continue ;;
+    esac
+    printf -v octal '%03o' "$code"
+    printf -v character '%b' "\\${octal}"
+    printf -v escape '\\u%04x' "$code"
+    value=${value//"$character"/$escape}
+  done
   printf '%s' "$value"
 }
 
@@ -621,7 +655,7 @@ phase0_session::_target_fingerprint() {
 }
 
 phase0_session::_assert_runtime_absent() {
-  local namespace resource name output
+  local namespace resource name output retained
   local -a arguments
   while IFS=$'\t' read -r namespace resource name; do
     arguments=(get "$resource" "$name" --ignore-not-found -o name)
@@ -651,6 +685,44 @@ kube-system	rolebinding	atlas-bootstrap-recovery-authorizer-canary
 kube-system	configmap	atlas-bootstrap-recovery-guard-canary
 kube-system	configmap	atlas-bootstrap-operation-fence-canary
 EOF
+
+  retained=$(phase0_session::admin get rolebindings -n kube-system -o json | yq -r '
+    [.items[] | select(
+      .metadata.name == "atlas-bg-canary-malformed" or
+      (.metadata.name | test("^atlas-bg-canary-")) or
+      (.metadata.name | test("^atlas-phase0-unrelated-")) or
+      (has(.metadata.labels) and
+        (.metadata.labels | has("atlas.io/recovery-session")))) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 RoleBinding exists: ${retained}"
+    return 1
+  }
+
+  retained=$(phase0_session::admin get configmaps -n kube-system -o json | yq -r '
+    [.items[] | select(
+      .metadata.name | test("^atlas-phase0-noncanonical-")) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 probe ConfigMap exists: ${retained}"
+    return 1
+  }
+
+  retained=$(phase0_session::admin get certificatesigningrequests -o json | yq -r '
+    [.items[] | select(
+      (.metadata.name | test("^atlas-bg-recovery-")) or
+      (.metadata.name | test("^atlas-bg-authorizer-")) or
+      (has(.metadata.labels) and
+        .metadata.labels["app.kubernetes.io/part-of"] == "atlas-recovery" and
+        .metadata.labels["atlas.io/recovery-scope"] == "canary")) |
+      .metadata.name] | sort | join(",")
+  ') || return 1
+  [[ -z $retained ]] || {
+    recovery::die "retained Phase-0 CSR exists: ${retained}"
+    return 1
+  }
 }
 
 phase0_session::_audit_ready() {

@@ -67,7 +67,7 @@ assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-reco
 assert_resource_projection ConfigMap atlas-bootstrap-recovery-guard-canary \
   ad3974aa428d29a7b882fde39f480527da09603fa5e73e6cb5e003d35f7dfc02
 assert_resource_projection ValidatingAdmissionPolicy atlas-bootstrap-recovery-guard-authorization-canary \
-  bcc7c6cab5c85a423dafe096a845edd4234531ac1224c87f862387751c7b939a
+  3702b460bb3b63a56b8c1355ac620028a03f43ac7e2f57709f58a4e6be7082c7
 assert_resource_projection ValidatingAdmissionPolicyBinding atlas-bootstrap-recovery-guard-authorization-canary \
   07674f6d9d9c8fb0409d7ce9f048ebb60221cdf1dcb39748473620be4a6af774
 test::pass "all Phase-0 Session Authorization definitions have exact complete projections"
@@ -227,7 +227,12 @@ guard_expressions=$(yq -r '.spec.matchConditions[].expression, .spec.validations
 guard_match=$(yq -r '.spec.matchConditions[0].expression' <<< "$guard_policy")
 for guard_contract in \
   "$recovery_operator" atlas-bootstrap-recovery-guard-canary policy.atlas-recovery-freeze.csv \
-  'request.operation != '\''DELETE'\''' 'object.metadata.labels == oldObject.metadata.labels' \
+  'request.operation != '\''DELETE'\''' \
+  'has(object.metadata.labels) && has(oldObject.metadata.labels)' \
+  'object.metadata.labels == oldObject.metadata.labels' \
+  '!has(object.metadata.annotations) && !has(oldObject.metadata.annotations)' \
+  '!has(object.metadata.finalizers) && !has(oldObject.metadata.finalizers)' \
+  '!has(object.metadata.ownerReferences) && !has(oldObject.metadata.ownerReferences)' \
   "(('policy.atlas-recovery-freeze.csv' in object.data) ? 2 : 1)" \
   "request.operation == 'CREATE' && has(object.data)" \
   "('policy.atlas-recovery-freeze.csv' in oldObject.data) !="; do
