@@ -779,7 +779,7 @@ phase0_ceremony::_session_authorization_drill() {
   phase0_ceremony::_write_permission_binding "$binding_missing" 00000000-0000-0000-0000-000000000000 \
     "$(phase0_session::operation plan_sha)" || return 1
   phase0_ceremony::_expect_rejected permission-missing-fence \
-    'Canary Fence parameter is required' \
+    "no params found for policy binding with \`Deny\` parameterNotFoundAction" \
     phase0_session::_kubectl "$authorizer" create --validate=strict -f "$binding_missing" || return 1
 
   printf 'apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: atlas-phase0-unrelated-%s\n  namespace: kube-system\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: ClusterRole\n  name: view\nsubjects:\n  - apiGroup: rbac.authorization.k8s.io\n    kind: User\n    name: atlas:unrelated\n' \
