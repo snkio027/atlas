@@ -87,9 +87,11 @@ argocd::instantiate_root() {
     return 1
   fi
 
-  runtime::kubectl apply --filename "$root_manifest" > /dev/null
+  lock::assert_held || return 1
+  runtime::kubectl apply --filename "$root_manifest" > /dev/null || return 1
+  lock::assert_held || return 1
   runtime::kubectl annotate application "$root_name" --namespace argocd \
-    argocd.argoproj.io/refresh=hard --overwrite > /dev/null
+    argocd.argoproj.io/refresh=hard --overwrite > /dev/null || return 1
   runtime::ok "External Root instantiated: ${root_name}"
 }
 
@@ -124,10 +126,12 @@ argocd::handoff() {
     return 1
   }
 
-  argocd::render
-  argocd::_ensure_seed_authority
-  runtime::kubectl apply --filename "${ATLAS_ROOT_DIR}/bootstrap/argocd/atlas-bootstrap-project.yaml" > /dev/null
-  argocd::instantiate_root
-  argocd::wait_for_handoff_health
+  argocd::render || return 1
+  lock::assert_held || return 1
+  argocd::_ensure_seed_authority || return 1
+  lock::assert_held || return 1
+  runtime::kubectl apply --filename "${ATLAS_ROOT_DIR}/bootstrap/argocd/atlas-bootstrap-project.yaml" > /dev/null || return 1
+  argocd::instantiate_root || return 1
+  argocd::wait_for_handoff_health || return 1
   runtime::ok "GitOps control handoff is Healthy; normal Bootstrap has stopped Seed mutation"
 }

@@ -297,6 +297,7 @@ cluster::_marker_matches() {
 }
 
 cluster::_create_marker() {
+  lock::assert_held || return 1
   runtime::kubectl create configmap atlas-bootstrap-identity \
     --namespace kube-system \
     --from-literal "repo=$(config::get ATLAS_GIT_REPO_URL)" \
@@ -325,6 +326,7 @@ cluster::ensure_kind() {
     status=$?
     ((status == 1)) || return "$status"
     runtime::info "creating Kind cluster: ${cluster}"
+    lock::assert_held || return 1
     runtime::kind create cluster \
       --name "$cluster" \
       --image "$image" \

@@ -46,18 +46,27 @@ registry::_running() {
 }
 
 registry::_configure_node() {
-  local node=$1 host port temporary target
+  local node=$1 host port temporary target status=0
   host=$(config::get ATLAS_REGISTRY_HOST)
   port=$(config::get ATLAS_REGISTRY_PORT)
   target="/etc/containerd/certs.d/${host}:${port}"
   temporary=$(mktemp "${TMPDIR:-/tmp}/atlas-registry.XXXXXX")
   printf 'server = "http://%s:5000"\n\n[host."http://%s:5000"]\n  capabilities = ["pull", "resolve", "push"]\n' \
     "$(config::get ATLAS_REGISTRY_NAME)" "$(config::get ATLAS_REGISTRY_NAME)" > "$temporary"
-  if runtime::docker exec "$node" mkdir -p "$target" && runtime::docker cp "$temporary" "${node}:${target}/hosts.toml"; then
+  lock::assert_held || {
     rm -f "$temporary"
-    return 0
-  fi
-  local status=$?
+    return 1
+  }
+  runtime::docker exec "$node" mkdir -p "$target" || {
+    status=$?
+    rm -f "$temporary"
+    return "$status"
+  }
+  lock::assert_held || {
+    rm -f "$temporary"
+    return 1
+  }
+  runtime::docker cp "$temporary" "${node}:${target}/hosts.toml" || status=$?
   rm -f "$temporary"
   return "$status"
 }
@@ -81,11 +90,12 @@ registry::_load_node_image() {
   digest=${image##*@}
   # Import offline, then restore the exact digest-pinned reference expected by
   # the workloads; Kind's convenience loader is not part of this supply chain.
+  lock::assert_held || return 1
   runtime::docker image save "$image" | runtime::docker exec --privileged --interactive "$node" \
     ctr --namespace k8s.io images import \
     --platform "$platform" \
     --digests \
-    --snapshotter overlayfs - > /dev/null
+    --snapshotter overlayfs - > /dev/null || return 1
 
   source_refs=$(runtime::docker exec "$node" ctr --namespace k8s.io images list --quiet "target.digest==${digest}")
   source_ref=${source_refs%%$'\n'*}
@@ -93,7 +103,8 @@ registry::_load_node_image() {
     runtime::die "imported image digest is absent on node: node=${node} image=${image}"
     return 1
   }
-  runtime::docker exec "$node" ctr --namespace k8s.io images tag "$source_ref" "$image" > /dev/null
+  lock::assert_held || return 1
+  runtime::docker exec "$node" ctr --namespace k8s.io images tag "$source_ref" "$image" > /dev/null || return 1
   registry::_node_has_image "$node" "$image" || {
     runtime::die "locked image reference is absent after import: node=${node} image=${image}"
     return 1
@@ -142,8 +153,12 @@ registry::ensure_local() {
 
   if registry::_container_exists; then
     registry::_validate_container
-    registry::_running || runtime::docker start "$name" > /dev/null
+    if ! registry::_running; then
+      lock::assert_held || return 1
+      runtime::docker start "$name" > /dev/null || return 1
+    fi
   else
+    lock::assert_held || return 1
     if ! runtime::docker run --detach \
       --name "$name" \
       --network kind \
@@ -154,6 +169,7 @@ registry::ensure_local() {
       --volume "${name}-data:/var/lib/registry" \
       "$image" > /dev/null; then
       if registry::_container_exists && registry::_validate_container; then
+        lock::assert_held || return 1
         runtime::docker rm "$name" > /dev/null || true
       fi
       return 1
