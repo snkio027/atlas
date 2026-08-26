@@ -2,12 +2,14 @@
 
 This runbook covers the audited Kind definition, isolated drill-cluster
 lifecycle, and canary-only runtime ceremony implemented for ADR-0003 Phase 0.
-Phase 0 is `COMPLETE / FROZEN` at
-`main@d2a9fc33d6737e8320887851a9d9a153a683c06e`; the evidence below records its
-runtime closure. Reading this runbook, merging an implementation, or running
-Quality does not authorize cluster creation, credential issuance, RBAC or
-Admission activation, canary mutation, recovery execution, teardown, or Tier-0
-changes. Every runtime action still requires its own exact Human Judgment Gate.
+Phase 0 is `COMPLETE / FROZEN`. Its initial runtime closure was recorded at
+`main@d2a9fc33d6737e8320887851a9d9a153a683c06e`; its latest full runtime
+revalidation was completed at
+`main@f2920fe9bc4a98b44b3da6c5f371b3e14bbee3c5`. Reading this runbook, merging
+an implementation, or running Quality does not authorize cluster creation,
+credential issuance, RBAC or Admission activation, canary mutation, recovery
+execution, teardown, or Tier-0 changes. Every runtime action still requires its
+own exact Human Judgment Gate.
 
 ## Closure record
 
@@ -51,6 +53,48 @@ convenience features and generalized recovery frameworks are not accepted.
 Phase 1A definition work may start, but this closure does not authorize GitOps
 wiring, production Admission activation, Signal or Receipt creation, Tier-0
 mutation, or a recovery operation.
+
+## Full runtime revalidation record (2026-08-26)
+
+The current Phase-0 baseline was revalidated end to end on a new disposable,
+audited Kind drill. This is an evidence-only record: no raw Audit content,
+credential material, kubeconfig, certificate, private key, CSR, token, or host
+inventory is stored in Git.
+
+| Evidence | Result |
+| --- | --- |
+| Repository baseline | `main@f2920fe9bc4a98b44b3da6c5f371b3e14bbee3c5` |
+| Drill | `atlas-recovery-drill-20260826t064759z-f2920fe9` |
+| Drill lifecycle session | `atlas-recovery-drill-20260826t064759z-f2920fe9-20260826T064938Z-f2920fe9` |
+| Runtime ceremony session | `phase0-20260826T065442Z-48c65e98583b45cfc26f77290a348fdd`; session ID `48c65e98583b45cfc26f77290a348fdd` |
+| Runtime Result SHA-256 | `3653d708e365d404b6d331a9d064fcddd77d85be52fd0d34c0050bec5d6b2ca8` |
+| Runtime Journal | 48 entries; tip `c6f3020889418f943b7e5eb3c9c9adde50890d5b405ffa42d7eede6a5a463f23` |
+| Destruction session | `phase0-drill-destroy-20260826T071423Z-2e8a024ab4067ba8715df6a5c54c751b` |
+| Destruction Result SHA-256 | `9b125704f061527e15dd18ee14a7032422b255ba8dfdf15415c3c837b9710d93` |
+| Destruction Journal | 9 entries; tip `f5149bbfe602d7fadbfd679c51e35451c4c0258d04f9defdc264b50fbd12e2e1` |
+| Final Audit | 11,971,643 bytes; SHA-256 `73e2a17affea2bd61d49e48cade9ed6c8e69f2e25e3babe50979b33d5bf51cc4` |
+
+The ceremony validated all 17 approved definitions and then removed 17/17.
+Recovery Operator generations `g3` and `g2`, and Session Authorizer generations
+`g2` and `g1`, all returned to the same complete non-mutating permission
+baseline. Their materialized credentials were removed, the credential directory
+was empty, and the runtime lock was absent before the successful Result was
+sealed.
+
+The separately authorized destruction then proved the Drill cluster, node
+container, old API endpoint and CA authority absent before removing the exact
+admin kubeconfig and the empty credential directory. Postflight verification
+also proved both lifecycle and runtime locks absent. The final Kind inventory
+contained only `atlas-test`, whose four Nodes remained Ready. The verification
+used a clean isolated worktree at the exact baseline; the primary user worktree
+and its pre-existing local topology modification were not changed.
+
+One non-blocking operational observation remains: OrbStack may return the
+Docker Mount array in different orders across otherwise identical inspections.
+Any future normalization must preserve and validate the complete mount
+projection, exact count, unique destinations, and every `source`, `type`, and
+`RW` value. Sorting must not conceal a duplicate, missing, or additional mount.
+This record does not implement that maintenance item.
 
 ## Render the audited drill-cluster configuration
 
