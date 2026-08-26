@@ -3,46 +3,133 @@
 [[ -n ${_ATLAS_REGISTRY_LOADED:-} ]] && return 0
 readonly _ATLAS_REGISTRY_LOADED=1
 
-registry::_container_exists() {
-  runtime::docker container inspect "$(config::get ATLAS_REGISTRY_NAME)" > /dev/null 2>&1
+registry::_presence_state() {
+  local name containers
+  name=$(config::get ATLAS_REGISTRY_NAME) || {
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  containers=$(runtime::docker container ls --all \
+    --filter "name=^/${name}$" --format '{{.Names}}' 2> /dev/null) || {
+    runtime::error "unable to inspect Registry container presence: ${name}"
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  case "$containers" in
+    '') printf 'ABSENT\n' ;;
+    "$name") printf 'PRESENT\n' ;;
+    *)
+      runtime::error "unexpected Registry container presence result: ${name}"
+      printf 'UNAVAILABLE\n'
+      ;;
+  esac
 }
 
-registry::_validate_container() {
-  local name image expected_cluster expected_binding actual
-  name=$(config::get ATLAS_REGISTRY_NAME)
-  image=$(config::version REGISTRY_IMAGE)
-  expected_cluster=$(config::get ATLAS_CLUSTER_NAME)
-  expected_binding="127.0.0.1:$(config::get ATLAS_REGISTRY_PORT)"
-
-  actual=$(runtime::docker inspect --format '{{.Config.Image}}' "$name")
-  [[ $actual == "$image" ]] || {
-    runtime::die "Registry image drift: expected=${image} actual=${actual}"
-    return 1
-  }
-  actual=$(runtime::docker inspect --format '{{index .Config.Labels "io.atlas.managed"}}' "$name")
-  [[ $actual == true ]] || {
-    runtime::die "Registry ownership label is missing: ${name}"
-    return 1
-  }
-  actual=$(runtime::docker inspect --format '{{index .Config.Labels "io.atlas.cluster"}}' "$name")
-  [[ $actual == "$expected_cluster" ]] || {
-    runtime::die "Registry cluster label drift: ${name}"
-    return 1
-  }
-  actual=$(runtime::docker inspect --format '{{.HostConfig.NetworkMode}}' "$name")
-  [[ $actual == kind ]] || {
-    runtime::die "Registry is not attached to the Kind network: ${name}"
-    return 1
-  }
-  actual=$(runtime::docker inspect --format '{{with (index .HostConfig.PortBindings "5000/tcp")}}{{(index . 0).HostIp}}:{{(index . 0).HostPort}}{{end}}' "$name")
-  [[ $actual == "$expected_binding" ]] || {
-    runtime::die "Registry port binding drift: expected=${expected_binding} actual=${actual:-none}"
-    return 1
-  }
+registry::_container_projection() {
+  local name=$1
+  runtime::docker inspect --format 'image={{.Config.Image}}
+managed={{index .Config.Labels "io.atlas.managed"}}
+cluster={{index .Config.Labels "io.atlas.cluster"}}
+networkMode={{.HostConfig.NetworkMode}}
+networkAttachmentCount={{len .NetworkSettings.Networks}}
+kindNetworkAttached={{if index .NetworkSettings.Networks "kind"}}true{{else}}false{{end}}
+restart={{.HostConfig.RestartPolicy.Name}}
+restartMaximumRetryCount={{.HostConfig.RestartPolicy.MaximumRetryCount}}
+portBindingCount={{len .HostConfig.PortBindings}}
+registryBinding={{with (index .HostConfig.PortBindings "5000/tcp")}}{{len .}}{{range .}}|{{.HostIp}}|{{.HostPort}}{{end}}{{end}}
+mountCount={{len .Mounts}}
+dataMount={{range .Mounts}}{{.Type}}|{{.Name}}|{{.Destination}}|{{.RW}}{{end}}' "$name"
 }
 
-registry::_running() {
-  [[ $(runtime::docker inspect --format '{{.State.Running}}' "$(config::get ATLAS_REGISTRY_NAME)") == true ]]
+registry::_expected_container_projection() {
+  local name image cluster port
+  name=$(config::get ATLAS_REGISTRY_NAME) || return 1
+  image=$(config::version REGISTRY_IMAGE) || return 1
+  cluster=$(config::get ATLAS_CLUSTER_NAME) || return 1
+  port=$(config::get ATLAS_REGISTRY_PORT) || return 1
+
+  printf '%s\n' \
+    "image=${image}" \
+    'managed=true' \
+    "cluster=${cluster}" \
+    'networkMode=kind' \
+    'networkAttachmentCount=1' \
+    'kindNetworkAttached=true' \
+    'restart=unless-stopped' \
+    'restartMaximumRetryCount=0' \
+    'portBindingCount=1' \
+    "registryBinding=1|127.0.0.1|${port}" \
+    'mountCount=1' \
+    "dataMount=volume|${name}-data|/var/lib/registry|true"
+}
+
+registry::_projection_is_well_formed() {
+  local projection=$1 line index=0
+  local -a keys=(
+    image
+    managed
+    cluster
+    networkMode
+    networkAttachmentCount
+    kindNetworkAttached
+    restart
+    restartMaximumRetryCount
+    portBindingCount
+    registryBinding
+    mountCount
+    dataMount
+  )
+  while IFS= read -r line || [[ -n $line ]]; do
+    ((index < ${#keys[@]})) || return 1
+    [[ $line == "${keys[$index]}="* ]] || return 1
+    ((index += 1))
+  done <<< "$projection"
+  ((index == ${#keys[@]}))
+}
+
+registry::_contract_state() {
+  local name expected actual
+  name=$(config::get ATLAS_REGISTRY_NAME) || return 1
+  expected=$(registry::_expected_container_projection) || {
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  actual=$(registry::_container_projection "$name") || {
+    runtime::error "unable to inspect Registry container contract: ${name}"
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  registry::_projection_is_well_formed "$actual" || {
+    runtime::error "malformed Registry container contract projection: ${name}"
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  if [[ $actual == "$expected" ]]; then
+    printf 'MATCH\n'
+  else
+    printf 'DRIFTED\n'
+  fi
+}
+
+registry::_runtime_state() {
+  local name running
+  name=$(config::get ATLAS_REGISTRY_NAME) || {
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  running=$(runtime::docker inspect --format '{{.State.Running}}' "$name" 2> /dev/null) || {
+    runtime::error "unable to inspect Registry runtime state: ${name}"
+    printf 'UNAVAILABLE\n'
+    return 0
+  }
+  case "$running" in
+    true) printf 'RUNNING\n' ;;
+    false) printf 'STOPPED\n' ;;
+    *)
+      runtime::error "unexpected Registry runtime state: ${name}"
+      printf 'UNAVAILABLE\n'
+      ;;
+  esac
 }
 
 registry::_configure_node() {
@@ -134,12 +221,12 @@ registry::_preload_seed_images() {
 
 registry::ensure_local() {
   runtime::phase registry
-  local name image port cluster node nodes_output
+  local name image port cluster node nodes_output presence_state contract_state runtime_state
   local -a nodes=()
-  name=$(config::get ATLAS_REGISTRY_NAME)
-  image=$(config::version REGISTRY_IMAGE)
-  port=$(config::get ATLAS_REGISTRY_PORT)
-  cluster=$(config::get ATLAS_CLUSTER_NAME)
+  name=$(config::get ATLAS_REGISTRY_NAME) || return 1
+  image=$(config::version REGISTRY_IMAGE) || return 1
+  port=$(config::get ATLAS_REGISTRY_PORT) || return 1
+  cluster=$(config::get ATLAS_CLUSTER_NAME) || return 1
 
   runtime::assert_docker_authority || return 1
   runtime::docker_image_present "$image" || {
@@ -151,30 +238,61 @@ registry::ensure_local() {
     return 1
   }
 
-  if registry::_container_exists; then
-    registry::_validate_container
-    if ! registry::_running; then
+  presence_state=$(registry::_presence_state) || return 1
+  case "$presence_state" in
+    PRESENT)
+      contract_state=$(registry::_contract_state) || return 1
+      case "$contract_state" in
+        MATCH) ;;
+        DRIFTED)
+          runtime::die "Registry container contract drift: ${name}"
+          return 1
+          ;;
+        *)
+          runtime::die "Registry container contract is unavailable: ${name}"
+          return 1
+          ;;
+      esac
+      runtime_state=$(registry::_runtime_state) || return 1
+      case "$runtime_state" in
+        RUNNING) ;;
+        STOPPED)
+          lock::assert_held || return 1
+          runtime::docker start "$name" > /dev/null || return 1
+          ;;
+        *)
+          runtime::die "Registry runtime state is unavailable: ${name}"
+          return 1
+          ;;
+      esac
+      ;;
+    ABSENT)
       lock::assert_held || return 1
-      runtime::docker start "$name" > /dev/null || return 1
-    fi
-  else
-    lock::assert_held || return 1
-    if ! runtime::docker run --detach \
-      --name "$name" \
-      --network kind \
-      --restart unless-stopped \
-      --label io.atlas.managed=true \
-      --label "io.atlas.cluster=${cluster}" \
-      --publish "127.0.0.1:${port}:5000" \
-      --volume "${name}-data:/var/lib/registry" \
-      "$image" > /dev/null; then
-      if registry::_container_exists && registry::_validate_container; then
-        lock::assert_held || return 1
-        runtime::docker rm "$name" > /dev/null || true
+      if ! runtime::docker run --detach \
+        --name "$name" \
+        --network kind \
+        --restart unless-stopped \
+        --label io.atlas.managed=true \
+        --label "io.atlas.cluster=${cluster}" \
+        --publish "127.0.0.1:${port}:5000" \
+        --volume "${name}-data:/var/lib/registry" \
+        "$image" > /dev/null; then
+        presence_state=$(registry::_presence_state) || return 1
+        if [[ $presence_state == PRESENT ]]; then
+          contract_state=$(registry::_contract_state) || return 1
+          if [[ $contract_state == MATCH ]]; then
+            lock::assert_held || return 1
+            runtime::docker rm "$name" > /dev/null || true
+          fi
+        fi
+        return 1
       fi
+      ;;
+    *)
+      runtime::die "Registry container presence is unavailable: ${name}"
       return 1
-    fi
-  fi
+      ;;
+  esac
 
   nodes_output=$(cluster::list_validated_kind_node_containers) || return 1
   mapfile -t nodes <<< "$nodes_output"
@@ -191,17 +309,52 @@ registry::ensure_local() {
 }
 
 registry::inspect_status() {
-  local name
-  name=$(config::get ATLAS_REGISTRY_NAME)
+  local name presence_state contract_state runtime_state
+  name=$(config::get ATLAS_REGISTRY_NAME) || return 2
   if ! runtime::assert_docker_authority || ! runtime::docker info > /dev/null 2>&1; then
     printf 'registry\tUNAVAILABLE\t%s\n' "$name"
     return 2
   fi
-  if ! registry::_container_exists; then
-    printf 'registry\tABSENT\t%s\n' "$name"
-    return 0
-  fi
-  if registry::_validate_container && registry::_running && registry::_health; then
+  presence_state=$(registry::_presence_state) || presence_state=UNAVAILABLE
+  case "$presence_state" in
+    ABSENT)
+      printf 'registry\tABSENT\t%s\n' "$name"
+      return 0
+      ;;
+    PRESENT) ;;
+    *)
+      printf 'registry\tUNAVAILABLE\t%s\n' "$name"
+      return 2
+      ;;
+  esac
+
+  contract_state=$(registry::_contract_state) || contract_state=UNAVAILABLE
+  case "$contract_state" in
+    MATCH) ;;
+    DRIFTED)
+      printf 'registry\tDRIFTED\t%s\n' "$name"
+      return 1
+      ;;
+    *)
+      printf 'registry\tUNAVAILABLE\t%s\n' "$name"
+      return 2
+      ;;
+  esac
+
+  runtime_state=$(registry::_runtime_state) || runtime_state=UNAVAILABLE
+  case "$runtime_state" in
+    RUNNING) ;;
+    STOPPED)
+      printf 'registry\tDRIFTED\t%s\n' "$name"
+      return 1
+      ;;
+    *)
+      printf 'registry\tUNAVAILABLE\t%s\n' "$name"
+      return 2
+      ;;
+  esac
+
+  if registry::_health; then
     printf 'registry\tREADY\t%s\n' "$name"
     return 0
   fi
