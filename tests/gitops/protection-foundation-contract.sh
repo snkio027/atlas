@@ -177,6 +177,8 @@ identity_validation=$(yq -r '.spec.validations[] | select(.message == "Bootstrap
   <<< "$evidence_policy")
 grep -Fq 'variables.target.data.size() == 4' <<< "$identity_validation" ||
   test::fail "Identity v2 does not enforce its exact four-key downgrade fence"
+grep -Fq 'variables.target.data == {' <<< "$identity_validation" ||
+  test::fail "Identity v2 does not compare the complete four-key map projection"
 
 fence_policy=$(NAME=atlas-bootstrap-recovery-fence-authorization yq ea -o=json -I=0 \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(NAME))' "$observing_a")

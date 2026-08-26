@@ -196,6 +196,27 @@ bootstrap=atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1
 bootstrap_rbac=tests/gitops/fixtures/phase1a-server/bootstrap-rbac.yaml
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$bootstrap_rbac" > /dev/null
 legacy_identity=tests/gitops/fixtures/phase1a-server/identity-v2-legacy-keys.yaml
+
+wait_for_evidence_enforcement() {
+  local attempt diagnostic
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    diagnostic="$test_workspace/evidence-enforcement-$(printf '%02d' "$attempt").stderr"
+    if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
+      create --dry-run=server --validate=strict -f "$legacy_identity" \
+      > "$test_workspace/evidence-enforcement.stdout" 2> "$diagnostic"; then
+      sleep 1
+      continue
+    fi
+    grep -Fq 'Bootstrap Identity v2 projection is invalid' "$diagnostic" || {
+      cat "$diagnostic" >&2
+      test::fail "Evidence protection propagation probe failed unexpectedly"
+    }
+    return 0
+  done
+  test::fail "Evidence protection did not reach the API Server admission path"
+}
+
+wait_for_evidence_enforcement
 if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
   create --validate=strict -f "$legacy_identity" \
   > "$test_workspace/legacy-identity.stdout" 2> "$test_workspace/legacy-identity.stderr"; then
