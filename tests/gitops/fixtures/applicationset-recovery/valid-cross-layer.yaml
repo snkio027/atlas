@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: phase1a-cross-layer-fixture
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: tenant-workloads
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - name: phase1a-management-child
+            resumeLayer: management
+          - name: phase1a-tenant-child
+            resumeLayer: tenant-workloads
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    metadata:
+      name: '{{.name}}'
+    spec:
+      project: platform-project
+      source:
+        repoURL: https://github.com/snkio027/atlas.git
+        targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+        path: tests/gitops/fixtures/applicationset-recovery/payload
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: phase1a-management-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: phase1a-cross-layer-fixture
+    atlas.io/resume-layer: management
+spec:
+  project: platform-project
+  source:
+    repoURL: https://github.com/snkio027/atlas.git
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+    path: tests/gitops/fixtures/applicationset-recovery/payload
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: phase1a-tenant-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: phase1a-cross-layer-fixture
+    atlas.io/resume-layer: tenant-workloads
+spec:
+  project: platform-project
+  source:
+    repoURL: https://github.com/snkio027/atlas.git
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+    path: tests/gitops/fixtures/applicationset-recovery/payload
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      enabled: false

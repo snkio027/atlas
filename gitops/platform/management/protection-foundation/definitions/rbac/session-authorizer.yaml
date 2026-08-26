@@ -1,0 +1,152 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: atlas-bootstrap-recovery-authorizer-cluster
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: sessionAuthorizerPrincipal
+rules:
+  # CREATE cannot be constrained by resourceNames. Binding Shape and Permission
+  # authorization provide the exact-object boundary.
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      - create
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    resourceNames:
+      - atlas-bootstrap-recovery-cluster
+    verbs:
+      - bind
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: atlas-bootstrap-recovery-authorizer-cluster
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: sessionAuthorizerPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: atlas-bootstrap-recovery-authorizer-cluster
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:session-authz:00000000-0000-0000-0000-000000000000:g1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: atlas-bootstrap-recovery-authorizer
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+rules:
+  # CREATE is namespace-scoped by RBAC and object-scoped by Fence authorization.
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - atlas-bootstrap-operation-fence
+    verbs:
+      - delete
+      - get
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - create
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    resourceNames:
+      - atlas-bootstrap-recovery
+    verbs:
+      - bind
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-bootstrap-recovery-authorizer
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: sessionAuthorizerPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-bootstrap-recovery-authorizer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:session-authz:00000000-0000-0000-0000-000000000000:g1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: atlas-bootstrap-recovery-authorizer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+rules:
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - create
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    resourceNames:
+      - atlas-bootstrap-recovery
+    verbs:
+      - bind
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-bootstrap-recovery-authorizer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: sessionAuthorizerPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-bootstrap-recovery-authorizer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:session-authz:00000000-0000-0000-0000-000000000000:g1

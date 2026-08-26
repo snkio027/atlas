@@ -1,0 +1,115 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: atlas-bootstrap-recovery-binding-shape-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal,sessionAuthorizerPrincipal
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - rolebindings
+        scope: Namespaced
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - clusterrolebindings
+        scope: Cluster
+  matchConditions:
+    - name: session-authorizer-or-recovery-binding
+      expression: >-
+        request.userInfo.username ==
+          'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1' ||
+        (request.operation != 'CREATE' &&
+          (oldObject.metadata.name.startsWith('atlas-bg-') ||
+            (has(oldObject.metadata.labels) &&
+              'atlas.io/recovery-session' in oldObject.metadata.labels))) ||
+        (request.operation != 'DELETE' &&
+          (object.metadata.name.startsWith('atlas-bg-') ||
+            (has(object.metadata.labels) &&
+              'atlas.io/recovery-session' in object.metadata.labels)))
+  variables:
+    - name: binding
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+    - name: scopeName
+      expression: >-
+        request.resource.resource == 'clusterrolebindings'
+          ? 'cluster'
+          : request.namespace
+  validations:
+    - expression: >-
+        request.userInfo.username ==
+          'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1' &&
+        request.operation != 'UPDATE' &&
+        variables.scopeName in ['cluster', 'argocd', 'kube-system']
+      message: Temporary Binding lifecycle requires the exact Session Authorizer and approved scope
+      reason: Forbidden
+    - expression: >-
+        has(variables.binding.metadata.labels) &&
+        variables.binding.metadata.labels.size() == 3 &&
+        variables.binding.metadata.labels['app.kubernetes.io/part-of'] == 'atlas-recovery' &&
+        variables.binding.metadata.labels['atlas.io/recovery-scope'] == 'production' &&
+        variables.binding.metadata.labels['atlas.io/recovery-session'].matches('^[0-9a-f]{32}$') &&
+        variables.binding.metadata.name ==
+          'atlas-bg-' + variables.scopeName + '-' +
+            variables.binding.metadata.labels['atlas.io/recovery-session']
+      message: Temporary Binding name or labels are invalid
+      reason: Forbidden
+    - expression: >-
+        has(variables.binding.metadata.annotations) &&
+        variables.binding.metadata.annotations.size() == 4 &&
+        variables.binding.metadata.annotations['atlas.io/recovery-fence-uid'].matches(
+          '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') &&
+        variables.binding.metadata.annotations['atlas.io/recovery-plan-sha256'].matches(
+          '^[0-9a-f]{64}$') &&
+        variables.binding.metadata.annotations['atlas.io/recovery-target-sha256'].matches(
+          '^[0-9a-f]{64}$') &&
+        variables.binding.metadata.annotations['atlas.io/recovery-revision'].matches(
+          '^[0-9a-f]{40}$')
+      message: Temporary Binding lineage annotations are invalid
+      reason: Forbidden
+    - expression: >-
+        variables.binding.roleRef.apiGroup == 'rbac.authorization.k8s.io' &&
+        ((variables.scopeName == 'cluster' &&
+          variables.binding.roleRef.kind == 'ClusterRole' &&
+          variables.binding.roleRef.name == 'atlas-bootstrap-recovery-cluster') ||
+        (variables.scopeName in ['argocd', 'kube-system'] &&
+          variables.binding.roleRef.kind == 'Role' &&
+          variables.binding.roleRef.name == 'atlas-bootstrap-recovery')) &&
+        variables.binding.subjects.size() == 1 &&
+        variables.binding.subjects[0].apiGroup == 'rbac.authorization.k8s.io' &&
+        variables.binding.subjects[0].kind == 'User' &&
+        variables.binding.subjects[0].name ==
+          'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'
+      message: Temporary Binding roleRef or Recovery Operator subject is invalid
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: atlas-bootstrap-recovery-binding-shape-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+spec:
+  policyName: atlas-bootstrap-recovery-binding-shape-authorization
+  validationActions:
+    - Audit

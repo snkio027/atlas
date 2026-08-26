@@ -1,0 +1,147 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal
+rules:
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingadmissionpolicies
+    resourceNames:
+      - atlas-bootstrap-evidence-protection
+      - atlas-bootstrap-recovery-binding-shape-authorization
+      - atlas-bootstrap-recovery-fence-authorization
+      - atlas-bootstrap-recovery-guard-authorization
+      - atlas-bootstrap-recovery-permission-authorization
+    verbs:
+      - get
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingadmissionpolicybindings
+    resourceNames:
+      - atlas-bootstrap-evidence-protection
+      - atlas-bootstrap-recovery-binding-shape-authorization
+      - atlas-bootstrap-recovery-fence-authorization
+      - atlas-bootstrap-recovery-guard-authorization
+      - atlas-bootstrap-recovery-permission-authorization
+    verbs:
+      - get
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingadmissionpolicybindings
+    resourceNames:
+      - atlas-bootstrap-evidence-protection
+    verbs:
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    resourceNames:
+      - argocd
+      - kube-system
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: atlas-bootstrap-break-glass-escape
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - atlas-bootstrap-adoption-receipt
+      - atlas-bootstrap-identity
+      - atlas-bootstrap-operation-fence
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-bootstrap-break-glass-escape
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - argocd-rbac-cm
+      - atlas-bootstrap-adoption-signal
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-bootstrap-break-glass-escape
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-bootstrap-break-glass-escape
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:break-glass:00000000-0000-0000-0000-000000000000:g1

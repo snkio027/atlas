@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-bg-kube-system-0123456789abcdef0123456789abcdef
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/recovery-scope: production
+    atlas.io/recovery-session: 0123456789abcdef0123456789abcdef
+  annotations:
+    atlas.io/recovery-fence-uid: 00000000-0000-0000-0000-000000000000
+    atlas.io/recovery-plan-sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    atlas.io/recovery-target-sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    atlas.io/recovery-revision: cccccccccccccccccccccccccccccccccccccccc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-bootstrap-recovery
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:break-glass:00000000-0000-0000-0000-000000000000:g1

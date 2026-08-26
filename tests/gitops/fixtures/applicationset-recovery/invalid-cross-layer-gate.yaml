@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-cross-layer-gate
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  generators:
+    - list:
+        elements:
+          - name: management-child
+            resumeLayer: management
+          - name: tenant-child
+            resumeLayer: tenant-workloads
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    spec:
+      source:
+        targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+      syncPolicy:
+        automated:
+          enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: management-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: invalid-cross-layer-gate
+    atlas.io/resume-layer: management
+spec:
+  source:
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+  syncPolicy:
+    automated:
+      enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenant-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: invalid-cross-layer-gate
+    atlas.io/resume-layer: tenant-workloads
+spec:
+  source:
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+  syncPolicy:
+    automated:
+      enabled: false

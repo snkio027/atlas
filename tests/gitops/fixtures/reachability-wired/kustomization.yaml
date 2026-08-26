@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Deliberately invalid graph used only to prove the reachability detector.
+resources:
+  - ../../../../gitops/platform/management/protection-foundation/definitions
+  - ../../../../gitops/root/overlays/local-orbstack

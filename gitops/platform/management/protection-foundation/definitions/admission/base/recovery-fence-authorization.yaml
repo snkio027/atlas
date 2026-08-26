@@ -1,0 +1,86 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: atlas-bootstrap-recovery-fence-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: bootstrapPrincipal,recoveryPrincipal,sessionAuthorizerPrincipal
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - configmaps
+        scope: Namespaced
+  matchConditions:
+    - name: atlas-holder-or-canonical-fence
+      expression: >-
+        request.userInfo.username in [
+          'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1',
+          'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1'
+        ] ||
+        (request.namespace == 'kube-system' &&
+          (request.operation == 'DELETE'
+            ? oldObject.metadata.name == 'atlas-bootstrap-operation-fence'
+            : object.metadata.name == 'atlas-bootstrap-operation-fence'))
+  variables:
+    - name: fence
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  validations:
+    - expression: >-
+        request.namespace == 'kube-system' &&
+        variables.fence.metadata.name == 'atlas-bootstrap-operation-fence' &&
+        request.operation != 'UPDATE'
+      message: Fence lifecycle is limited to the canonical create-only object
+      reason: Forbidden
+    - expression: >-
+        has(variables.fence.immutable) && variables.fence.immutable &&
+        has(variables.fence.data) &&
+        variables.fence.data.schema == 'atlas.io/bootstrap-operation-fence/v1' &&
+        variables.fence.data.operationID.matches('^[0-9a-f]{32}$') &&
+        variables.fence.data.clusterFingerprintSHA256.matches('^[0-9a-f]{64}$') &&
+        variables.fence.data.createdAt.matches(
+          '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
+      message: Fence common projection is invalid
+      reason: Invalid
+    - expression: >-
+        (variables.fence.data.mode == 'normal-apply' &&
+          variables.fence.data.size() == 6 &&
+          request.userInfo.username ==
+            'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1' &&
+          variables.fence.data.holderUsername == request.userInfo.username) ||
+        (variables.fence.data.mode == 'recovery' &&
+          variables.fence.data.size() == 11 &&
+          request.userInfo.username ==
+            'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1' &&
+          variables.fence.data.holderUsername == request.userInfo.username &&
+          variables.fence.data.authorizerPrincipal == request.userInfo.username &&
+          variables.fence.data.recoveryPrincipal ==
+            'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1' &&
+          variables.fence.data.sessionID.matches('^[0-9a-f]{32}$') &&
+          variables.fence.data.planSHA256.matches('^[0-9a-f]{64}$') &&
+          variables.fence.data.knownGoodRevision.matches('^[0-9a-f]{40}$'))
+      message: Fence mode or authority lineage is invalid
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: atlas-bootstrap-recovery-fence-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+spec:
+  policyName: atlas-bootstrap-recovery-fence-authorization
+  validationActions:
+    - Audit

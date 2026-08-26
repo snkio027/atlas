@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "activationState": "UNINSTALLED",
+  "controllerBaselineReplicas": 0,
+  "recoveryControllerPolicy": "create-update",
+  "perApplicationSetPolicyOverride": false,
+  "requiredParentAutomatedEnabled": false,
+  "requiredGeneratedAutomatedEnabled": false,
+  "requiredSourceRevision": "IMMUTABLE_FULL_COMMIT_SHA",
+  "generatorInputs": "DETERMINISTIC_ONLY",
+  "resumeLayerRule": "OUTERMOST_GENERATED_DESCENDANT_GATE",
+  "unresolvedLayerOrGenerator": "FREEZE_UNAVAILABLE",
+  "ignoreApplicationDifferencesIsSufficient": false
+}

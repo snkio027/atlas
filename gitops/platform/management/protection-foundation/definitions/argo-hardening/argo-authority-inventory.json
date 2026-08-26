@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "argocdVersion": "3.5.1",
+  "fineGrainedApplicationInheritanceDisabled": true,
+  "builtInAdminEnabled": false,
+  "anonymousEnabled": false,
+  "policyDefault": "role:atlas-authenticated-readonly",
+  "unknownIdentityAuthority": "READ_ONLY_DEFAULT",
+  "unknownResourceActionOrInheritance": "AUTHORITY_DRIFTED",
+  "localAccounts": [],
+  "ssoSubjects": [],
+  "globalExplicitRoles": [
+    {
+      "name": "role:atlas-phase1a-fixture",
+      "activationState": "NON_PRODUCTION_FIXTURE",
+      "subjects": [],
+      "sideEffectingPermissions": []
+    }
+  ],
+  "appProjectRoles": []
+}

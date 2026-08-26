@@ -1,0 +1,155 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: atlas-bootstrap-evidence-protection
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: bootstrapPrincipal,recoveryPrincipal,sessionAuthorizerPrincipal,argocdControllerPrincipal
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - configmaps
+        scope: Namespaced
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - DELETE
+        resources:
+          - namespaces
+        scope: Cluster
+  matchConditions:
+    - name: protected-adoption-evidence-or-namespace
+      expression: >-
+        (request.resource.resource == 'configmaps' &&
+          ((request.namespace == 'kube-system' &&
+            (request.operation == 'DELETE'
+              ? oldObject.metadata.name in [
+                  'atlas-bootstrap-identity',
+                  'atlas-bootstrap-adoption-receipt',
+                  'atlas-bootstrap-operation-fence'
+                ]
+              : object.metadata.name in [
+                  'atlas-bootstrap-identity',
+                  'atlas-bootstrap-adoption-receipt',
+                  'atlas-bootstrap-operation-fence'
+                ])) ||
+          (request.namespace == 'argocd' &&
+            (request.operation == 'DELETE'
+              ? oldObject.metadata.name == 'atlas-bootstrap-adoption-signal'
+              : object.metadata.name == 'atlas-bootstrap-adoption-signal')))) ||
+        (request.resource.resource == 'namespaces' &&
+          request.operation == 'DELETE' &&
+          oldObject.metadata.name in ['argocd', 'kube-system'])
+  variables:
+    - name: target
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  validations:
+    - expression: >-
+        (request.resource.resource == 'namespaces' &&
+          request.userInfo.username ==
+            'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1') ||
+        (request.resource.resource == 'configmaps' &&
+          ((request.namespace == 'kube-system' &&
+            variables.target.metadata.name == 'atlas-bootstrap-identity' &&
+            ((request.operation == 'CREATE' &&
+              request.userInfo.username ==
+                'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1') ||
+            (request.operation != 'CREATE' &&
+              request.userInfo.username ==
+                'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'))) ||
+          (request.namespace == 'argocd' &&
+            variables.target.metadata.name == 'atlas-bootstrap-adoption-signal' &&
+            ((request.operation == 'CREATE' &&
+              request.userInfo.username in [
+                'system:serviceaccount:argocd:atlas-argocd-application-controller',
+                'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'
+              ]) ||
+            (request.operation != 'CREATE' &&
+              request.userInfo.username ==
+                'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'))) ||
+          (request.namespace == 'kube-system' &&
+            variables.target.metadata.name == 'atlas-bootstrap-adoption-receipt' &&
+            ((request.operation == 'CREATE' &&
+              request.userInfo.username in [
+                'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1',
+                'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'
+              ]) ||
+            (request.operation != 'CREATE' &&
+              request.userInfo.username ==
+                'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1'))) ||
+          (request.namespace == 'kube-system' &&
+            variables.target.metadata.name == 'atlas-bootstrap-operation-fence' &&
+            request.operation != 'UPDATE' &&
+            request.userInfo.username in [
+              'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1',
+              'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1'
+            ])))
+      message: Adoption evidence mutation requires the exact reviewed authority
+      reason: Forbidden
+    - expression: >-
+        request.resource.resource != 'configmaps' ||
+        (has(variables.target.immutable) && variables.target.immutable)
+      message: Protected adoption evidence must be immutable
+      reason: Invalid
+    - expression: >-
+        request.resource.resource != 'configmaps' ||
+        variables.target.metadata.name != 'atlas-bootstrap-identity' ||
+        (has(variables.target.data) &&
+          variables.target.data.schema == 'atlas.io/bootstrap-identity/v2' &&
+          variables.target.data.repositoryURL == 'https://github.com/snkio027/atlas.git' &&
+          variables.target.data.kindConfigSHA256.matches('^[0-9a-f]{64}$') &&
+          variables.target.data.clusterName.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'))
+      message: Bootstrap Identity v2 projection is invalid
+      reason: Invalid
+    - expression: >-
+        request.resource.resource != 'configmaps' ||
+        variables.target.metadata.name != 'atlas-bootstrap-adoption-signal' ||
+        (has(variables.target.data) && variables.target.data.size() == 3 &&
+          variables.target.data.schema == 'atlas.io/bootstrap-adoption-signal/v1' &&
+          variables.target.data.repositoryURL == 'https://github.com/snkio027/atlas.git' &&
+          variables.target.data.rootName == 'atlas-root')
+      message: GitOps Adoption Signal projection is invalid
+      reason: Invalid
+    - expression: >-
+        request.resource.resource != 'configmaps' ||
+        variables.target.metadata.name != 'atlas-bootstrap-adoption-receipt' ||
+        (has(variables.target.data) &&
+          variables.target.data.schema == 'atlas.io/bootstrap-adoption-receipt/v1' &&
+          variables.target.data.identityUID.matches(
+            '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') &&
+          variables.target.data.signalUID.matches(
+            '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') &&
+          variables.target.data.repositoryURL == 'https://github.com/snkio027/atlas.git' &&
+          variables.target.data.rootName == 'atlas-root' &&
+          variables.target.data.rootUID.matches(
+            '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') &&
+          variables.target.data.argocdSelfUID.matches(
+            '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'))
+      message: Adoption Receipt projection is invalid
+      reason: Invalid
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: atlas-bootstrap-evidence-protection
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+spec:
+  policyName: atlas-bootstrap-evidence-protection
+  validationActions:
+    - Audit

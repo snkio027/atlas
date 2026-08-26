@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-ignore-only
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  generators:
+    - list:
+        elements:
+          - name: invalid-child
+            resumeLayer: management
+  syncPolicy:
+    applicationsSync: create-update
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy/automated
+  template:
+    spec:
+      source:
+        targetRevision: main

@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-generator
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/snkio027/atlas.git
+        revision: main
+        directories:
+          - path: '*'
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    spec:
+      source:
+        targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+      syncPolicy:
+        automated:
+          enabled: false

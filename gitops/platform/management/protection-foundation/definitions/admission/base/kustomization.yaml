@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - evidence-protection.yaml
+  - recovery-fence-authorization.yaml
+  - recovery-binding-shape-authorization.yaml
+  - recovery-permission-authorization.yaml
+  - recovery-guard-authorization.yaml
