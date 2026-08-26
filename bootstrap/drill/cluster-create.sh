@@ -316,8 +316,8 @@ drill::_retained_state() {
 }
 
 drill::_remove_temporary_directory() {
-  local directory=$1
-  [[ $directory == "${TMPDIR%/}/atlas-kind-drill."* && -d $directory && ! -L $directory ]] || return 1
+  local directory=$1 temporary_root=$2
+  [[ $directory == "${temporary_root%/}/atlas-kind-drill."* && -d $directory && ! -L $directory ]] || return 1
   rm -rf -- "$directory"
 }
 
@@ -387,11 +387,16 @@ drill::_create_cluster_inner() {
 
 drill::create_cluster() {
   local cluster_name=$1 context=$2 kubeconfig=$3 audit_directory=$4 evidence_root=$5 storage_assertion=$6
-  local temporary_directory status release_status=0
+  local temporary_root temporary_directory status release_status=0
   drill::resolve_target "$cluster_name" "$context" "$kubeconfig" "$audit_directory" "$evidence_root" "$storage_assertion" || return 1
+  temporary_root=$(drill::_system_temporary_directory) || return 1
+  [[ $temporary_root == /* && -d $temporary_root ]] || {
+    drill::die "the system temporary directory is unavailable"
+    return 1
+  }
   drill::_host_preflight || return 1
   drill::acquire_lifecycle_lock || return 1
-  if ! temporary_directory=$(mktemp -d "${TMPDIR%/}/atlas-kind-drill.XXXXXX"); then
+  if ! temporary_directory=$(mktemp -d "${temporary_root%/}/atlas-kind-drill.XXXXXX"); then
     drill::release_lifecycle_lock || true
     return 1
   fi
@@ -401,7 +406,7 @@ drill::create_cluster() {
   else
     status=$?
   fi
-  drill::_remove_temporary_directory "$temporary_directory" || true
+  drill::_remove_temporary_directory "$temporary_directory" "$temporary_root" || true
   drill::release_lifecycle_lock || release_status=$?
   ((release_status == 0)) || return "$release_status"
   return "$status"
