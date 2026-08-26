@@ -1,12 +1,56 @@
-# Phase-0 Recovery Authority Preparation
+# Phase-0 Recovery Authority
 
 This runbook covers the audited Kind definition, isolated drill-cluster
 lifecycle, and canary-only runtime ceremony implemented for ADR-0003 Phase 0.
-It does not declare Phase 0 complete. Reading this runbook, merging the
-implementation, or running Quality does not authorize cluster creation,
-credential issuance, RBAC or Admission activation, canary mutation, recovery
-execution, teardown, or Tier-0 changes. A real ceremony requires its own exact
-Human Judgment Gate after the code has been reviewed and merged.
+Phase 0 is `COMPLETE / FROZEN` at
+`main@d2a9fc33d6737e8320887851a9d9a153a683c06e`; the evidence below records its
+runtime closure. Reading this runbook, merging an implementation, or running
+Quality does not authorize cluster creation, credential issuance, RBAC or
+Admission activation, canary mutation, recovery execution, teardown, or Tier-0
+changes. Every runtime action still requires its own exact Human Judgment Gate.
+
+## Closure record
+
+The closure baseline used locked Kubernetes 1.36.1 on a disposable audited
+Kind cluster. Runtime evidence was sealed locally; the repository records only
+non-secret identifiers and digests, not credentials, complete Audit logs, or
+host-state inventories.
+
+| Evidence | Result |
+| --- | --- |
+| Repository baseline | `main@d2a9fc33d6737e8320887851a9d9a153a683c06e` |
+| Successful runtime drill | `atlas-recovery-drill-20260825t202713z-d2a9fc33` |
+| Runtime Result SHA-256 | `49f92611405dee2d701e77d92f2a1c68be3077a93feb6a623055574252bf45e3` |
+| Runtime Journal | 48 entries; tip `362fb58b78aed9ad304634f5b6f80af3c41ad45129233b10e56c09026e6cfdd0` |
+| Successful drill destruction Result SHA-256 | `aae55a8851a017071d22f637f0562450a7fab891039a72b51233f09e1b7a4bfb` |
+| Destruction Journal | 10 entries; tip `922eb3d9f3435bc1fd23d01b04e088fb3a0d0ac466c54a1217605b89ee121e0d` |
+| Retained-state disposition | `atlas-recovery-drill-20260825t174600z-dd5793a3` |
+| Disposition Result SHA-256 | `d4d6bc326668f24540af63827a3df50219f187b3b00b3df8eb38199d62370632` |
+| Disposition Journal | 53 entries; tip `2db53d3dfdc10bb41afec9f0a3abcdae6c3d8e30b1eff1054aeb84b2b514baa0` |
+
+The successful ceremony proved all 17 approved live projections, completed
+server-side type checking, exercised Admission escape suspend and exact
+restore, enforced the Fence and temporary Permission boundary, then removed
+17/17 definitions. The current and previous generations of both the Recovery
+Operator and Session Authorizer returned to their complete non-mutating
+permission baseline. Temporary credentials and the runtime lock were absent at
+completion.
+
+The successful drill was subsequently destroyed: its Kind entry, container,
+API endpoint, admin kubeconfig, credential directory, and lifecycle lock were
+absent while its Audit, creation, and runtime evidence remained sealed. The
+separate retained-state disposition removed 18 approved canary objects,
+unlinked 18 exact credential files, removed three empty credential directories,
+released both exact locks, destroyed the retained Drill, and preserved its
+evidence chain. Postflight verification confirmed that the normal four-node
+`atlas-test` cluster remained Ready and unchanged.
+
+The Recovery Shell is now feature-frozen. Changes require a security defect, a
+runtime-evidence counterexample, or separately reviewed ADR authority; Phase-0
+convenience features and generalized recovery frameworks are not accepted.
+Phase 1A definition work may start, but this closure does not authorize GitOps
+wiring, production Admission activation, Signal or Receipt creation, Tier-0
+mutation, or a recovery operation.
 
 ## Render the audited drill-cluster configuration
 
