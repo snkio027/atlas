@@ -225,9 +225,15 @@ if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authen
   > "$test_workspace/fence-update.stdout" 2> "$test_workspace/fence-update.stderr"; then
   test::fail "Bootstrap updated the create-only Operation Fence"
 fi
-grep -Fq 'Fence lifecycle is limited to the canonical create-only object' \
-  "$test_workspace/fence-update.stderr" ||
-  test::fail "Bootstrap Fence update did not reach Fence lifecycle authorization"
+if ! grep -Fq 'Fence lifecycle is limited to the canonical create-only object' \
+  "$test_workspace/fence-update.stderr" &&
+  ! grep -Fq 'Adoption evidence mutation requires the exact reviewed authority' \
+    "$test_workspace/fence-update.stderr"; then
+  test::fail "Bootstrap Fence update did not reach a canonical protection control"
+fi
+[[ $(kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-operation-fence \
+  -n kube-system -o json | yq '.metadata.labels | has("atlas.io/forbidden-update")') == false ]] ||
+  test::fail "rejected Bootstrap Fence update changed the live object"
 
 signal="$definitions/signal/adoption-signal.yaml"
 if kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$signal" \
