@@ -32,10 +32,23 @@ Two additional failure modes constrain the design:
    operator checking out an older Atlas revision must not be able to bypass the
    receipt by using the previous Application-presence heuristic.
 
-This decision affects Recovery Authority and therefore requires an accepted
-ADR before implementation. While this ADR remains Proposed, it does not
-authorize changes to Bootstrap control semantics, AppProject permissions,
-admission policy, or GitOps manifests.
+This decision affects Recovery Authority and therefore required an accepted
+ADR before implementation. Acceptance does not itself authorize changes to
+Bootstrap control semantics, AppProject permissions, admission policy, or
+GitOps manifests; each implementation and activation step remains separately
+reviewed and gated.
+
+## Implementation status
+
+This decision is accepted. Its ADR-0003 Phase-0 recovery prerequisite is
+implemented, runtime-verified, and `COMPLETE / FROZEN` as recorded in the
+[Phase-0 Recovery Authority runbook](../runbooks/recovery-phase0.md).
+
+The Identity v2 migration, production protection activation, Signal, Receipt,
+and receipt-aware normal Bootstrap path remain unimplemented and inactive.
+Normal Bootstrap therefore still uses the live `argocd-self` heuristic
+described above, and the INV-02 runtime gap remains open until the separately
+reviewed Phase 1 through Phase 4 rollout is complete.
 
 ## Decision
 
@@ -548,7 +561,7 @@ audit artifact.
 
 ## Acceptance gates
 
-This ADR remains `Proposed` until reviewers confirm all of the following:
+Reviewers accepted this ADR after confirming all of the following:
 
 - Receipt creation is the unambiguous control-transfer linearization point;
 - the create response UID and resourceVersion, rather than timestamp ordering,
@@ -564,6 +577,6 @@ This ADR remains `Proposed` until reviewers confirm all of the following:
   acceptable;
 - the dependency on an accepted and implemented break-glass design is explicit.
 
-Acceptance of this ADR will authorize phased implementation of this design. It
-will not itself authorize a break-glass execution, Tier-0 apply, legacy-cluster
-migration, or production rollout.
+Acceptance of this ADR authorizes separately reviewed phased implementation of
+this design. It does not itself authorize a break-glass execution, Tier-0
+apply, legacy-cluster migration, or production rollout.
