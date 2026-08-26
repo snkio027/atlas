@@ -109,12 +109,8 @@ spec:
         request.resource.resource != 'configmaps' ||
         variables.target.metadata.name != 'atlas-bootstrap-identity' ||
         (has(variables.target.data) && variables.target.data.size() == 4 &&
-          variables.target.data == {
-            'schema': 'atlas.io/bootstrap-identity/v2',
-            'repositoryURL': 'https://github.com/snkio027/atlas.git',
-            'kindConfigSHA256': variables.target.data.kindConfigSHA256,
-            'clusterName': variables.target.data.clusterName
-          } &&
+          variables.target.data.all(k, v,
+            k in ['schema', 'repositoryURL', 'kindConfigSHA256', 'clusterName']) &&
           variables.target.data.schema == 'atlas.io/bootstrap-identity/v2' &&
           variables.target.data.repositoryURL == 'https://github.com/snkio027/atlas.git' &&
           variables.target.data.kindConfigSHA256.matches('^[0-9a-f]{64}$') &&
