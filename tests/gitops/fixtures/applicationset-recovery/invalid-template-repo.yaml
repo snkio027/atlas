@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-template-repo
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - name: invalid-repo-child
+            resumeLayer: management
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    metadata:
+      name: '{{.name}}'
+      labels:
+        atlas.io/applicationset-owner: invalid-template-repo
+        atlas.io/resume-layer: '{{.resumeLayer}}'
+    spec:
+      project: platform-project
+      source:
+        repoURL: https://example.invalid/atlas.git
+        targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+        path: tests/gitops/fixtures/applicationset-recovery/payload
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: invalid-repo-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: invalid-template-repo
+    atlas.io/resume-layer: management
+spec:
+  project: platform-project
+  source:
+    repoURL: https://github.com/snkio027/atlas.git
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+    path: tests/gitops/fixtures/applicationset-recovery/payload
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      enabled: false

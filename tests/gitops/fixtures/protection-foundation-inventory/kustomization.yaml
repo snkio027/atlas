@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Test-only aggregation. Production rollout entrypoints remain independent.
+resources:
+  - ../../../../gitops/platform/management/protection-foundation/definitions/admission/overlays/observing
+  - ../../../../gitops/platform/management/protection-foundation/definitions/rbac/escape
+  - ../../../../gitops/platform/management/protection-foundation/definitions/rbac/session
+  - ../../../../gitops/platform/management/protection-foundation/definitions/signal
+  - ../../../../gitops/platform/management/protection-foundation/definitions/argo-hardening

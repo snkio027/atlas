@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "activationState": "UNINSTALLED",
+  "controllerBaselineReplicas": 0,
+  "recoveryControllerPolicy": "create-update",
+  "perApplicationSetPolicyOverride": false,
+  "requiredParentAutomatedEnabled": false,
+  "requiredGeneratedAutomatedEnabled": false,
+  "requiredGeneratedIdentity": "TEMPLATE_EXACT_NAME_OWNER_SOURCE_DESTINATION",
+  "requiredRepositoryURL": "https://github.com/snkio027/atlas.git",
+  "requiredDestinationServer": "https://kubernetes.default.svc",
+  "requiredSourceRevision": "IMMUTABLE_FULL_COMMIT_SHA",
+  "sourceMode": "SINGLE_SOURCE_ONLY",
+  "templatePatch": "FORBIDDEN",
+  "generatorTemplateOverride": "FORBIDDEN",
+  "generatorInputs": "DETERMINISTIC_ONLY",
+  "resumeLayerRule": "OUTERMOST_GENERATED_DESCENDANT_GATE",
+  "unresolvedLayerOrGenerator": "FREEZE_UNAVAILABLE",
+  "ignoreApplicationDifferencesIsSufficient": false
+}

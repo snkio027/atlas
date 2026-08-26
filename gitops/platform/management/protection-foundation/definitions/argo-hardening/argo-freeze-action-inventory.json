@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "argocdVersion": "3.5.1",
+  "fineGrainedApplicationInheritanceDisabled": true,
+  "unknownClassification": "AUTHORITY_DRIFTED",
+  "resources": [
+    {
+      "name": "applications",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "update", "update/*", "delete", "delete/*", "sync", "override", "action/*"]
+    },
+    {
+      "name": "applicationsets",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "update", "delete"]
+    },
+    {
+      "name": "clusters",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "update", "delete"]
+    },
+    {
+      "name": "projects",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "update", "delete"]
+    },
+    {
+      "name": "repositories",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "update", "delete"]
+    },
+    {
+      "name": "accounts",
+      "readOnly": ["get"],
+      "sideEffecting": ["update"]
+    },
+    {
+      "name": "certificates",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "delete"]
+    },
+    {
+      "name": "gpgkeys",
+      "readOnly": ["get"],
+      "sideEffecting": ["create", "delete"]
+    },
+    {
+      "name": "logs",
+      "readOnly": ["get"],
+      "sideEffecting": []
+    },
+    {
+      "name": "exec",
+      "readOnly": [],
+      "sideEffecting": ["create"]
+    },
+    {
+      "name": "extensions",
+      "readOnly": [],
+      "sideEffecting": ["invoke"]
+    }
+  ]
+}

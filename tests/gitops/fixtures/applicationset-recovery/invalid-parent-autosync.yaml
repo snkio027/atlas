@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-parent-autosync
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  generators:
+    - list:
+        elements:
+          - name: invalid-child
+            resumeLayer: management
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    spec:
+      source:
+        targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+      syncPolicy:
+        automated:
+          enabled: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: invalid-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: invalid-parent-autosync
+    atlas.io/resume-layer: management
+spec:
+  source:
+    targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
+  syncPolicy:
+    automated:
+      enabled: false

@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Phase 1B candidate: validation failures are audited but do not enforce Deny.
+# This path remains unreachable until a separately approved activation PR.
+resources:
+  - ../../base

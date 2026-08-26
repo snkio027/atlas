@@ -1,0 +1,16 @@
+# principal	namespace	apiGroup	resource	resourceName	verb	expected
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	cluster	admissionregistration.k8s.io	validatingadmissionpolicies	atlas-bootstrap-evidence-protection	get	allow
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	cluster	admissionregistration.k8s.io	validatingadmissionpolicybindings	atlas-bootstrap-evidence-protection	patch	allow
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	cluster	admissionregistration.k8s.io	validatingadmissionpolicybindings	atlas-bootstrap-recovery-fence-authorization	patch	deny
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	kube-system	core	configmaps	atlas-bootstrap-identity	get	allow
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	argocd	core	configmaps	argocd-rbac-cm	patch	deny
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	argocd	core	secrets	any	get	deny
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	cluster	rbac.authorization.k8s.io	clusterrolebindings	any	create	allow
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	cluster	rbac.authorization.k8s.io	clusterroles	atlas-bootstrap-recovery-cluster	bind	allow
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	cluster	rbac.authorization.k8s.io	clusterroles	unrelated	bind	deny
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	kube-system	core	configmaps	atlas-bootstrap-operation-fence	delete	allow
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	kube-system	rbac.authorization.k8s.io	rolebindings	any	create	allow
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	argocd	rbac.authorization.k8s.io	roles	atlas-bootstrap-recovery	bind	allow
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	argocd	rbac.authorization.k8s.io	roles	atlas-bootstrap-recovery	update	deny
+atlas:session-authz:00000000-0000-0000-0000-000000000000:g1	workload-example	rbac.authorization.k8s.io	rolebindings	any	create	deny
+atlas:break-glass:00000000-0000-0000-0000-000000000000:g1	cluster	core	secrets	any	list	deny

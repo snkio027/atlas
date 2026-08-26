@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-bootstrap-adoption-signal
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd-self
+    app.kubernetes.io/part-of: atlas-gitops-control-plane
+    atlas.io/definition-state: uninstalled
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=confirm,Delete=false
+    argocd.argoproj.io/tracking-id: argocd-self:/ConfigMap:argocd/atlas-bootstrap-adoption-signal
+    atlas.io/activation-requires: enforced-evidence-protection
+immutable: true
+data:
+  schema: atlas.io/bootstrap-adoption-signal/v1
+  repositoryURL: https://github.com/snkio027/atlas.git
+  rootName: atlas-root

@@ -1,0 +1,116 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: atlas-bootstrap-recovery-guard-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+  annotations:
+    atlas.io/activation-inputs: recoveryPrincipal,argoAuthorityInventory
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - configmaps
+        scope: Namespaced
+  matchConditions:
+    - name: recovery-operator-or-guard-change
+      expression: >-
+        request.namespace == 'argocd' &&
+        ((request.userInfo.username ==
+          'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1' &&
+          ((request.operation != 'CREATE' &&
+            oldObject.metadata.name == 'argocd-rbac-cm') ||
+          (request.operation != 'DELETE' &&
+            object.metadata.name == 'argocd-rbac-cm'))) ||
+        (request.operation != 'CREATE' &&
+          oldObject.metadata.name == 'argocd-rbac-cm' &&
+          has(oldObject.data) &&
+          'policy.atlas-recovery-freeze.csv' in oldObject.data) ||
+        (request.operation != 'DELETE' &&
+          object.metadata.name == 'argocd-rbac-cm' &&
+          has(object.data) &&
+          'policy.atlas-recovery-freeze.csv' in object.data))
+  variables:
+    - name: guard
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  validations:
+    - expression: >-
+        request.userInfo.username ==
+          'atlas:break-glass:00000000-0000-0000-0000-000000000000:g1' &&
+        variables.guard.metadata.name == 'argocd-rbac-cm'
+      message: Argo recovery guard mutation requires the exact Recovery Operator
+      reason: Forbidden
+    - expression: "request.operation != 'DELETE'"
+      message: argocd-rbac-cm cannot be deleted while the recovery guard exists
+      reason: Forbidden
+    - expression: >-
+        request.operation != 'CREATE' ||
+        (has(object.metadata.labels) &&
+          object.metadata.labels['app.kubernetes.io/name'] == 'argocd-rbac-cm' &&
+          object.metadata.labels['app.kubernetes.io/part-of'] == 'argocd' &&
+          !has(object.binaryData) && !has(object.immutable) &&
+          has(object.data) &&
+          object.data['policy.atlas-recovery-freeze.csv'] ==
+            'p, role:atlas-phase1a-fixture, *, *, *, deny')
+      message: Recovery guard CREATE projection is invalid
+      reason: Forbidden
+    - expression: >-
+        request.operation != 'UPDATE' ||
+        (has(object.metadata.labels) == has(oldObject.metadata.labels) &&
+          (!has(object.metadata.labels) ||
+            object.metadata.labels == oldObject.metadata.labels) &&
+          has(object.metadata.annotations) == has(oldObject.metadata.annotations) &&
+          (!has(object.metadata.annotations) ||
+            object.metadata.annotations == oldObject.metadata.annotations) &&
+          has(object.metadata.finalizers) == has(oldObject.metadata.finalizers) &&
+          (!has(object.metadata.finalizers) ||
+            object.metadata.finalizers == oldObject.metadata.finalizers) &&
+          has(object.metadata.ownerReferences) == has(oldObject.metadata.ownerReferences) &&
+          (!has(object.metadata.ownerReferences) ||
+            object.metadata.ownerReferences == oldObject.metadata.ownerReferences) &&
+          !has(object.binaryData) && !has(oldObject.binaryData) &&
+          !has(object.immutable) && !has(oldObject.immutable) &&
+          has(object.data) && has(oldObject.data) &&
+          object.data.all(k, v,
+            k == 'policy.atlas-recovery-freeze.csv' ||
+              (k in oldObject.data && oldObject.data[k] == v)) &&
+          oldObject.data.all(k, v,
+            k == 'policy.atlas-recovery-freeze.csv' ||
+              (k in object.data && object.data[k] == v)))
+      message: Recovery guard UPDATE changed a field outside the guarded key
+      reason: Forbidden
+    - expression: >-
+        (request.operation == 'CREATE' &&
+          'policy.atlas-recovery-freeze.csv' in object.data &&
+          object.data['policy.atlas-recovery-freeze.csv'] ==
+            'p, role:atlas-phase1a-fixture, *, *, *, deny') ||
+        (request.operation == 'UPDATE' &&
+          ('policy.atlas-recovery-freeze.csv' in oldObject.data) !=
+            ('policy.atlas-recovery-freeze.csv' in object.data) &&
+          (!('policy.atlas-recovery-freeze.csv' in object.data) ||
+            object.data['policy.atlas-recovery-freeze.csv'] ==
+              'p, role:atlas-phase1a-fixture, *, *, *, deny'))
+      message: Recovery guard value is unchanged or invalid
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: atlas-bootstrap-recovery-guard-authorization
+  labels:
+    app.kubernetes.io/part-of: atlas-recovery
+    atlas.io/definition-state: uninstalled
+spec:
+  policyName: atlas-bootstrap-recovery-guard-authorization
+  validationActions:
+    - Audit

@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: invalid-mutable-revision
+  namespace: argocd
+  annotations:
+    atlas.io/resume-layer: management
+spec:
+  generators:
+    - list:
+        elements:
+          - name: invalid-child
+            resumeLayer: management
+  syncPolicy:
+    applicationsSync: create-update
+  template:
+    spec:
+      source:
+        repoURL: https://github.com/snkio027/atlas.git
+        targetRevision: main
+        path: invalid
+      syncPolicy:
+        automated:
+          enabled: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: invalid-child
+  namespace: argocd
+  labels:
+    atlas.io/applicationset-owner: invalid-mutable-revision
+    atlas.io/resume-layer: management
+spec:
+  source:
+    targetRevision: main
+  syncPolicy:
+    automated:
+      enabled: false

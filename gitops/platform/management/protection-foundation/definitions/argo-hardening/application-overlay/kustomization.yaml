@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../../../applications/base
+
+patches:
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+      name: argocd-self
+      namespace: argocd
+    patch: |-
+      - op: replace
+        path: /spec/sources/0/helm/valueFiles
+        value:
+          - $values/gitops/platform/management/argocd-self/values.yaml
+          - $values/gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml
+      - op: replace
+        path: /spec/sources/1/path
+        value: gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay
+      - op: add
+        path: /spec/ignoreDifferences
+        value:
+          - group: ""
+            kind: ConfigMap
+            namespace: argocd
+            name: argocd-rbac-cm
+            jsonPointers:
+              - /data/policy.atlas-recovery-freeze.csv
+      - op: replace
+        path: /spec/syncPolicy/syncOptions
+        value:
+          - ApplyOutOfSyncOnly=true
+          - FailOnSharedResource=true
+          - RespectIgnoreDifferences=true
+          - ServerSideApply=true

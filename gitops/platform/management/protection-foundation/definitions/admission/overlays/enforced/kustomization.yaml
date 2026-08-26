@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Phase 1C candidate: Fail + Audit/Deny. This path is definition-only and must
+# remain unreachable until escape revalidation and a Human Judgment Gate.
+resources:
+  - ../../base
+
+patches:
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicyBinding
+      labelSelector: app.kubernetes.io/part-of=atlas-recovery
+    patch: |-
+      - op: replace
+        path: /spec/validationActions
+        value:
+          - Audit
+          - Deny

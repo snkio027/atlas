@@ -37,3 +37,8 @@ jobs:
         env:
           ATLAS_CI_KIND_VAP: "1"
         run: ./tests/recovery/vap-server-compile-contract.sh
+
+      - name: Compile Phase-1A protection VAP CEL on locked Kubernetes
+        env:
+          ATLAS_CI_PHASE1A_VAP: "1"
+        run: ./tests/gitops/protection-foundation-server-contract.sh
