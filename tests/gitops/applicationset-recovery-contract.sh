@@ -36,8 +36,19 @@ validate_fixture() {
   parent_layer=$(yq -r '.metadata.annotations."atlas.io/resume-layer" // ""' <<< "$parent")
   parent_rank_value=$(layer_rank "$parent_layer") || return 1
   [[ $(yq '.spec.goTemplate == true' <<< "$parent") == true ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec | keys | sort' <<< "$parent") == '["generators","goTemplate","syncPolicy","template"]' ]] || return 1
+  [[ $(yq '.spec | has("templatePatch")' <<< "$parent") == false ]] || return 1
   [[ $(yq -r '.spec.syncPolicy.applicationsSync // ""' <<< "$parent") == create-update ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.syncPolicy | keys | sort' <<< "$parent") == '["applicationsSync"]' ]] || return 1
   [[ $(yq '.spec.template.spec.syncPolicy.automated.enabled == false' <<< "$parent") == true ]] || return 1
+  [[ $(yq '.spec.template.spec | has("source") and (has("sources") | not)' <<< "$parent") == true ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template | keys | sort' <<< "$parent") == '["metadata","spec"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.metadata | keys | sort' <<< "$parent") == '["labels","name"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.spec | keys | sort' <<< "$parent") == '["destination","project","source","syncPolicy"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.spec.source | keys | sort' <<< "$parent") == '["path","repoURL","targetRevision"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.spec.destination | keys | sort' <<< "$parent") == '["namespace","server"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.spec.syncPolicy | keys | sort' <<< "$parent") == '["automated"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.template.spec.syncPolicy.automated | keys | sort' <<< "$parent") == '["enabled"]' ]] || return 1
   revision=$(yq -r '.spec.template.spec.source.targetRevision // ""' <<< "$parent")
   [[ $revision =~ ^[0-9a-f]{40}$ ]] || return 1
   [[ $(yq '.spec | has("ignoreApplicationDifferences")' <<< "$parent") == false ]] || return 1
@@ -57,7 +68,8 @@ validate_fixture() {
 
   generator_count=$(yq '.spec.generators | length' <<< "$parent")
   ((generator_count == 1)) || return 1
-  [[ $(yq '.spec.generators[0] | keys | .[]' <<< "$parent") == list ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.generators[0] | keys | sort' <<< "$parent") == '["list"]' ]] || return 1
+  [[ $(yq -o=json -I=0 '.spec.generators[0].list | keys | sort' <<< "$parent") == '["elements"]' ]] || return 1
   element_count=$(yq '.spec.generators[0].list.elements | length' <<< "$parent")
   ((element_count > 0)) || return 1
   while IFS= read -r element_keys; do
@@ -97,6 +109,9 @@ $(yq -r '.recoveryControllerPolicy' "$contract") == create-update &&
 $(yq -r '.requiredGeneratedIdentity' "$contract") == TEMPLATE_EXACT_NAME_OWNER_SOURCE_DESTINATION &&
 $(yq -r '.requiredRepositoryURL' "$contract") == https://github.com/snkio027/atlas.git &&
 $(yq -r '.requiredDestinationServer' "$contract") == https://kubernetes.default.svc &&
+$(yq -r '.sourceMode' "$contract") == SINGLE_SOURCE_ONLY &&
+$(yq -r '.templatePatch' "$contract") == FORBIDDEN &&
+$(yq -r '.generatorTemplateOverride' "$contract") == FORBIDDEN &&
 $(yq -r '.unresolvedLayerOrGenerator' "$contract") == FREEZE_UNAVAILABLE &&
 $(yq -r '.ignoreApplicationDifferencesIsSufficient' "$contract") == false ]] ||
   test::fail "ApplicationSet recovery contract drifted"
@@ -113,7 +128,9 @@ for invalid in \
   invalid-ignore-only.yaml \
   invalid-template-repo.yaml \
   invalid-template-name.yaml \
-  invalid-template-destination.yaml; do
+  invalid-template-destination.yaml \
+  invalid-multiple-sources.yaml \
+  invalid-template-patch.yaml; do
   if validate_fixture "$fixture_root/$invalid"; then
     test::fail "unsafe ApplicationSet fixture was accepted: ${invalid}"
   fi

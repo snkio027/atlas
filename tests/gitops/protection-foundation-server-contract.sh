@@ -125,6 +125,9 @@ server_version=$(kubectl --kubeconfig "$kubeconfig" version -o json | yq -r '.se
   test::fail "CI Kubernetes server differs from versions.lock: ${server_version}"
 
 definitions=gitops/platform/management/protection-foundation/definitions
+chart_path=$(locked_value ARGOCD_CHART_PATH)
+argocd_values=gitops/platform/management/argocd-self/values.yaml
+argocd_hardening_values="$definitions/argo-hardening/argocd-values-hardening.yaml"
 enforced="$test_workspace/enforced.yaml"
 policies="$test_workspace/policies.yaml"
 bindings="$test_workspace/bindings.yaml"
@@ -303,13 +306,45 @@ grep -Fq 'Adoption evidence mutation requires the exact reviewed authority' \
 [[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-adoption-signal \
   -n argocd --ignore-not-found -o name) ]] || test::fail "rejected Signal persisted unexpectedly"
 
-kubectl --kubeconfig "$kubeconfig" create configmap argocd-rbac-cm -n argocd \
-  --from-literal=policy.default=role:atlas-authenticated-readonly > /dev/null
+argocd_chart="$test_workspace/argocd-chart.yaml"
+argocd_rbac_cm="$test_workspace/argocd-rbac-cm.yaml"
+helm template atlas-argocd "$chart_path" --namespace argocd --include-crds \
+  --values "$argocd_values" --values "$argocd_hardening_values" > "$argocd_chart"
+NAME=argocd-rbac-cm yq ea \
+  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' \
+  "$argocd_chart" > "$argocd_rbac_cm"
+[[ $(yq ea '[.] | length' "$argocd_rbac_cm") -eq 1 &&
+$(yq '.metadata | has("annotations")' "$argocd_rbac_cm") == false &&
+$(yq '.metadata | has("finalizers")' "$argocd_rbac_cm") == false &&
+$(yq '.metadata | has("ownerReferences")' "$argocd_rbac_cm") == false ]] ||
+  test::fail "Chart argocd-rbac-cm fixture does not exercise absent optional metadata"
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$argocd_rbac_cm" > /dev/null
 guard="$test_workspace/argocd-rbac-guarded.yaml"
 kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o yaml |
   GUARD_VALUE='p, role:atlas-phase1a-fixture, *, *, *, deny' yq '
     .data."policy.atlas-recovery-freeze.csv" = strenv(GUARD_VALUE)
   ' > "$guard"
+
+wait_for_guard_enforcement() {
+  local attempt diagnostic
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    diagnostic="$test_workspace/guard-enforcement-$(printf '%02d' "$attempt").stderr"
+    if kubectl --kubeconfig "$kubeconfig" replace --dry-run=server --validate=strict -f "$guard" \
+      > "$test_workspace/guard-enforcement.stdout" 2> "$diagnostic"; then
+      sleep 1
+      continue
+    fi
+    grep -Fq 'Argo recovery guard mutation requires the exact Recovery Operator' \
+      "$diagnostic" || {
+      cat "$diagnostic" >&2
+      test::fail "Guard authorization propagation probe failed unexpectedly"
+    }
+    return 0
+  done
+  test::fail "Guard authorization did not reach the API Server admission path"
+}
+
+wait_for_guard_enforcement
 if kubectl --kubeconfig "$kubeconfig" replace --validate=strict -f "$guard" \
   > "$test_workspace/guard.stdout" 2> "$test_workspace/guard.stderr"; then
   test::fail "ordinary cluster administrator bypassed Guard authorization"
@@ -320,5 +355,48 @@ grep -Fq 'Argo recovery guard mutation requires the exact Recovery Operator' \
 [[ $(kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o json |
   yq '.data | has("policy.atlas-recovery-freeze.csv")') == false ]] ||
   test::fail "rejected recovery guard mutation changed the live ConfigMap"
+
+recovery=atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
+guard_rbac=tests/gitops/fixtures/phase1a-server/recovery-guard-rbac.yaml
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$guard_rbac" > /dev/null
+
+wait_for_guard_permission() {
+  local attempt decision diagnostic
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    diagnostic="$test_workspace/guard-permission-$(printf '%02d' "$attempt").stderr"
+    if ! decision=$(kubectl --kubeconfig "$kubeconfig" --as="$recovery" \
+      --as-group=system:authenticated auth can-i update \
+      configmaps/argocd-rbac-cm -n argocd 2> "$diagnostic"); then
+      cat "$diagnostic" >&2
+      test::fail "Recovery guard permission probe failed"
+    fi
+    [[ ! -s $diagnostic ]] || {
+      cat "$diagnostic" >&2
+      test::fail "Recovery guard permission probe emitted a diagnostic"
+    }
+    case "$decision" in
+      yes) return 0 ;;
+      no) sleep 1 ;;
+      *) test::fail "Recovery guard permission probe returned an unknown decision" ;;
+    esac
+  done
+  test::fail "Recovery guard permission did not converge"
+}
+
+wait_for_guard_permission
+kubectl --kubeconfig "$kubeconfig" --as="$recovery" --as-group=system:authenticated \
+  replace --validate=strict -f "$guard" > /dev/null
+[[ $(kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o json |
+  yq -r '.data."policy.atlas-recovery-freeze.csv" // ""') == 'p, role:atlas-phase1a-fixture, *, *, *, deny' ]] ||
+  test::fail "exact Recovery principal did not add the canonical Guard"
+
+unguarded="$test_workspace/argocd-rbac-unguarded.yaml"
+kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o yaml |
+  yq 'del(.data."policy.atlas-recovery-freeze.csv")' > "$unguarded"
+kubectl --kubeconfig "$kubeconfig" --as="$recovery" --as-group=system:authenticated \
+  replace --validate=strict -f "$unguarded" > /dev/null
+[[ $(kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o json |
+  yq '.data | has("policy.atlas-recovery-freeze.csv")') == false ]] ||
+  test::fail "exact Recovery principal did not remove the canonical Guard"
 
 test::pass "Phase 1A VAPs compile and fail closed on locked Kubernetes"

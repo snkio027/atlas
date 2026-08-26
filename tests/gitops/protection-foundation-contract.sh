@@ -199,6 +199,9 @@ for required in \
   policy.atlas-recovery-freeze.csv \
   'object.data.all(k, v' \
   'oldObject.data.all(k, v' \
+  'has(object.metadata.annotations) == has(oldObject.metadata.annotations)' \
+  'has(object.metadata.finalizers) == has(oldObject.metadata.finalizers)' \
+  'has(object.metadata.ownerReferences) == has(oldObject.metadata.ownerReferences)' \
   "request.operation != 'DELETE'"; do
   grep -Fq "$required" <<< "$guard_contract" || test::fail "Guard contract omits ${required}"
 done
