@@ -184,6 +184,7 @@ drill::_version_triplet() {
   drill::target BASH_VERSION
 }
 drill::_system_temporary_directory() {
+  [[ ${ATLAS_TEST_TEMPORARY_DIRECTORY_FAIL:-0} != 1 ]] || return 42
   printf '%s\n' "$ATLAS_TEST_LOCK_PARENT"
 }
 if [[ ${ATLAS_TEST_GATE_MODE:-approve} == noninteractive ]]; then
@@ -307,7 +308,8 @@ drill_test::reset_runtime() {
   rm -f -- "$cluster_state" "$policy_path_state" "$ATLAS_TEST_KUBECONFIG"
   printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
   : > "$command_log"
-  unset ATLAS_TEST_EXISTING_CLUSTER ATLAS_TEST_KIND_CREATE_FAIL ATLAS_TEST_GATE_MODE
+  unset ATLAS_TEST_EXISTING_CLUSTER ATLAS_TEST_KIND_CREATE_FAIL ATLAS_TEST_GATE_MODE \
+    ATLAS_TEST_TEMPORARY_DIRECTORY_FAIL
 }
 
 printf 'unix://%s/.orbstack/run/docker.sock\n' "$HOME" > "$docker_endpoint_state"
@@ -454,6 +456,26 @@ grep -Fq KIND_CREATE "$command_log" && test::fail "lock rejection reached cluste
 rmdir "${lock_root}/${cluster_four}.lock"
 test::pass "the dedicated host lifecycle lock rejects concurrent creation"
 
+cluster_temporary_failure=atlas-recovery-drill-20260815t044607z-d4f5a6b7
+drill_test::prepare_target "$cluster_temporary_failure"
+: > "$command_log"
+ATLAS_TEST_TEMPORARY_DIRECTORY_FAIL=1 env -u TMPDIR "${test_workspace}/run-create" > /dev/null 2>&1 &&
+  test::fail "failed system temporary-directory discovery returned success"
+[[ ! -e ${lock_root}/${cluster_temporary_failure}.lock ]] || test::fail "temporary-directory discovery failure retained a lifecycle lock"
+grep -Eq '^(GATE|KIND_CREATE)' "$command_log" && test::fail "temporary-directory discovery failure reached the Gate or Kind creation"
+test::pass "system temporary-directory discovery precedes the lifecycle lock"
+
+cluster_without_tmpdir=atlas-recovery-drill-20260815t045607z-e4f5a6b7
+drill_test::prepare_target "$cluster_without_tmpdir"
+: > "$command_log"
+env -u TMPDIR "${test_workspace}/run-create" > /dev/null
+grep -Fq KIND_CREATE "$command_log" || test::fail "unset TMPDIR did not reach mocked Kind creation"
+[[ ! -e ${lock_root}/${cluster_without_tmpdir}.lock ]] || test::fail "unset TMPDIR retained the lifecycle lock"
+[[ -z $(find "$lock_parent" -maxdepth 1 -type d -name 'atlas-kind-drill.*' -print -quit) ]] ||
+  test::fail "unset TMPDIR retained a cluster-creation temporary directory"
+drill_test::reset_runtime
+test::pass "cluster creation does not depend on caller TMPDIR"
+
 cluster_five=atlas-recovery-drill-20260815t050607z-e5f6a7b8
 drill_test::prepare_target "$cluster_five"
 : > "$command_log"
@@ -546,6 +568,7 @@ test::pass "mocked cluster creation binds authority, journals approval, and veri
 
 test::assert_not_found 'kind[[:space:]]+delete|kubectl[[:space:]]+config[[:space:]]+(use-context|set-context)|--approve' bootstrap/drill
 test::assert_not_found 'TMPDIR' bootstrap/drill/lock.sh
+test::assert_not_found 'TMPDIR' bootstrap/drill/cluster-create.sh
 test::assert_not_found 'atlas-kind-drill|bootstrap/drill' bootstrap/recovery
 test::assert_not_found 'certificatesigningrequests|ClusterRoleBinding|RoleBinding|ValidatingAdmissionPolicy|atlas-adoption-(signal|receipt)' bootstrap/drill
 test::pass "drill cluster creation remains separate from recovery and future authorization gates"
