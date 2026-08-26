@@ -181,13 +181,13 @@ for name in \
   wait_for_typecheck "$name"
 done
 
+kubectl --kubeconfig "$kubeconfig" create namespace argocd > /dev/null
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$bindings" > /dev/null
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$rbac" > /dev/null
 [[ $(kubectl --kubeconfig "$kubeconfig" get validatingadmissionpolicies \
   -l app.kubernetes.io/part-of=atlas-recovery -o json | yq '.items | length') -eq 5 ]] ||
   test::fail "API Server does not contain exactly five Phase 1A VAPs"
 
-kubectl --kubeconfig "$kubeconfig" create namespace argocd > /dev/null
 signal="$definitions/signal/adoption-signal.yaml"
 if kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$signal" \
   > "$test_workspace/signal.stdout" 2> "$test_workspace/signal.stderr"; then
