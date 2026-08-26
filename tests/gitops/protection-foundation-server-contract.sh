@@ -227,6 +227,42 @@ grep -Fq 'Bootstrap Identity v2 projection is invalid' "$test_workspace/legacy-i
 [[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-identity \
   -n kube-system --ignore-not-found -o name) ]] || test::fail "rejected legacy Identity persisted"
 
+session=0123456789abcdef0123456789abcdef
+missing_fence=tests/gitops/fixtures/phase1a-server/missing-fence-rolebinding.yaml
+authorizer=atlas:session-authz:00000000-0000-0000-0000-000000000000:g1
+parameter_missing_diagnostic="no params found for policy binding with \`Deny\` parameterNotFoundAction"
+
+wait_for_permission_enforcement() {
+  local attempt diagnostic
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    diagnostic="$test_workspace/permission-enforcement-$(printf '%02d' "$attempt").stderr"
+    if kubectl --kubeconfig "$kubeconfig" --as="$authorizer" --as-group=system:authenticated \
+      create --dry-run=server --validate=strict -f "$missing_fence" \
+      > "$test_workspace/permission-enforcement.stdout" 2> "$diagnostic"; then
+      sleep 1
+      continue
+    fi
+    grep -Fq "$parameter_missing_diagnostic" "$diagnostic" || {
+      cat "$diagnostic" >&2
+      test::fail "Permission authorization propagation probe failed unexpectedly"
+    }
+    return 0
+  done
+  test::fail "Permission authorization did not reach the API Server admission path"
+}
+
+wait_for_permission_enforcement
+if kubectl --kubeconfig "$kubeconfig" --as="$authorizer" --as-group=system:authenticated \
+  create --validate=strict -f "$missing_fence" \
+  > "$test_workspace/fence.stdout" 2> "$test_workspace/fence.stderr"; then
+  test::fail "Session Authorizer created temporary RBAC without a Fence"
+fi
+grep -Fq "$parameter_missing_diagnostic" "$test_workspace/fence.stderr" ||
+  test::fail "missing-Fence fixture did not fail through parameterNotFoundAction"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding \
+  "atlas-bg-kube-system-${session}" -n kube-system --ignore-not-found -o name) ]] ||
+  test::fail "missing-Fence negative fixture persisted a RoleBinding"
+
 bootstrap_evidence=tests/gitops/fixtures/phase1a-server/bootstrap-evidence.yaml
 kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
   create --validate=strict -f "$bootstrap_evidence" > /dev/null
@@ -284,19 +320,5 @@ grep -Fq 'Argo recovery guard mutation requires the exact Recovery Operator' \
 [[ $(kubectl --kubeconfig "$kubeconfig" get configmap argocd-rbac-cm -n argocd -o json |
   yq '.data | has("policy.atlas-recovery-freeze.csv")') == false ]] ||
   test::fail "rejected recovery guard mutation changed the live ConfigMap"
-
-session=0123456789abcdef0123456789abcdef
-missing_fence=tests/gitops/fixtures/phase1a-server/missing-fence-rolebinding.yaml
-authorizer=atlas:session-authz:00000000-0000-0000-0000-000000000000:g1
-if kubectl --kubeconfig "$kubeconfig" --as="$authorizer" --as-group=system:authenticated \
-  create --validate=strict -f "$missing_fence" \
-  > "$test_workspace/fence.stdout" 2> "$test_workspace/fence.stderr"; then
-  test::fail "Session Authorizer created temporary RBAC without a Fence"
-fi
-grep -Fq 'parameterNotFoundAction' "$test_workspace/fence.stderr" ||
-  test::fail "missing-Fence fixture did not fail through parameterNotFoundAction"
-[[ -z $(kubectl --kubeconfig "$kubeconfig" get rolebinding \
-  "atlas-bg-kube-system-${session}" -n kube-system --ignore-not-found -o name) ]] ||
-  test::fail "missing-Fence negative fixture persisted a RoleBinding"
 
 test::pass "Phase 1A VAPs compile and fail closed on locked Kubernetes"
