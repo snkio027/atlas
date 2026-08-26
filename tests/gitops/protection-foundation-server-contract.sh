@@ -193,8 +193,10 @@ kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$rbac" > /dev/nu
   test::fail "API Server does not contain exactly five Phase 1A VAPs"
 
 bootstrap=atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1
+bootstrap_rbac=tests/gitops/fixtures/phase1a-server/bootstrap-rbac.yaml
+kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$bootstrap_rbac" > /dev/null
 legacy_identity=tests/gitops/fixtures/phase1a-server/identity-v2-legacy-keys.yaml
-if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
   create --validate=strict -f "$legacy_identity" \
   > "$test_workspace/legacy-identity.stdout" 2> "$test_workspace/legacy-identity.stderr"; then
   test::fail "Identity v2 accepted receipt-unaware legacy keys"
@@ -205,7 +207,7 @@ grep -Fq 'Bootstrap Identity v2 projection is invalid' "$test_workspace/legacy-i
   -n kube-system --ignore-not-found -o name) ]] || test::fail "rejected legacy Identity persisted"
 
 bootstrap_evidence=tests/gitops/fixtures/phase1a-server/bootstrap-evidence.yaml
-kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
   create --validate=strict -f "$bootstrap_evidence" > /dev/null
 for bootstrap_object in \
   atlas-bootstrap-identity \
@@ -218,7 +220,7 @@ done
 fence_update="$test_workspace/fence-update.yaml"
 kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-operation-fence \
   -n kube-system -o yaml | yq '.metadata.labels."atlas.io/forbidden-update" = "true"' > "$fence_update"
-if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:authenticated \
   replace --validate=strict -f "$fence_update" \
   > "$test_workspace/fence-update.stdout" 2> "$test_workspace/fence-update.stderr"; then
   test::fail "Bootstrap updated the create-only Operation Fence"

@@ -1,0 +1,27 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: atlas-phase1a-bootstrap-fixture
+  namespace: kube-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: atlas-phase1a-bootstrap-fixture
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: atlas-phase1a-bootstrap-fixture
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1
