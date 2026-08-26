@@ -56,7 +56,7 @@ ATLAS_TEST_MUTATION_LOG=$mutation_log bash -Eeuo pipefail -c '
   runtime::docker_image_present() { :; }
   runtime::kind_cluster_exists() { return 1; }
   runtime::kind() { printf "KIND_MUTATION %s\n" "$*" >> "$ATLAS_TEST_MUTATION_LOG"; }
-  registry::_container_exists() { return 1; }
+  registry::_presence_state() { printf "ABSENT\n"; }
   runtime::docker() {
     if [[ $1 == network && $2 == inspect && $3 == kind ]]; then
       return 0
