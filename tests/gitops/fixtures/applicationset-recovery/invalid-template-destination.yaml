@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: phase1a-single-layer-fixture
+  name: invalid-template-destination
   namespace: argocd
   annotations:
     atlas.io/resume-layer: management
@@ -10,7 +10,7 @@ spec:
   generators:
     - list:
         elements:
-          - name: phase1a-management-child
+          - name: invalid-destination-child
             resumeLayer: management
   syncPolicy:
     applicationsSync: create-update
@@ -18,7 +18,7 @@ spec:
     metadata:
       name: '{{.name}}'
       labels:
-        atlas.io/applicationset-owner: phase1a-single-layer-fixture
+        atlas.io/applicationset-owner: invalid-template-destination
         atlas.io/resume-layer: '{{.resumeLayer}}'
     spec:
       project: platform-project
@@ -27,7 +27,7 @@ spec:
         targetRevision: a65684592a2e8cfc255b2c88fce65e49e989cf0e
         path: tests/gitops/fixtures/applicationset-recovery/payload
       destination:
-        server: https://kubernetes.default.svc
+        server: https://other.example.invalid
         namespace: argocd
       syncPolicy:
         automated:
@@ -36,10 +36,10 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: phase1a-management-child
+  name: invalid-destination-child
   namespace: argocd
   labels:
-    atlas.io/applicationset-owner: phase1a-single-layer-fixture
+    atlas.io/applicationset-owner: invalid-template-destination
     atlas.io/resume-layer: management
 spec:
   project: platform-project

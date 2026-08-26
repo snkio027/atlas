@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-bootstrap-identity
+  namespace: kube-system
+immutable: true
+data:
+  schema: atlas.io/bootstrap-identity/v2
+  repositoryURL: https://github.com/snkio027/atlas.git
+  kindConfigSHA256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  clusterName: atlas-phase1a-ci
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-bootstrap-adoption-receipt
+  namespace: kube-system
+immutable: true
+data:
+  schema: atlas.io/bootstrap-adoption-receipt/v1
+  identityUID: 00000000-0000-0000-0000-000000000001
+  signalUID: 00000000-0000-0000-0000-000000000002
+  repositoryURL: https://github.com/snkio027/atlas.git
+  rootName: atlas-root
+  rootUID: 00000000-0000-0000-0000-000000000003
+  argocdSelfUID: 00000000-0000-0000-0000-000000000004
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-bootstrap-operation-fence
+  namespace: kube-system
+immutable: true
+data:
+  schema: atlas.io/bootstrap-operation-fence/v1
+  operationID: 0123456789abcdef0123456789abcdef
+  clusterFingerprintSHA256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  createdAt: "2026-08-26T00:00:00Z"
+  mode: normal-apply
+  holderUsername: atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1

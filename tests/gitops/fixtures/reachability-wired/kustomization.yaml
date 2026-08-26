@@ -3,5 +3,5 @@ kind: Kustomization
 
 # Deliberately invalid graph used only to prove the reachability detector.
 resources:
-  - ../../../../gitops/platform/management/protection-foundation/definitions
+  - ../../../../gitops/platform/management/protection-foundation/definitions/admission/overlays/observing
   - ../../../../gitops/root/overlays/local-orbstack

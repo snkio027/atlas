@@ -108,7 +108,7 @@ spec:
     - expression: >-
         request.resource.resource != 'configmaps' ||
         variables.target.metadata.name != 'atlas-bootstrap-identity' ||
-        (has(variables.target.data) &&
+        (has(variables.target.data) && variables.target.data.size() == 4 &&
           variables.target.data.schema == 'atlas.io/bootstrap-identity/v2' &&
           variables.target.data.repositoryURL == 'https://github.com/snkio027/atlas.git' &&
           variables.target.data.kindConfigSHA256.matches('^[0-9a-f]{64}$') &&

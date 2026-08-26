@@ -25,10 +25,8 @@ spec:
   matchConditions:
     - name: atlas-holder-or-canonical-fence
       expression: >-
-        request.userInfo.username in [
-          'atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1',
-          'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1'
-        ] ||
+        request.userInfo.username ==
+          'atlas:session-authz:00000000-0000-0000-0000-000000000000:g1' ||
         (request.namespace == 'kube-system' &&
           (request.operation == 'DELETE'
             ? oldObject.metadata.name == 'atlas-bootstrap-operation-fence'

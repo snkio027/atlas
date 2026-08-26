@@ -1,0 +1,20 @@
+configs:
+  cm:
+    create: false
+  params:
+    server.insecure: true
+    server.rbac.disableApplicationFineGrainedRBACInheritance: true
+  rbac:
+    policy.default: role:atlas-authenticated-readonly
+    policy.matchMode: glob
+    scopes: '[groups]'
+    policy.csv: |
+      p, role:atlas-authenticated-readonly, applications, get, */*, allow
+      p, role:atlas-authenticated-readonly, applicationsets, get, */*, allow
+      p, role:atlas-authenticated-readonly, clusters, get, *, allow
+      p, role:atlas-authenticated-readonly, projects, get, *, allow
+      p, role:atlas-authenticated-readonly, repositories, get, *, allow
+      p, role:atlas-authenticated-readonly, accounts, get, *, allow
+      p, role:atlas-authenticated-readonly, certificates, get, *, allow
+      p, role:atlas-authenticated-readonly, gpgkeys, get, *, allow
+      p, role:atlas-authenticated-readonly, logs, get, */*, allow

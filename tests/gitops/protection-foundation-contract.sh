@@ -8,24 +8,49 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 cd "$ATLAS_TEST_ROOT"
 
 readonly definitions=gitops/platform/management/protection-foundation/definitions
+readonly inventory_fixture=tests/gitops/fixtures/protection-foundation-inventory
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-protection-foundation.XXXXXX")
 cleanup() {
   rm -rf "$test_workspace"
 }
 trap cleanup EXIT
 
-observing_a="$test_workspace/observing-a.yaml"
-observing_b="$test_workspace/observing-b.yaml"
+observing_a="$test_workspace/inventory-a.yaml"
+observing_b="$test_workspace/inventory-b.yaml"
 enforced="$test_workspace/enforced.yaml"
-kubectl kustomize "$definitions" > "$observing_a"
-kubectl kustomize "$definitions" > "$observing_b"
+kubectl kustomize "$inventory_fixture" > "$observing_a"
+kubectl kustomize "$inventory_fixture" > "$observing_b"
 kubectl kustomize "$definitions/admission/overlays/enforced" > "$enforced"
 cmp -s "$observing_a" "$observing_b" ||
-  test::fail "Phase 1A definition rendering is not deterministic"
+  test::fail "Phase 1A test inventory rendering is not deterministic"
 
-for projection in observing enforced; do
-  source_file=$observing_a
-  [[ $projection == observing ]] || source_file=$enforced
+projection_names=(
+  admission-observing
+  admission-enforced
+  rbac-escape
+  rbac-session
+  signal
+  argo-hardening
+  test-inventory
+)
+projection_paths=(
+  "$definitions/admission/overlays/observing"
+  "$definitions/admission/overlays/enforced"
+  "$definitions/rbac/escape"
+  "$definitions/rbac/session"
+  "$definitions/signal"
+  "$definitions/argo-hardening"
+  "$inventory_fixture"
+)
+for index in "${!projection_names[@]}"; do
+  projection=${projection_names[$index]}
+  projection_path=${projection_paths[$index]}
+  source_file="$test_workspace/${projection}.yaml"
+  comparison="$test_workspace/${projection}.comparison.yaml"
+  kubectl kustomize "$projection_path" > "$source_file"
+  kubectl kustomize "$projection_path" > "$comparison"
+  cmp -s "$source_file" "$comparison" ||
+    test::fail "${projection} rendering is not deterministic"
   canonical="$test_workspace/${projection}.canonical.json"
   yq e -o=json -I=0 'sort_keys(..)' "$source_file" > "$canonical"
   expected_sha=$(awk -v projection="$projection" '$1 == projection { count += 1; value = $2 }
@@ -37,26 +62,29 @@ for projection in observing enforced; do
 done
 
 for entrypoint in \
-  "$definitions" \
   "$definitions/admission/base" \
   "$definitions/admission/overlays/observing" \
   "$definitions/admission/overlays/enforced" \
-  "$definitions/rbac" \
+  "$definitions/rbac/escape" \
+  "$definitions/rbac/session" \
   "$definitions/signal" \
-  "$definitions/argo-hardening"; do
+  "$definitions/argo-hardening" \
+  "$inventory_fixture"; do
   kubectl kustomize "$entrypoint" > /dev/null ||
     test::fail "Phase 1A Kustomize entrypoint does not render: ${entrypoint}"
 done
+[[ ! -e $definitions/kustomization.yaml && ! -e $definitions/rbac/kustomization.yaml ]] ||
+  test::fail "Phase 1A contains a cross-stage aggregate entrypoint"
 
 resource_count=$(yq ea '[.] | length' "$observing_a")
-((resource_count == 30)) || test::fail "Phase 1A definition inventory is not exactly 30 resources"
+((resource_count == 27)) || test::fail "Phase 1A test inventory is not exactly 27 resources"
 
 identities="$test_workspace/identities.tsv"
 yq e -r '[.apiVersion, .kind, (.metadata.namespace // "cluster"), .metadata.name] | @tsv' \
   "$observing_a" | grep -v '^---$' > "$identities"
-[[ $(wc -l < "$identities" | tr -d ' ') -eq 30 ]] ||
+[[ $(wc -l < "$identities" | tr -d ' ') -eq 27 ]] ||
   test::fail "Phase 1A resource identity inventory is incomplete"
-[[ $(sort -u "$identities" | wc -l | tr -d ' ') -eq 30 ]] ||
+[[ $(sort -u "$identities" | wc -l | tr -d ' ') -eq 27 ]] ||
   test::fail "Phase 1A contains a duplicate GVK/namespace/name identity"
 
 policy_count=$(yq ea '[select(.kind == "ValidatingAdmissionPolicy")] | length' "$observing_a")
@@ -145,6 +173,20 @@ done
   test::fail "Evidence protection resource boundary is invalid"
 grep -Fq 'oldObject.metadata.name' <<< "$evidence_policy" ||
   test::fail "Evidence protection DELETE path does not use oldObject"
+identity_validation=$(yq -r '.spec.validations[] | select(.message == "Bootstrap Identity v2 projection is invalid") | .expression' \
+  <<< "$evidence_policy")
+grep -Fq 'variables.target.data.size() == 4' <<< "$identity_validation" ||
+  test::fail "Identity v2 does not enforce its exact four-key downgrade fence"
+
+fence_policy=$(NAME=atlas-bootstrap-recovery-fence-authorization yq ea -o=json -I=0 \
+  'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(NAME))' "$observing_a")
+fence_match=$(yq -r '.spec.matchConditions[0].expression' <<< "$fence_policy")
+grep -Fq "atlas:session-authz:00000000-0000-0000-0000-000000000000:g1" <<< "$fence_match" ||
+  test::fail "Fence authorization does not globally capture the Session Authorizer"
+grep -Fq "atlas-bootstrap-operation-fence" <<< "$fence_match" ||
+  test::fail "Fence authorization does not capture the canonical Fence for every subject"
+! grep -Fq "atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1" <<< "$fence_match" ||
+  test::fail "Fence authorization globally captures non-Fence Bootstrap ConfigMaps"
 
 guard_policy=$(NAME=atlas-bootstrap-recovery-guard-authorization yq ea -o=json -I=0 \
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(NAME))' "$observing_a")
@@ -159,7 +201,11 @@ for required in \
 done
 
 rbac="$test_workspace/rbac.yaml"
-kubectl kustomize "$definitions/rbac" > "$rbac"
+{
+  kubectl kustomize "$definitions/rbac/escape"
+  printf '%s\n' '---'
+  kubectl kustomize "$definitions/rbac/session"
+} > "$rbac"
 while IFS= read -r value; do
   [[ $value != '*' ]] || test::fail "Phase 1A RBAC contains a wildcard"
 done < <(yq ea -r '

@@ -10,8 +10,21 @@ cd "$ATLAS_TEST_ROOT"
 readonly root=gitops/platform/management/protection-foundation/definitions/argo-hardening
 readonly action_inventory=$root/argo-freeze-action-inventory.json
 readonly authority_inventory=$root/argo-authority-inventory.json
+readonly hardening_values=$root/argocd-values-hardening.yaml
+readonly current_values=gitops/platform/management/argocd-self/values.yaml
+readonly chart=vendor/charts/argo-cd-10.3.3
+test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-argo-hardening.XXXXXX")
+cleanup() {
+  rm -rf "$test_workspace"
+}
+trap cleanup EXIT
 
 render=$(kubectl kustomize "$root")
+[[ $(yq ea '[.] | length' <<< "$render") -eq 1 &&
+$(yq ea -r 'select(.) | .kind' <<< "$render") == Application ]] ||
+  test::fail "Argo hardening entrypoint redeclares a Chart or Kustomize-owned child resource"
+[[ $(yq '.configs.cm.create == false' "$hardening_values") == true ]] ||
+  test::fail "Argo hardening values attempt to duplicate the Kustomize-owned argocd-cm"
 argocd_version=$(awk -F= '$1 == "ARGOCD_VERSION" {print $2}' versions.lock)
 [[ $(yq -r '.argocdVersion' "$action_inventory") == "$argocd_version" &&
 $(yq -r '.argocdVersion' "$authority_inventory") == "$argocd_version" ]] ||
@@ -78,35 +91,33 @@ $(classify_authority_context 3.5.2 true) == AUTHORITY_DRIFTED &&
 $(classify_authority_context "$argocd_version" false) == AUTHORITY_DRIFTED ]] ||
   test::fail "Argo version or inheritance drift does not fail closed"
 
-argocd_cm=$(NAME=argocd-cm yq ea -o=json -I=0 \
-  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' <<< "$render")
-rbac_cm=$(NAME=argocd-rbac-cm yq ea -o=json -I=0 \
-  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' <<< "$render")
-params_cm=$(NAME=argocd-cmd-params-cm yq ea -o=json -I=0 \
-  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' <<< "$render")
 candidate_app=$(NAME=argocd-self yq ea -o=json -I=0 \
   'select(.kind == "Application" and .metadata.name == strenv(NAME))' <<< "$render")
+live_app=$(kubectl kustomize gitops/platform/applications/base | NAME=argocd-self yq ea -o=json -I=0 \
+  'select(.kind == "Application" and .metadata.name == strenv(NAME))')
 
-[[ $(yq -r '.data."admin.enabled"' <<< "$argocd_cm") == false &&
-$(yq -r '.data."users.anonymous.enabled"' <<< "$argocd_cm") == false ]] ||
-  test::fail "Argo built-in admin or anonymous access remains enabled"
-live_health=$(yq -r '.data."resource.customizations.health.argoproj.io_Application"' \
-  gitops/platform/management/argocd-self/base/argocd-cm.yaml)
-candidate_health=$(yq -r '.data."resource.customizations.health.argoproj.io_Application"' <<< "$argocd_cm")
-[[ $candidate_health == "$live_health" ]] ||
-  test::fail "Argo hardening candidate changed the shared Application Health capability"
-[[ $(yq -r '.data."server.insecure"' <<< "$params_cm") == true &&
-$(yq -r '.data."server.rbac.disableApplicationFineGrainedRBACInheritance"' <<< "$params_cm") == true ]] ||
-  test::fail "Argo fine-grained inheritance mode is not explicit"
-[[ $(yq -r '.data."policy.default"' <<< "$rbac_cm") == role:atlas-authenticated-readonly &&
-$(yq -r '.data."policy.matchMode"' <<< "$rbac_cm") == glob &&
-$(yq '.data | has("policy.atlas-recovery-freeze.csv")' <<< "$rbac_cm") == false ]] ||
-  test::fail "Argo default policy or normal guard ownership projection drifted"
+[[ -n $candidate_app && -n $live_app ]] || test::fail "argocd-self owner projection is missing"
+approved_app_delta='del(.spec.sources[0].helm.valueFiles) |
+  del(.spec.sources[1].path) |
+  del(.spec.ignoreDifferences) |
+  del(.spec.syncPolicy.syncOptions) |
+  sort_keys(..)'
+live_app_remainder=$(yq -o=json -I=0 "$approved_app_delta" <<< "$live_app")
+candidate_app_remainder=$(yq -o=json -I=0 "$approved_app_delta" <<< "$candidate_app")
+[[ $candidate_app_remainder == "$live_app_remainder" ]] ||
+  test::fail "argocd-self candidate changes fields outside the approved ownership increment"
+[[ $(yq -r '.metadata.annotations."argocd.argoproj.io/sync-wave"' <<< "$candidate_app") == -90 &&
+$(yq -r '.metadata.annotations."argocd.argoproj.io/sync-options"' <<< "$candidate_app") == Prune=confirm ]] ||
+  test::fail "argocd-self candidate dropped its Tier-1 ordering or prune gate"
+[[ $(yq '.spec.sources[0].helm.valueFiles | length' <<< "$candidate_app") -eq 2 &&
+$(yq -r '.spec.sources[0].helm.valueFiles[0]' <<< "$candidate_app") == "\$values/gitops/platform/management/argocd-self/values.yaml" &&
+$(yq -r '.spec.sources[0].helm.valueFiles[1]' <<< "$candidate_app") == "\$values/gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml" &&
+$(yq -r '.spec.sources[1].path' <<< "$candidate_app") == gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay ]] ||
+  test::fail "argocd-self candidate does not delegate changes to the existing owners"
 
-while IFS= read -r policy_line; do
-  [[ $policy_line == p,\ role:atlas-authenticated-readonly,\ *,\ get,\ *,\ allow ]] ||
-    test::fail "default Argo role contains a non-read-only grant: ${policy_line}"
-done < <(yq -r '.data."policy.csv"' <<< "$rbac_cm" | sed '/^[[:space:]]*$/d')
+sync_options=$(yq -o=json -I=0 '.spec.syncPolicy.syncOptions | sort' <<< "$candidate_app")
+[[ $sync_options == '["ApplyOutOfSyncOnly=true","FailOnSharedResource=true","RespectIgnoreDifferences=true","ServerSideApply=true"]' ]] ||
+  test::fail "argocd-self candidate does not fail on shared resources"
 
 [[ $(yq '.spec.ignoreDifferences | length' <<< "$candidate_app") -eq 1 &&
 $(yq -r '.spec.ignoreDifferences[0].group' <<< "$candidate_app") == "" &&
@@ -117,6 +128,67 @@ $(yq -r '.spec.ignoreDifferences[0].jsonPointers[0]' <<< "$candidate_app") == /d
   test::fail "argocd-self candidate does not own the exact recovery guard difference"
 [[ $(yq '[.spec.syncPolicy.syncOptions[] | select(. == "RespectIgnoreDifferences=true")] | length' <<< "$candidate_app") -eq 1 ]] ||
   test::fail "argocd-self candidate omits RespectIgnoreDifferences"
+
+live_cm=$(kubectl kustomize gitops/platform/management/argocd-self/base | NAME=argocd-cm \
+  yq ea -o=json -I=0 'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))')
+candidate_cm=$(kubectl kustomize "$root/argocd-self-base-overlay" | NAME=argocd-cm \
+  yq ea -o=json -I=0 'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))')
+[[ $(yq -r '.data."admin.enabled"' <<< "$candidate_cm") == false &&
+$(yq -r '.data."users.anonymous.enabled"' <<< "$candidate_cm") == false ]] ||
+  test::fail "Argo built-in admin or anonymous access remains enabled"
+approved_cm_delta='del(.data."admin.enabled") |
+  del(.data."users.anonymous.enabled") |
+  sort_keys(..)'
+[[ $(yq -o=json -I=0 "$approved_cm_delta" <<< "$candidate_cm") == "$(yq -o=json -I=0 "$approved_cm_delta" <<< "$live_cm")" ]] ||
+  test::fail "argocd-cm overlay changes fields outside the approved hardening keys"
+
+live_chart="$test_workspace/live-chart.yaml"
+candidate_chart="$test_workspace/candidate-chart.yaml"
+helm template atlas-argocd "$chart" --namespace argocd --include-crds \
+  --values "$current_values" > "$live_chart"
+helm template atlas-argocd "$chart" --namespace argocd --include-crds \
+  --values "$current_values" --values "$hardening_values" > "$candidate_chart"
+normalize_chart() {
+  yq ea -o=json -I=0 '
+    del((select(.kind == "ConfigMap" and
+      .metadata.name == "argocd-cmd-params-cm")).data."server.rbac.disableApplicationFineGrainedRBACInheritance") |
+    del((select(.kind == "ConfigMap" and .metadata.name == "argocd-rbac-cm")).data."policy.csv") |
+    del((select(.kind == "ConfigMap" and .metadata.name == "argocd-rbac-cm")).data."policy.default") |
+    del(.spec.template.metadata.annotations."checksum/cmd-params") |
+    sort_keys(..)
+  ' "$1"
+}
+normalize_chart "$live_chart" > "$test_workspace/live-chart.normalized.json"
+normalize_chart "$candidate_chart" > "$test_workspace/candidate-chart.normalized.json"
+cmp -s "$test_workspace/live-chart.normalized.json" "$test_workspace/candidate-chart.normalized.json" ||
+  test::fail "Chart hardening changes fields outside approved ConfigMaps and derived checksums"
+
+params_cm=$(NAME=argocd-cmd-params-cm yq ea -o=json -I=0 \
+  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' "$candidate_chart")
+rbac_cm=$(NAME=argocd-rbac-cm yq ea -o=json -I=0 \
+  'select(.kind == "ConfigMap" and .metadata.name == strenv(NAME))' "$candidate_chart")
+[[ $(yq -r '.data."server.insecure"' <<< "$params_cm") == true &&
+$(yq -r '.data."server.rbac.disableApplicationFineGrainedRBACInheritance"' <<< "$params_cm") == true ]] ||
+  test::fail "Argo fine-grained inheritance mode is not explicit"
+[[ $(yq -r '.data."policy.default"' <<< "$rbac_cm") == role:atlas-authenticated-readonly &&
+$(yq -r '.data."policy.matchMode"' <<< "$rbac_cm") == glob &&
+$(yq '.data | has("policy.atlas-recovery-freeze.csv")' <<< "$rbac_cm") == false ]] ||
+  test::fail "Argo default policy or normal guard ownership projection drifted"
+while IFS= read -r policy_line; do
+  [[ $policy_line == p,\ role:atlas-authenticated-readonly,\ *,\ get,\ *,\ allow ]] ||
+    test::fail "default Argo role contains a non-read-only grant: ${policy_line}"
+done < <(yq -r '.data."policy.csv"' <<< "$rbac_cm" | sed '/^[[:space:]]*$/d')
+
+combined="$test_workspace/combined-owner-render.yaml"
+{
+  cat "$candidate_chart"
+  kubectl kustomize "$root/argocd-self-base-overlay"
+} > "$combined"
+identities="$test_workspace/combined-owner-identities.tsv"
+yq ea -r '[.apiVersion, .kind, (.metadata.namespace // "cluster"), .metadata.name] | @tsv' \
+  "$combined" | grep -v '^---$' > "$identities"
+[[ $(wc -l < "$identities" | tr -d ' ') -eq $(sort -u "$identities" | wc -l | tr -d ' ') ]] ||
+  test::fail "Argo hardening owner projection contains a duplicate resource identity"
 
 [[ $(yq -r '.builtInAdminEnabled' "$authority_inventory") == false &&
 $(yq -r '.anonymousEnabled' "$authority_inventory") == false &&

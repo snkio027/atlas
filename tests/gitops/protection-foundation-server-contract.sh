@@ -131,7 +131,11 @@ bindings="$test_workspace/bindings.yaml"
 rbac="$test_workspace/rbac.yaml"
 negative_policy="$test_workspace/negative-policy.yaml"
 kubectl kustomize "$definitions/admission/overlays/enforced" > "$enforced"
-kubectl kustomize "$definitions/rbac" > "$rbac"
+{
+  kubectl kustomize "$definitions/rbac/escape"
+  printf '%s\n' '---'
+  kubectl kustomize "$definitions/rbac/session"
+} > "$rbac"
 yq ea 'select(.kind == "ValidatingAdmissionPolicy")' "$enforced" > "$policies"
 yq ea 'select(.kind == "ValidatingAdmissionPolicyBinding")' "$enforced" > "$bindings"
 [[ $(yq ea '[.] | length' "$policies") -eq 5 &&
@@ -187,6 +191,41 @@ kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$rbac" > /dev/nu
 [[ $(kubectl --kubeconfig "$kubeconfig" get validatingadmissionpolicies \
   -l app.kubernetes.io/part-of=atlas-recovery -o json | yq '.items | length') -eq 5 ]] ||
   test::fail "API Server does not contain exactly five Phase 1A VAPs"
+
+bootstrap=atlas:bootstrap:00000000-0000-0000-0000-000000000000:g1
+legacy_identity=tests/gitops/fixtures/phase1a-server/identity-v2-legacy-keys.yaml
+if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+  create --validate=strict -f "$legacy_identity" \
+  > "$test_workspace/legacy-identity.stdout" 2> "$test_workspace/legacy-identity.stderr"; then
+  test::fail "Identity v2 accepted receipt-unaware legacy keys"
+fi
+grep -Fq 'Bootstrap Identity v2 projection is invalid' "$test_workspace/legacy-identity.stderr" ||
+  test::fail "legacy Identity keys did not reach exact v2 projection validation"
+[[ -z $(kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-identity \
+  -n kube-system --ignore-not-found -o name) ]] || test::fail "rejected legacy Identity persisted"
+
+bootstrap_evidence=tests/gitops/fixtures/phase1a-server/bootstrap-evidence.yaml
+kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+  create --validate=strict -f "$bootstrap_evidence" > /dev/null
+for bootstrap_object in \
+  atlas-bootstrap-identity \
+  atlas-bootstrap-adoption-receipt \
+  atlas-bootstrap-operation-fence; do
+  [[ $(kubectl --kubeconfig "$kubeconfig" get configmap "$bootstrap_object" \
+    -n kube-system -o name) == "configmap/${bootstrap_object}" ]] ||
+    test::fail "Bootstrap could not create approved evidence: ${bootstrap_object}"
+done
+fence_update="$test_workspace/fence-update.yaml"
+kubectl --kubeconfig "$kubeconfig" get configmap atlas-bootstrap-operation-fence \
+  -n kube-system -o yaml | yq '.metadata.labels."atlas.io/forbidden-update" = "true"' > "$fence_update"
+if kubectl --kubeconfig "$kubeconfig" --as="$bootstrap" --as-group=system:masters \
+  replace --validate=strict -f "$fence_update" \
+  > "$test_workspace/fence-update.stdout" 2> "$test_workspace/fence-update.stderr"; then
+  test::fail "Bootstrap updated the create-only Operation Fence"
+fi
+grep -Fq 'Fence lifecycle is limited to the canonical create-only object' \
+  "$test_workspace/fence-update.stderr" ||
+  test::fail "Bootstrap Fence update did not reach Fence lifecycle authorization"
 
 signal="$definitions/signal/adoption-signal.yaml"
 if kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$signal" \
