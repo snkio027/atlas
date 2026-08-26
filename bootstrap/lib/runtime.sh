@@ -30,6 +30,151 @@ runtime::die() {
   return 1
 }
 
+runtime::_path_owner() {
+  local path=$1 value
+  if value=$(stat -f '%u' "$path" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%u' "$path"
+  fi
+}
+
+runtime::_path_mode() {
+  local path=$1 value
+  if value=$(stat -f '%Lp' "$path" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%a' "$path"
+  fi
+}
+
+runtime::_path_has_extended_acl() {
+  local path=$1 listing permissions
+  if [[ $(uname -s) == Darwin ]]; then
+    listing=$(LC_ALL=C ls -lde "$path") || return 2
+    [[ $listing == *$'\n'* ]]
+    return
+  fi
+  listing=$(LC_ALL=C ls -ld "$path") || return 2
+  permissions=${listing%%[[:space:]]*}
+  [[ $permissions == *+* ]]
+}
+
+runtime::_assert_no_extended_acl() {
+  local path=$1 label=$2 acl_status
+  if runtime::_path_has_extended_acl "$path"; then
+    runtime::die "${label} must not have an extended ACL: ${path}"
+    return 1
+  else
+    acl_status=$?
+    ((acl_status == 1)) || {
+      runtime::die "${label} ACL state is unavailable: ${path}"
+      return 1
+    }
+  fi
+}
+
+runtime::path_identity() {
+  local path=$1 value
+  if value=$(stat -f '%d:%i:%u' "$path" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%d:%i:%u' "$path"
+  fi
+}
+
+runtime::_canonical_directory() {
+  local path=$1
+  (cd "$path" 2> /dev/null && pwd -P)
+}
+
+runtime::assert_private_directory() {
+  local path=$1 label=$2 canonical owner mode
+  [[ $path == /* ]] || {
+    runtime::die "${label} must use an absolute path: ${path}"
+    return 1
+  }
+  [[ -d $path && ! -L $path ]] || {
+    runtime::die "${label} must be a non-symlink directory: ${path}"
+    return 1
+  }
+  canonical=$(runtime::_canonical_directory "$path") || {
+    runtime::die "unable to canonicalize ${label}: ${path}"
+    return 1
+  }
+  [[ $canonical == "$path" ]] || {
+    runtime::die "${label} resolves outside its approved path: ${path} -> ${canonical}"
+    return 1
+  }
+  owner=$(runtime::_path_owner "$path") || {
+    runtime::die "unable to inspect ${label} owner: ${path}"
+    return 1
+  }
+  [[ $owner == "$(id -u)" ]] || {
+    runtime::die "${label} must be owned by the current user: ${path}"
+    return 1
+  }
+  mode=$(runtime::_path_mode "$path") || {
+    runtime::die "unable to inspect ${label} mode: ${path}"
+    return 1
+  }
+  [[ $mode == 700 ]] || {
+    runtime::die "${label} must have mode 0700: ${path}"
+    return 1
+  }
+  runtime::_assert_no_extended_acl "$path" "$label"
+}
+
+runtime::ensure_private_directory() {
+  local path=$1 label=$2
+  [[ ! -L $path ]] || {
+    runtime::die "${label} must not be a symlink: ${path}"
+    return 1
+  }
+  if [[ ! -e $path ]]; then
+    mkdir -m 0700 "$path" || {
+      runtime::die "unable to create ${label}: ${path}"
+      return 1
+    }
+  fi
+  runtime::assert_private_directory "$path" "$label"
+}
+
+runtime::assert_private_file() {
+  local path=$1 label=$2 owner mode
+  [[ -f $path && ! -L $path ]] || {
+    runtime::die "${label} must be a non-symlink regular file: ${path}"
+    return 1
+  }
+  owner=$(runtime::_path_owner "$path") || {
+    runtime::die "unable to inspect ${label} owner: ${path}"
+    return 1
+  }
+  [[ $owner == "$(id -u)" ]] || {
+    runtime::die "${label} must be owned by the current user: ${path}"
+    return 1
+  }
+  mode=$(runtime::_path_mode "$path") || {
+    runtime::die "unable to inspect ${label} mode: ${path}"
+    return 1
+  }
+  [[ $mode == 600 ]] || {
+    runtime::die "${label} must have mode 0600: ${path}"
+    return 1
+  }
+  runtime::_assert_no_extended_acl "$path" "$label"
+}
+
+runtime::_assert_atomic_destination() {
+  local destination=$1
+  [[ ! -L $destination ]] || {
+    runtime::die "atomic output destination must not be a symlink: ${destination}"
+    return 1
+  }
+  [[ -e $destination ]] || return 0
+  runtime::assert_private_file "$destination" "atomic output destination"
+}
+
 runtime::phase() {
   ATLAS_CURRENT_PHASE=$1
   runtime::info "phase=${ATLAS_CURRENT_PHASE}"
@@ -62,26 +207,62 @@ runtime::require_exact_version() {
 
 runtime::on_exit() {
   local status=$1
-  lock::release || true
+  local release_status=0
+  lock::release || release_status=$?
+  if ((release_status != 0)); then
+    runtime::error "bootstrap lifecycle lock release failed: exit=${release_status}"
+  fi
   if ((status != 0)); then
     runtime::error "phase=${ATLAS_CURRENT_PHASE} exit=${status}"
+    return "$status"
   fi
+  return "$release_status"
 }
 
 runtime::atomic_capture() {
   local destination=$1
   shift
-  local directory temporary
+  local directory directory_identity current_identity temporary
   directory=$(dirname "$destination")
-  mkdir -p "$directory"
-  temporary=$(mktemp "${directory}/.atlas.XXXXXX")
+  runtime::ensure_private_directory "$directory" "atomic output directory" || return 1
+  runtime::_assert_atomic_destination "$destination" || return 1
+  directory_identity=$(runtime::path_identity "$directory") || {
+    runtime::die "unable to bind atomic output directory identity: ${directory}"
+    return 1
+  }
+  temporary=$(mktemp "${directory}/.atlas.XXXXXX") || return 1
   if "$@" > "$temporary"; then
-    chmod 0600 "$temporary"
-    mv "$temporary" "$destination"
-    return 0
+    runtime::assert_private_directory "$directory" "atomic output directory" || return 1
+    current_identity=$(runtime::path_identity "$directory") || return 1
+    [[ $current_identity == "$directory_identity" ]] || {
+      runtime::die "atomic output directory identity changed during capture: ${directory}"
+      return 1
+    }
+    runtime::assert_private_file "$temporary" "atomic temporary output" || return 1
+    if ! runtime::_assert_atomic_destination "$destination"; then
+      rm -f "$temporary"
+      return 1
+    fi
+    chmod 0600 "$temporary" || return 1
+    mv "$temporary" "$destination" || return 1
+    runtime::assert_private_file "$destination" "atomic output" || return 1
+    runtime::assert_private_directory "$directory" "atomic output directory" || return 1
+    current_identity=$(runtime::path_identity "$directory") || return 1
+    [[ $current_identity == "$directory_identity" ]] || {
+      runtime::die "atomic output directory identity changed after commit: ${directory}"
+      return 1
+    }
   else
     local status=$?
-    rm -f "$temporary"
+    runtime::assert_private_directory "$directory" "atomic output directory" || return 1
+    current_identity=$(runtime::path_identity "$directory") || return 1
+    if [[ $current_identity == "$directory_identity" ]]; then
+      runtime::assert_private_file "$temporary" "atomic temporary output" || return 1
+      rm -f "$temporary"
+    else
+      runtime::error "atomic output directory identity changed after capture failure: ${directory}"
+      return 1
+    fi
     return "$status"
   fi
 }

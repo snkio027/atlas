@@ -40,8 +40,10 @@ tasks:
       - ./tests/bootstrap/docker-authority-contract.sh
       - ./tests/bootstrap/cluster-contract.sh
       - ./tests/bootstrap/kind-topology-contract.sh
+      - ./tests/bootstrap/mutation-lock-contract.sh
       - ./tests/bootstrap/registry-node-contract.sh
       - ./tests/bootstrap/safety-contract.sh
+      - ./tests/bootstrap/state-lock-contract.sh
       - ./tests/bootstrap/status-contract.sh
       - ./tests/bootstrap/status-exit-contract.sh
       - ./tests/recovery/audit-config-contract.sh

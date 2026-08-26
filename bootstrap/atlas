@@ -127,7 +127,7 @@ if [[ $command_name != status ]]; then
 fi
 config::load "$ATLAS_ROOT_DIR" "$environment"
 
-trap 'status=$?; runtime::on_exit "$status"; exit "$status"' EXIT
+trap 'status=$?; runtime::on_exit "$status" || status=$?; trap - EXIT; exit "$status"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -136,14 +136,17 @@ case "$command_name" in
     host::doctor
     ;;
   render)
-    lock::acquire "$ATLAS_STATE_DIR"
+    lock::acquire "$ATLAS_STATE_DIR" "$ATLAS_ROOT_DIR"
     argocd::render
     ;;
   apply)
-    lock::acquire "$ATLAS_STATE_DIR"
+    lock::acquire "$ATLAS_STATE_DIR" "$ATLAS_ROOT_DIR"
     host::doctor
+    lock::assert_held
     cluster::ensure_kind
+    lock::assert_held
     registry::ensure_local
+    lock::assert_held
     argocd::handoff "$tier0_approved"
     ;;
   status)
