@@ -358,26 +358,46 @@ grep -Fq 'Argo recovery guard mutation requires the exact Recovery Operator' \
 
 recovery=atlas:break-glass:00000000-0000-0000-0000-000000000000:g1
 guard_rbac=tests/gitops/fixtures/phase1a-server/recovery-guard-rbac.yaml
+
+guard_permission_state() {
+  local diagnostic=$1 decision status
+  : > "$diagnostic"
+  if decision=$(kubectl --kubeconfig "$kubeconfig" --as="$recovery" \
+    --as-group=system:authenticated auth can-i update \
+    configmaps/argocd-rbac-cm -n argocd 2> "$diagnostic"); then
+    status=0
+  else
+    status=$?
+  fi
+  [[ ! -s $diagnostic ]] || {
+    cat "$diagnostic" >&2
+    return 2
+  }
+  case "${status}:${decision}" in
+    0:yes) printf 'READY\n' ;;
+    1:no) printf 'PENDING\n' ;;
+    *) return 2 ;;
+  esac
+}
+
+pre_binding_diagnostic="$test_workspace/guard-permission-pre-binding.stderr"
+pre_binding_state=$(guard_permission_state "$pre_binding_diagnostic") ||
+  test::fail "pre-Binding Recovery guard permission probe was malformed"
+[[ $pre_binding_state == PENDING ]] ||
+  test::fail "Recovery guard permission existed before its CI-only RoleBinding"
+
 kubectl --kubeconfig "$kubeconfig" create --validate=strict -f "$guard_rbac" > /dev/null
 
 wait_for_guard_permission() {
-  local attempt decision diagnostic
+  local attempt diagnostic state
   for ((attempt = 1; attempt <= 30; attempt++)); do
     diagnostic="$test_workspace/guard-permission-$(printf '%02d' "$attempt").stderr"
-    if ! decision=$(kubectl --kubeconfig "$kubeconfig" --as="$recovery" \
-      --as-group=system:authenticated auth can-i update \
-      configmaps/argocd-rbac-cm -n argocd 2> "$diagnostic"); then
-      cat "$diagnostic" >&2
-      test::fail "Recovery guard permission probe failed"
-    fi
-    [[ ! -s $diagnostic ]] || {
-      cat "$diagnostic" >&2
-      test::fail "Recovery guard permission probe emitted a diagnostic"
-    }
-    case "$decision" in
-      yes) return 0 ;;
-      no) sleep 1 ;;
-      *) test::fail "Recovery guard permission probe returned an unknown decision" ;;
+    state=$(guard_permission_state "$diagnostic") ||
+      test::fail "Recovery guard permission probe was malformed"
+    case "$state" in
+      READY) return 0 ;;
+      PENDING) sleep 1 ;;
+      *) test::fail "Recovery guard permission probe returned an unknown state" ;;
     esac
   done
   test::fail "Recovery guard permission did not converge"
