@@ -40,11 +40,14 @@ invalid password in v3.5.1. Until an approved Identity decision supplies an
 already-managed valid admin credential, the admin check is
 `ADMIN_PROOF_UNAVAILABLE` and is not executed.
 
-The approved target document binds the exact Git commit, identity decision,
-credential reference, expected subject/issuer/claims hashes, and thirteen
-Git-derived desired object projections. Evidence must echo those values and
-prove each desired projection equals both live snapshots. Stability without
-desired-state equality is drift, not convergence.
+The caller supplies the approved Git commit independently of the Target. The
+runtime checkout must equal that commit, and desired hydration is performed
+from an archive materialized from the same commit. The approved target document
+binds that commit, the identity decision, credential reference, expected
+subject/issuer/claims hashes, and thirteen Git-derived desired object
+projections. Evidence must echo those values, use the exact approved TLS server
+name, and prove each desired projection equals both live snapshots. Stability
+without desired-state equality is drift, not convergence.
 
 The target and failure-closed evidence fixtures under `tests/gitops/fixtures`
 are synthetic. The evidence intentionally ends in `UNSUPPORTED`; this contract

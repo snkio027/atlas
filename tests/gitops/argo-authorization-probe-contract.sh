@@ -18,11 +18,33 @@ readonly fixture_root=tests/gitops/fixtures/argo-authorization-probe
 readonly valid_target=$fixture_root/valid-target.json
 readonly valid_evidence=$fixture_root/valid-evidence.json
 readonly cases=$fixture_root/classification-cases.json
+readonly expected_contract_commit=${1:-}
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-argo-authorization-probe.XXXXXX")
 cleanup() {
   rm -rf "$test_workspace"
 }
 trap cleanup EXIT
+
+[[ $expected_contract_commit =~ ^[0-9a-f]{40}$ ]] ||
+  test::fail "expected contract commit must be supplied by the caller"
+
+probe_git() {
+  env -i PATH="$PATH" LC_ALL=C git --no-replace-objects \
+    -c core.fsmonitor=false -c core.ignoreStat=false "$@"
+}
+
+repository_root=$(cd "$ATLAS_TEST_ROOT" && pwd -P) || test::fail "could not resolve repository root"
+actual_repository_root=$(probe_git -C "$repository_root" rev-parse --show-toplevel) ||
+  test::fail "could not resolve Git repository authority"
+runtime_contract_commit=$(probe_git -C "$repository_root" rev-parse --verify 'HEAD^{commit}') ||
+  test::fail "could not resolve runtime Git commit"
+[[ $actual_repository_root == "$repository_root" && $runtime_contract_commit == "$expected_contract_commit" ]] ||
+  test::fail "runtime checkout differs from the caller-approved contract commit"
+
+approved_checkout=$test_workspace/approved-checkout
+mkdir -p "$approved_checkout"
+probe_git -C "$repository_root" archive --format=tar "$expected_contract_commit" |
+  tar -xf - -C "$approved_checkout" || test::fail "could not materialize the approved Git hydration source"
 
 for json_file in "$contract" "$target_schema" "$evidence_schema" "$matrix" \
   "$valid_target" "$valid_evidence" "$cases"; do
@@ -164,6 +186,28 @@ schema_keys() { yq -r '.required[]' "$1" | sort; }
 document_keys() { yq -r 'keys | .[]' "$1" | sort; }
 sha256_text() { shasum -a 256 | awk '{print $1}'; }
 
+seal_target_document() {
+  local input=$1 output=$2 projection sha
+  projection=$(yq -o=json -I=0 'del(.approvedTargetDocumentSHA256) | sort_keys(..)' "$input") || return 1
+  sha=$(printf '%s' "$projection" | sha256_text) || return 1
+  APPROVED_SHA=$sha yq '.approvedTargetDocumentSHA256 = strenv(APPROVED_SHA)' "$input" > "$output"
+}
+
+bind_target_to_commit() {
+  local input=$1 commit=$2 output=$3 draft=$test_workspace/target-binding-draft.json
+  EXPECTED_COMMIT=$commit yq '.contractGitCommit = strenv(EXPECTED_COMMIT)' "$input" > "$draft" || return 1
+  seal_target_document "$draft" "$output"
+}
+
+bind_evidence_to_target() {
+  local input=$1 target=$2 output=$3 commit approved_sha
+  commit=$(yq -r '.contractGitCommit' "$target") || return 1
+  approved_sha=$(yq -r '.approvedTargetDocumentSHA256' "$target") || return 1
+  EXPECTED_COMMIT=$commit APPROVED_SHA=$approved_sha yq \
+    '.contractGitCommit = strenv(EXPECTED_COMMIT) |
+    .target.approvedTargetDocumentSHA256 = strenv(APPROVED_SHA)' "$input" > "$output"
+}
+
 desired_object_projection() {
   yq -o=json -I=0 \
     '.desiredObjects | sort_by(.apiVersion, .kind, .namespace, .name) |
@@ -171,21 +215,25 @@ desired_object_projection() {
 }
 
 hydrate_desired_objects() {
-  local combined=$test_workspace/desired-hydration.yaml object_json api kind namespace name projection count sha
-  {
-    printf '%s\n' 'apiVersion: v1' 'kind: Namespace' 'metadata:' '  name: kube-system' '---'
-    kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay
-    printf '%s\n' '---'
-    kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening
-    printf '%s\n' '---'
-    kubectl kustomize gitops/platform/management/projects
-    printf '%s\n' '---'
-    yq '.' bootstrap/argocd/atlas-bootstrap-project.yaml
-    printf '%s\n' '---'
-    helm template atlas-argocd vendor/charts/argo-cd-10.3.3 --namespace argocd --include-crds \
-      --values gitops/platform/management/argocd-self/values.yaml \
-      --values gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml
-  } > "$combined" || return 1
+  local source_root=$1 target=$2 combined=$test_workspace/desired-hydration.yaml
+  local object_json api kind namespace name projection count sha
+  (
+    cd "$source_root" || exit 1
+    {
+      printf '%s\n' 'apiVersion: v1' 'kind: Namespace' 'metadata:' '  name: kube-system' '---'
+      kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay
+      printf '%s\n' '---'
+      kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening
+      printf '%s\n' '---'
+      kubectl kustomize gitops/platform/management/projects
+      printf '%s\n' '---'
+      yq '.' bootstrap/argocd/atlas-bootstrap-project.yaml
+      printf '%s\n' '---'
+      helm template atlas-argocd vendor/charts/argo-cd-10.3.3 --namespace argocd --include-crds \
+        --values gitops/platform/management/argocd-self/values.yaml \
+        --values gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml
+    }
+  ) > "$combined" || return 1
   while IFS= read -r object_json; do
     api=$(yq -r '.apiVersion' <<< "$object_json") || return 1
     kind=$(yq -r '.kind' <<< "$object_json") || return 1
@@ -203,16 +251,17 @@ hydrate_desired_objects() {
       .metadata.generation,.metadata.managedFields,.status) | sort_keys(..)' "$combined") || return 1
     sha=$(printf '%s' "$projection" | sha256_text) || return 1
     printf '%s\t%s\t%s\t%s\t%s\n' "$api" "$kind" "$namespace" "$name" "$sha"
-  done < <(yq -o=json -I=0 '.desiredObjects[]' "$valid_target")
+  done < <(yq -o=json -I=0 '.desiredObjects[]' "$target")
 }
 
 validate_target() {
-  local target=$1 payload fingerprint environment cluster kube_context api_server
+  local target=$1 expected_commit=$2 payload fingerprint environment cluster kube_context api_server
   local server_address server_port tls_server_name desired_projection approved_projection
   local desired_sha approved_sha object_json target_identities contract_identities
   yq -e '.' "$target" > /dev/null || return 1
   [[ $(document_keys "$target") == "$(schema_keys "$target_schema")" ]] || return 1
   [[ $(yq -r '.schemaVersion' "$target") == 1 &&
+  $(yq -r '.contractGitCommit' "$target") == "$expected_commit" &&
   $(yq -r '.authorityBaseline' "$target") == "$(yq -r '.authorityBaseline' "$contract")" &&
   $(yq -r '.repositoryURL' "$target") == https://github.com/snkio027/atlas.git &&
   $(yq -r '.argocdClientVersion' "$target") == "$argocd_version" &&
@@ -273,37 +322,49 @@ validate_target() {
   [[ $approved_sha == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" ]]
 }
 
-validate_target "$valid_target" || test::fail "valid target-bound fixture was rejected"
+bound_target=$test_workspace/valid-target.json
+bound_evidence=$test_workspace/valid-evidence.json
+bind_target_to_commit "$valid_target" "$expected_contract_commit" "$bound_target" ||
+  test::fail "could not bind target fixture to the caller-approved commit"
+bind_evidence_to_target "$valid_evidence" "$bound_target" "$bound_evidence" ||
+  test::fail "could not bind evidence fixture to the approved target"
+validate_target "$bound_target" "$expected_contract_commit" || test::fail "valid target-bound fixture was rejected"
 expected_desired_objects=$test_workspace/expected-desired-objects.tsv
 hydrated_desired_objects=$test_workspace/hydrated-desired-objects.tsv
-yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256] | @tsv' "$valid_target" |
+yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256] | @tsv' "$bound_target" |
   sort > "$expected_desired_objects"
-hydrate_desired_objects | sort > "$hydrated_desired_objects" || test::fail "could not hydrate the reviewed Git desired projection"
+hydrate_desired_objects "$approved_checkout" "$bound_target" | sort > "$hydrated_desired_objects" ||
+  test::fail "could not hydrate the reviewed Git desired projection"
 cmp -s "$expected_desired_objects" "$hydrated_desired_objects" ||
   test::fail "reviewed desired projection differs from exact Git hydration"
-for mutation in authority-baseline http-api relative-kubeconfig client-version client-image bad-environment bad-cluster bad-port server-name-drift identity-decision subject issuer claims credential desired-object missing-object approved-document extra-field; do
+for mutation in authority-baseline commit-resealed http-api relative-kubeconfig client-version client-image bad-environment bad-cluster bad-port server-name-drift identity-decision subject issuer claims credential desired-object missing-object approved-document extra-field; do
   mutated_target=$test_workspace/target-${mutation}.json
   case $mutation in
-    authority-baseline) yq '.authorityBaseline = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$valid_target" > "$mutated_target" ;;
-    http-api) yq '.apiServerURL = "http://127.0.0.1:6443"' "$valid_target" > "$mutated_target" ;;
-    relative-kubeconfig) yq '.kubeconfigPath = "fixture.kubeconfig"' "$valid_target" > "$mutated_target" ;;
-    client-version) yq '.argocdClientVersion = "3.5.2"' "$valid_target" > "$mutated_target" ;;
-    client-image) yq '.argocdClientImage = "ambient"' "$valid_target" > "$mutated_target" ;;
-    bad-environment) yq '.environmentName = "TEST"' "$valid_target" > "$mutated_target" ;;
-    bad-cluster) yq '.clusterName = "bad_cluster"' "$valid_target" > "$mutated_target" ;;
-    bad-port) yq '.argocdServerAddress = "argocd.fixture.invalid:65536"' "$valid_target" > "$mutated_target" ;;
-    server-name-drift) yq '.argocdTLSServerName = "other.fixture.invalid"' "$valid_target" > "$mutated_target" ;;
-    identity-decision) yq '.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    subject) yq '.expectedSubjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    issuer) yq '.expectedIssuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    claims) yq '.expectedClaimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    credential) yq '.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    desired-object) yq '.desiredObjects[0].desiredProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    missing-object) yq 'del(.desiredObjects[-1])' "$valid_target" > "$mutated_target" ;;
-    approved-document) yq '.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
-    extra-field) yq '.insecure = true' "$valid_target" > "$mutated_target" ;;
+    authority-baseline) yq '.authorityBaseline = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$bound_target" > "$mutated_target" ;;
+    commit-resealed)
+      commit_draft=$test_workspace/target-commit-resealed-draft.json
+      yq '.contractGitCommit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$bound_target" > "$commit_draft"
+      seal_target_document "$commit_draft" "$mutated_target"
+      ;;
+    http-api) yq '.apiServerURL = "http://127.0.0.1:6443"' "$bound_target" > "$mutated_target" ;;
+    relative-kubeconfig) yq '.kubeconfigPath = "fixture.kubeconfig"' "$bound_target" > "$mutated_target" ;;
+    client-version) yq '.argocdClientVersion = "3.5.2"' "$bound_target" > "$mutated_target" ;;
+    client-image) yq '.argocdClientImage = "ambient"' "$bound_target" > "$mutated_target" ;;
+    bad-environment) yq '.environmentName = "TEST"' "$bound_target" > "$mutated_target" ;;
+    bad-cluster) yq '.clusterName = "bad_cluster"' "$bound_target" > "$mutated_target" ;;
+    bad-port) yq '.argocdServerAddress = "argocd.fixture.invalid:65536"' "$bound_target" > "$mutated_target" ;;
+    server-name-drift) yq '.argocdTLSServerName = "other.fixture.invalid"' "$bound_target" > "$mutated_target" ;;
+    identity-decision) yq '.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    subject) yq '.expectedSubjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    issuer) yq '.expectedIssuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    claims) yq '.expectedClaimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    credential) yq '.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    desired-object) yq '.desiredObjects[0].desiredProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    missing-object) yq 'del(.desiredObjects[-1])' "$bound_target" > "$mutated_target" ;;
+    approved-document) yq '.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_target" > "$mutated_target" ;;
+    extra-field) yq '.insecure = true' "$bound_target" > "$mutated_target" ;;
   esac
-  if validate_target "$mutated_target"; then test::fail "unsafe target fixture was accepted: ${mutation}"; fi
+  if validate_target "$mutated_target" "$expected_contract_commit"; then test::fail "unsafe target fixture was accepted: ${mutation}"; fi
 done
 
 contains_sensitive_output() {
@@ -459,6 +520,7 @@ validate_evidence() {
   $(yq -r '.client.digest' "$evidence") == "$argocd_digest" &&
   $(yq -r '.server.version' "$evidence") == "$argocd_version" &&
   $(yq -r '.server.certificateSHA256' "$evidence") == "$(yq -r '.target.argocdServerCertificateSHA256' "$evidence")" &&
+  $(yq -r '.server.tlsServerName' "$evidence") == "$(yq -r '.argocdTLSServerName' "$target")" &&
   $(yq -r '.result' "$evidence") == UNSUPPORTED ]] || return 1
   [[ $(yq -r '.contractGitCommit' "$evidence") == "$(yq -r '.contractGitCommit' "$target")" &&
   $(yq -r '.target.environmentName' "$evidence") == "$(yq -r '.environmentName' "$target")" &&
@@ -532,35 +594,36 @@ validate_evidence() {
   ! grep -Eq '"/(Users|home|private|fixture)/' "$evidence" || return 1
 }
 
-validate_evidence "$valid_evidence" "$valid_target" || test::fail "valid failure-closed evidence fixture was rejected"
-for mutation in missing-probe changed-state stable-drift missing-live-object replaced-live-object per-object-drift commit identity-decision credential subject issuer claims approved-document bad-session time-reversal malformed-hash extra-secret-field nested-extra-field probe-extra-field host-path; do
+validate_evidence "$bound_evidence" "$bound_target" || test::fail "valid failure-closed evidence fixture was rejected"
+for mutation in missing-probe changed-state stable-drift missing-live-object replaced-live-object per-object-drift commit tls-server-name identity-decision credential subject issuer claims approved-document bad-session time-reversal malformed-hash extra-secret-field nested-extra-field probe-extra-field host-path; do
   mutated_evidence=$test_workspace/evidence-${mutation}.json
   case $mutation in
-    missing-probe) yq 'del(.authorizationProbes[-1]) | .completeness.executed = 32' "$valid_evidence" > "$mutated_evidence" ;;
-    changed-state) yq '.liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    missing-probe) yq 'del(.authorizationProbes[-1]) | .completeness.executed = 32' "$bound_evidence" > "$mutated_evidence" ;;
+    changed-state) yq '.liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
     stable-drift) yq '.liveProjection.desiredProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
       .liveProjection.liveBeforeSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
-      .liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    missing-live-object) yq 'del(.liveProjection.objects[-1])' "$valid_evidence" > "$mutated_evidence" ;;
-    replaced-live-object) yq '.liveProjection.objects[0].name = "replacement"' "$valid_evidence" > "$mutated_evidence" ;;
+      .liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    missing-live-object) yq 'del(.liveProjection.objects[-1])' "$bound_evidence" > "$mutated_evidence" ;;
+    replaced-live-object) yq '.liveProjection.objects[0].name = "replacement"' "$bound_evidence" > "$mutated_evidence" ;;
     per-object-drift) yq '.liveProjection.objects[0].liveBeforeProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
-      .liveProjection.objects[0].liveAfterProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    commit) yq '.contractGitCommit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$valid_evidence" > "$mutated_evidence" ;;
-    identity-decision) yq '.identity.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    credential) yq '.identity.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    subject) yq '.identity.subjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    issuer) yq '.identity.issuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    claims) yq '.identity.claimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    approved-document) yq '.target.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
-    bad-session) yq '.sessionID = "argo-authz-invalid"' "$valid_evidence" > "$mutated_evidence" ;;
-    time-reversal) yq '.completedAt = "2026-08-26T23:59:59Z"' "$valid_evidence" > "$mutated_evidence" ;;
-    malformed-hash) yq '.identity.claimsSHA256 = "not-a-sha"' "$valid_evidence" > "$mutated_evidence" ;;
-    extra-secret-field) yq '.token = "ATLAS_FIXTURE_NOT_A_CREDENTIAL"' "$valid_evidence" > "$mutated_evidence" ;;
-    nested-extra-field) yq '.client.source = "ambient"' "$valid_evidence" > "$mutated_evidence" ;;
-    probe-extra-field) yq '.authorizationProbes[0].diagnostic = "ignored"' "$valid_evidence" > "$mutated_evidence" ;;
-    host-path) yq '.target.hostPath = "/fixture/not-a-real-host/evidence"' "$valid_evidence" > "$mutated_evidence" ;;
+      .liveProjection.objects[0].liveAfterProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    commit) yq '.contractGitCommit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$bound_evidence" > "$mutated_evidence" ;;
+    tls-server-name) yq '.server.tlsServerName = "other.fixture.invalid"' "$bound_evidence" > "$mutated_evidence" ;;
+    identity-decision) yq '.identity.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    credential) yq '.identity.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    subject) yq '.identity.subjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    issuer) yq '.identity.issuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    claims) yq '.identity.claimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    approved-document) yq '.target.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$bound_evidence" > "$mutated_evidence" ;;
+    bad-session) yq '.sessionID = "argo-authz-invalid"' "$bound_evidence" > "$mutated_evidence" ;;
+    time-reversal) yq '.completedAt = "2026-08-26T23:59:59Z"' "$bound_evidence" > "$mutated_evidence" ;;
+    malformed-hash) yq '.identity.claimsSHA256 = "not-a-sha"' "$bound_evidence" > "$mutated_evidence" ;;
+    extra-secret-field) yq '.token = "ATLAS_FIXTURE_NOT_A_CREDENTIAL"' "$bound_evidence" > "$mutated_evidence" ;;
+    nested-extra-field) yq '.client.source = "ambient"' "$bound_evidence" > "$mutated_evidence" ;;
+    probe-extra-field) yq '.authorizationProbes[0].diagnostic = "ignored"' "$bound_evidence" > "$mutated_evidence" ;;
+    host-path) yq '.target.hostPath = "/fixture/not-a-real-host/evidence"' "$bound_evidence" > "$mutated_evidence" ;;
   esac
-  if validate_evidence "$mutated_evidence" "$valid_target"; then test::fail "invalid evidence fixture was accepted: ${mutation}"; fi
+  if validate_evidence "$mutated_evidence" "$bound_target"; then test::fail "invalid evidence fixture was accepted: ${mutation}"; fi
 done
 
 [[ $(yq -r '.additionalProperties' "$target_schema") == false &&
