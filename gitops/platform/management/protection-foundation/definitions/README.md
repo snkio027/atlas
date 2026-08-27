@@ -46,3 +46,12 @@ the ApplicationSet Controller, create an ApplicationSet, or place the recovery
 guard key in normal desired state. It does not install Admission, Recovery
 RBAC, or the Signal. Live authorization probes and Admission observation
 require later, independently authorized gates.
+
+The `argo-hardening/probe-contract` directory is a repository-only definition
+of the future target-bound Live Authorization Probe. It locks the client image,
+target inputs, exact read and command allowlists, complete permission matrix,
+failure classifications, redaction rules, and evidence schema. It contains no
+executable probe, identity, credential, Kustomization, Application, or runtime
+wiring. Identity selection, cluster reads, and all live probes remain blocked
+until a separate Human Judgment Gate approves an exact target and credential
+lifecycle.

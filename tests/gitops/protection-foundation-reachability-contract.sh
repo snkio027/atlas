@@ -40,6 +40,7 @@ for environment in local-orbstack prod; do
     "$definition_path/rbac/escape" \
     "$definition_path/rbac/session" \
     "$definition_path/signal" \
+    "$hardening_path/probe-contract" \
     "$definition_path/applicationset-recovery-contract.json"; do
     gitops_reachability::assert_definition_unreachable \
       "gitops/root/overlays/${environment}" "$forbidden_projection" ||

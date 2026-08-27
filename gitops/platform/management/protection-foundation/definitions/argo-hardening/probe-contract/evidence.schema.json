@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.invalid/schemas/argocd-authorization-probe-evidence-v1.json",
+  "title": "Atlas Argo authorization probe evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractID",
+    "contractGitCommit",
+    "authorityBaseline",
+    "sessionID",
+    "startedAt",
+    "completedAt",
+    "target",
+    "client",
+    "server",
+    "identity",
+    "liveProjection",
+    "authorizationProbes",
+    "identityChecks",
+    "completeness",
+    "result"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "contractID": {"const": "atlas.argocd.authorization-probe/v1"},
+    "contractGitCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "authorityBaseline": {"const": "5a8bd5f5b9d547f82bcd6a86c2038c3805e6752f"},
+    "sessionID": {"type": "string", "pattern": "^argo-authz-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{32}$"},
+    "startedAt": {"type": "string", "format": "date-time"},
+    "completedAt": {"type": "string", "format": "date-time"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environmentName",
+        "clusterName",
+        "targetFingerprintSHA256",
+        "apiServerCASPKISHA256",
+        "argocdServerCertificateSHA256",
+        "approvedTargetDocumentSHA256",
+        "desiredProjectionSHA256"
+      ],
+      "properties": {
+        "environmentName": {"type": "string"},
+        "clusterName": {"type": "string"},
+        "targetFingerprintSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "apiServerCASPKISHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "argocdServerCertificateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "approvedTargetDocumentSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "image", "digest"],
+      "properties": {
+        "version": {"const": "3.5.1"},
+        "image": {"type": "string"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "tlsServerName", "certificateSHA256"],
+      "properties": {
+        "version": {"const": "3.5.1"},
+        "tlsServerName": {"type": "string"},
+        "certificateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "identityDecisionSHA256",
+        "credentialReferenceSHA256",
+        "subjectSHA256",
+        "issuerSHA256",
+        "claimsSHA256"
+      ],
+      "properties": {
+        "category": {"enum": ["EXISTING_IDENTITY", "TEMPORARY_PROBE_IDENTITY"]},
+        "identityDecisionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "credentialReferenceSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "subjectSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "issuerSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "claimsSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "liveProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "desiredProjectionSHA256",
+        "liveBeforeSHA256",
+        "liveAfterSHA256",
+        "reviewedPolicyFragments",
+        "objects",
+        "status"
+      ],
+      "properties": {
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveBeforeSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveAfterSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "reviewedPolicyFragments": {"const": ["policy.csv"]},
+        "objects": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "items": {"$ref": "#/$defs/liveObjectProjection"}
+        },
+        "status": {"const": "MATCH"}
+      }
+    },
+    "authorizationProbes": {
+      "type": "array",
+      "minItems": 36,
+      "maxItems": 36,
+      "items": {"$ref": "#/$defs/authorizationProbe"}
+    },
+    "identityChecks": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/identityCheck"}
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected",
+        "executed",
+        "unsupported",
+        "skipped",
+        "ambiguous",
+        "mutations",
+        "identityExpected",
+        "identityExecuted",
+        "identityUnavailable"
+      ],
+      "properties": {
+        "expected": {"const": 36},
+        "executed": {"const": 33},
+        "unsupported": {"const": 3},
+        "skipped": {"const": 0},
+        "ambiguous": {"const": 0},
+        "mutations": {"const": 0},
+        "identityExpected": {"const": 3},
+        "identityExecuted": {"const": 2},
+        "identityUnavailable": {"const": 1}
+      }
+    },
+    "result": {"const": "UNSUPPORTED"}
+  },
+  "$defs": {
+    "liveObjectProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "namespace",
+        "name",
+        "desiredProjectionSHA256",
+        "liveBeforeProjectionSHA256",
+        "liveAfterProjectionSHA256"
+      ],
+      "properties": {
+        "apiVersion": {"type": "string"},
+        "kind": {"type": "string"},
+        "namespace": {"type": "string"},
+        "name": {"type": "string"},
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveBeforeProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveAfterProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "authorizationProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource",
+        "actionPattern",
+        "queryAction",
+        "object",
+        "expectedDecision",
+        "actualDecision",
+        "status",
+        "exitCode",
+        "stdoutSHA256",
+        "stderrSHA256"
+      ],
+      "properties": {
+        "resource": {"type": "string"},
+        "actionPattern": {"type": "string"},
+        "queryAction": {"type": ["string", "null"]},
+        "object": {"type": "string"},
+        "expectedDecision": {"enum": ["ALLOW", "DENY"]},
+        "actualDecision": {"enum": ["ALLOW", "DENY", "UNPROVEN"]},
+        "status": {"enum": ["READY", "DENIED", "UNSUPPORTED"]},
+        "exitCode": {"type": ["integer", "null"]},
+        "stdoutSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "stderrSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "identityCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "reason", "execution"],
+      "properties": {
+        "name": {"enum": ["authenticated-subject", "anonymous", "built-in-admin"]},
+        "status": {"enum": ["READY", "DENIED", "ADMIN_PROOF_UNAVAILABLE"]},
+        "reason": {"enum": ["AUTHENTICATED", "UNAUTHENTICATED", "CREDENTIAL_UNAVAILABLE"]},
+        "execution": {"enum": ["EXECUTED", "NOT_EXECUTED"]}
+      }
+    }
+  }
+}
