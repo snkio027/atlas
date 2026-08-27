@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "contractID": "atlas.argocd.authorization-probe/v1",
+  "contractGitCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "authorityBaseline": "5a8bd5f5b9d547f82bcd6a86c2038c3805e6752f",
+  "sessionID": "argo-authz-20260827T000000Z-00000000000000000000000000000001",
+  "startedAt": "2026-08-27T00:00:00Z",
+  "completedAt": "2026-08-27T00:01:00Z",
+  "target": {
+    "environmentName": "test",
+    "clusterName": "atlas-test",
+    "targetFingerprintSHA256": "7b8336f06513d0d52db60640ddc0c257118b0f437f70ea91317ab416eac86e61",
+    "apiServerCASPKISHA256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "argocdServerCertificateSHA256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "client": {
+    "version": "3.5.1",
+    "image": "quay.io/argoproj/argocd:v3.5.1@sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8",
+    "digest": "sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8"
+  },
+  "server": {
+    "version": "3.5.1",
+    "tlsServerName": "argocd.example.invalid",
+    "certificateSHA256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "identity": {
+    "category": "EXISTING_IDENTITY",
+    "subjectSHA256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "issuerSHA256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "claimsSHA256": "7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "liveProjection": {
+    "beforeSHA256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "afterSHA256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "reviewedPolicyFragments": ["policy.csv"],
+    "status": "MATCH"
+  },
+  "authorizationProbes": [
+    {"resource": "accounts", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "accounts", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "action/*", "queryAction": "action/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "create", "queryAction": "create", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "delete", "queryAction": "delete", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "delete/*", "queryAction": "delete/*/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "get", "queryAction": "get", "object": "*/*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "override", "queryAction": "override", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "sync", "queryAction": "sync", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "update", "queryAction": "update", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "update/*", "queryAction": "update/*/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applicationsets", "actionPattern": "create", "queryAction": "create", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applicationsets", "actionPattern": "delete", "queryAction": "delete", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applicationsets", "actionPattern": "get", "queryAction": "get", "object": "*/*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applicationsets", "actionPattern": "update", "queryAction": "update", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "certificates", "actionPattern": "create", "queryAction": "create", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "certificates", "actionPattern": "delete", "queryAction": "delete", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "certificates", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "clusters", "actionPattern": "create", "queryAction": "create", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "clusters", "actionPattern": "delete", "queryAction": "delete", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "clusters", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "clusters", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "exec", "actionPattern": "create", "queryAction": "create", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "extensions", "actionPattern": "invoke", "queryAction": "invoke", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "gpgkeys", "actionPattern": "create", "queryAction": "create", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "gpgkeys", "actionPattern": "delete", "queryAction": "delete", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "gpgkeys", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "logs", "actionPattern": "get", "queryAction": "get", "object": "*/*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "projects", "actionPattern": "create", "queryAction": "create", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "projects", "actionPattern": "delete", "queryAction": "delete", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "projects", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "projects", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "repositories", "actionPattern": "create", "queryAction": "create", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "repositories", "actionPattern": "delete", "queryAction": "delete", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "repositories", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "repositories", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  ],
+  "identityChecks": [
+    {"name": "authenticated-subject", "status": "READY", "reason": "AUTHENTICATED"},
+    {"name": "anonymous", "status": "DENIED", "reason": "UNAUTHENTICATED"},
+    {"name": "built-in-admin", "status": "DENIED", "reason": "ACCOUNT_DISABLED"}
+  ],
+  "completeness": {"expected": 36, "executed": 36, "skipped": 0, "ambiguous": 0, "mutations": 0},
+  "result": "READY"
+}

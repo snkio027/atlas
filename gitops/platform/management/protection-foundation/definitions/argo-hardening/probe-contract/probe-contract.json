@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "contractID": "atlas.argocd.authorization-probe/v1",
+  "authorityBaseline": "5a8bd5f5b9d547f82bcd6a86c2038c3805e6752f",
+  "activationStage": "ADR_0003_PHASE_1B_PROBE_CONTRACT",
+  "executionState": "REPOSITORY_ONLY",
+  "identityDecisionState": "IDENTITY_UNAVAILABLE",
+  "requiredFineGrainedApplicationInheritanceDisabled": true,
+  "argocdClient": {
+    "version": "3.5.1",
+    "sourceType": "OCI_IMAGE",
+    "versionsLockKey": "ARGOCD_IMAGE",
+    "image": "quay.io/argoproj/argocd:v3.5.1@sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8",
+    "digest": "sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8",
+    "executable": "/usr/local/bin/argocd",
+    "ambientExecutableAllowed": false
+  },
+  "requiredServerVersion": "3.5.1",
+  "transport": {
+    "tlsRequired": true,
+    "serverCertificatePinRequired": true,
+    "tlsServerNameRequired": true,
+    "allowInsecure": false,
+    "allowPlaintext": false,
+    "allowCore": false
+  },
+  "forbiddenAmbientEnvironment": [
+    "ALL_PROXY",
+    "ARGOCD_AUTH_TOKEN",
+    "ARGOCD_CONTEXT",
+    "ARGOCD_OPTS",
+    "ARGOCD_SERVER",
+    "ARGOCD_SERVER_CRT",
+    "HTTPS_PROXY",
+    "HTTP_PROXY",
+    "KUBECONFIG"
+  ],
+  "allowedOperations": [
+    {
+      "name": "argocd.client-version",
+      "argv": ["version", "--client", "--output", "json"],
+      "network": false
+    },
+    {
+      "name": "argocd.server-version",
+      "argv": ["version", "--server", "--output", "json"],
+      "network": true
+    },
+    {
+      "name": "argocd.subject",
+      "argv": ["account", "get-user-info", "--output", "json"],
+      "network": true
+    },
+    {
+      "name": "argocd.authorization",
+      "argv": ["account", "can-i", "<action>", "<resource>", "<object>"],
+      "network": true
+    },
+    {
+      "name": "http.anonymous-session-info",
+      "method": "GET",
+      "path": "/api/v1/session/userinfo",
+      "credential": "NONE"
+    },
+    {
+      "name": "http.admin-disabled",
+      "method": "POST",
+      "path": "/api/v1/session",
+      "credential": "SYNTHETIC_NON_SECRET_SENTINEL"
+    }
+  ],
+  "forbiddenArgocdFlags": ["--core", "--insecure", "--plaintext"],
+  "forbiddenArgocdCommands": [
+    "account delete-token",
+    "account generate-token",
+    "account update-password",
+    "admin",
+    "app create",
+    "app delete",
+    "app patch",
+    "app set",
+    "app sync",
+    "app terminate-op",
+    "cluster add",
+    "cluster rm",
+    "proj create",
+    "proj delete",
+    "proj role create-token",
+    "repo add",
+    "repo rm"
+  ],
+  "kubernetesReadContract": {
+    "verbs": ["get"],
+    "nonResourceURLs": ["/version"],
+    "objects": [
+      {"apiVersion": "v1", "kind": "Namespace", "namespace": "", "name": "kube-system"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-cm"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-rbac-cm"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-cmd-params-cm"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "namespace": "argocd", "name": "argocd-self"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "atlas-bootstrap"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "platform-project"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "workload-project"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-applicationset-controller"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-redis"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-repo-server"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-server"},
+      {"apiVersion": "apps/v1", "kind": "StatefulSet", "namespace": "argocd", "name": "atlas-argocd-application-controller"}
+    ],
+    "forbiddenResources": ["secrets"],
+    "forbiddenVerbs": ["create", "delete", "deletecollection", "list", "patch", "update", "watch"]
+  },
+  "resourceObjects": {
+    "accounts": "*",
+    "applications": "*/*",
+    "applicationsets": "*/*",
+    "certificates": "*",
+    "clusters": "*",
+    "exec": "*/*",
+    "extensions": "*/*",
+    "gpgkeys": "*",
+    "logs": "*/*",
+    "projects": "*",
+    "repositories": "*"
+  },
+  "fineGrainedActionQueries": {
+    "action/*": "action/*/*/*",
+    "delete/*": "delete/*/*/*/*",
+    "update/*": "update/*/*/*/*"
+  },
+  "classification": {
+    "recordStatuses": ["READY", "DENIED", "DRIFTED", "UNSUPPORTED", "INVALID"],
+    "overallExitCodes": {
+      "READY": 0,
+      "DRIFTED": 20,
+      "UNSUPPORTED": 21,
+      "INVALID": 22
+    },
+    "successfulCanI": {
+      "exitCode": 0,
+      "stderr": "",
+      "allowStdout": "yes\n",
+      "denyStdout": "no\n"
+    },
+    "unknownAction": "DRIFTED",
+    "unprovenFineGrainedEvaluator": "UNSUPPORTED",
+    "missingMatrixEntry": "INVALID",
+    "partialResult": "INVALID",
+    "transportOrOutputAmbiguity": "INVALID",
+    "prePostProjectionMismatch": "DRIFTED"
+  },
+  "identityChecks": [
+    {"name": "authenticated-subject", "expected": "READY"},
+    {"name": "anonymous", "expected": "DENIED"},
+    {"name": "built-in-admin", "expected": "DENIED", "requiredReason": "ACCOUNT_DISABLED"}
+  ],
+  "redaction": {
+    "forbiddenFieldNames": ["authToken", "authorization", "cookie", "kubeconfigPath", "password", "setCookie", "token"],
+    "forbiddenOutputPatterns": [
+      "(?i)authorization:",
+      "(?i)bearer[[:space:]]+",
+      "(?i)cookie[=:]",
+      "(?i)kubeconfig[=:]",
+      "(?i)password[=:]",
+      "(?i)token[=:]",
+      "(^|[[:space:]\"'=])/(Users|home|private|fixture|var/folders)/"
+    ],
+    "rawStdoutStored": false,
+    "rawStderrStored": false,
+    "absoluteHostPathsStored": false
+  },
+  "completeness": {
+    "authorizationMatrixEntries": 36,
+    "identityChecks": 3,
+    "allowedSkippedEntries": 0,
+    "allowedMutationCount": 0,
+    "prePostProjectionMustMatch": true
+  }
+}

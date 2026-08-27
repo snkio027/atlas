@@ -62,6 +62,7 @@ tasks:
       - ./tests/gitops/conformance.sh
       - ./tests/gitops/protection-foundation-contract.sh
       - ./tests/gitops/argo-hardening-contract.sh
+      - ./tests/gitops/argo-authorization-probe-contract.sh
       - ./tests/gitops/applicationset-recovery-contract.sh
       - ./tests/gitops/protection-foundation-reachability-contract.sh
 
