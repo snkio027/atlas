@@ -5,6 +5,12 @@
   "activationStage": "ADR_0003_PHASE_1B_PROBE_CONTRACT",
   "executionState": "REPOSITORY_ONLY",
   "identityDecisionState": "IDENTITY_UNAVAILABLE",
+  "repositoryAuthority": {
+    "targetAndEvidenceCommitMustMatch": true,
+    "runtimeHeadMustEqualApprovedCommit": true,
+    "approvedTargetDocumentHashRequired": true,
+    "identityDecisionHashRequired": true
+  },
   "requiredFineGrainedApplicationInheritanceDisabled": true,
   "argocdClient": {
     "version": "3.5.1",
@@ -61,12 +67,6 @@
       "method": "GET",
       "path": "/api/v1/session/userinfo",
       "credential": "NONE"
-    },
-    {
-      "name": "http.admin-disabled",
-      "method": "POST",
-      "path": "/api/v1/session",
-      "credential": "SYNTHETIC_NON_SECRET_SENTINEL"
     }
   ],
   "forbiddenArgocdFlags": ["--core", "--insecure", "--plaintext"],
@@ -123,13 +123,39 @@
     "projects": "*",
     "repositories": "*"
   },
-  "fineGrainedActionQueries": {
-    "action/*": "action/*/*/*",
-    "delete/*": "delete/*/*/*/*",
-    "update/*": "update/*/*/*/*"
+  "unsupportedFineGrainedActions": {
+    "action/*": "ARGO_V3_5_1_CAN_I_REJECTS_NON_BASE_ACTION",
+    "delete/*": "ARGO_V3_5_1_CAN_I_REJECTS_NON_BASE_ACTION",
+    "update/*": "ARGO_V3_5_1_CAN_I_REJECTS_NON_BASE_ACTION"
+  },
+  "desiredProjectionContract": {
+    "objectCount": 13,
+    "identityFields": ["apiVersion", "kind", "namespace", "name"],
+    "volatileFieldsExcluded": [
+      "metadata.creationTimestamp",
+      "metadata.generation",
+      "metadata.managedFields",
+      "metadata.resourceVersion",
+      "metadata.uid",
+      "status"
+    ],
+    "desiredEncoding": "UTF8_CANONICAL_JSON_RECURSIVE_KEY_SORT_NO_TRAILING_NEWLINE",
+    "liveProjection": "RECURSIVE_INTERSECTION_WITH_DESIRED_FIELD_MASK",
+    "arraySemantics": "ORDERED_EXACT",
+    "aggregateEncoding": "IDENTITY_SORTED_OBJECT_HASH_ARRAY_CANONICAL_JSON_NO_TRAILING_NEWLINE",
+    "requiredEquality": "DESIRED_EQUALS_LIVE_BEFORE_EQUALS_LIVE_AFTER",
+    "hydrationSources": [
+      "bootstrap/argocd/atlas-bootstrap-project.yaml",
+      "gitops/platform/management/projects",
+      "gitops/platform/management/protection-foundation/definitions/argo-hardening",
+      "gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay",
+      "gitops/platform/management/argocd-self/values.yaml",
+      "gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml",
+      "vendor/charts/argo-cd-10.3.3"
+    ]
   },
   "classification": {
-    "recordStatuses": ["READY", "DENIED", "DRIFTED", "UNSUPPORTED", "INVALID"],
+    "recordStatuses": ["READY", "DENIED", "DRIFTED", "UNSUPPORTED", "ADMIN_PROOF_UNAVAILABLE", "INVALID"],
     "overallExitCodes": {
       "READY": 0,
       "DRIFTED": 20,
@@ -143,7 +169,8 @@
       "denyStdout": "no\n"
     },
     "unknownAction": "DRIFTED",
-    "unprovenFineGrainedEvaluator": "UNSUPPORTED",
+    "fineGrainedCanI": "UNSUPPORTED",
+    "adminWithoutApprovedCredential": "ADMIN_PROOF_UNAVAILABLE",
     "missingMatrixEntry": "INVALID",
     "partialResult": "INVALID",
     "transportOrOutputAmbiguity": "INVALID",
@@ -152,7 +179,7 @@
   "identityChecks": [
     {"name": "authenticated-subject", "expected": "READY"},
     {"name": "anonymous", "expected": "DENIED"},
-    {"name": "built-in-admin", "expected": "DENIED", "requiredReason": "ACCOUNT_DISABLED"}
+    {"name": "built-in-admin", "expected": "ADMIN_PROOF_UNAVAILABLE", "requiredReason": "CREDENTIAL_UNAVAILABLE"}
   ],
   "redaction": {
     "forbiddenFieldNames": ["authToken", "authorization", "cookie", "kubeconfigPath", "password", "setCookie", "token"],
@@ -171,7 +198,11 @@
   },
   "completeness": {
     "authorizationMatrixEntries": 36,
+    "executableAuthorizationEntries": 33,
+    "unsupportedAuthorizationEntries": 3,
     "identityChecks": 3,
+    "executableIdentityChecks": 2,
+    "unavailableIdentityChecks": 1,
     "allowedSkippedEntries": 0,
     "allowedMutationCount": 0,
     "prePostProjectionMustMatch": true

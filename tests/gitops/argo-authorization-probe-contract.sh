@@ -68,7 +68,7 @@ mapfile -t actual_ambient < <(yq -r '.forbiddenAmbientEnvironment[]' "$contract"
 [[ ${actual_ambient[*]} == "${expected_ambient[*]}" ]] ||
   test::fail "ambient target or credential environment is not fully rejected"
 
-expected_operations=(argocd.authorization argocd.client-version argocd.server-version argocd.subject http.admin-disabled http.anonymous-session-info)
+expected_operations=(argocd.authorization argocd.client-version argocd.server-version argocd.subject http.anonymous-session-info)
 mapfile -t actual_operations < <(yq -r '.allowedOperations[].name' "$contract" | sort)
 [[ ${actual_operations[*]} == "${expected_operations[*]}" ]] ||
   test::fail "no-side-effect operation allowlist drifted"
@@ -112,7 +112,7 @@ mapfile -t actual_workloads < <(yq -r '.kubernetesReadContract.objects[] |
   test::fail "Argo workload read inventory drifted"
 
 derive_matrix() {
-  local classification resource action decision status object query_action fine_grained
+  local classification resource action decision status object query_action fine_grained probe_mode
   for classification in readOnly sideEffecting; do
     if [[ $classification == readOnly ]]; then
       decision=ALLOW
@@ -124,12 +124,21 @@ derive_matrix() {
     # shellcheck disable=SC2016 # yq expression, not a shell expansion
     while IFS=$'\t' read -r resource action; do
       [[ -n $resource && -n $action ]] || continue
+      if [[ $classification == readOnly ]]; then status=READY; else status=DENIED; fi
       object=$(RESOURCE=$resource yq -r '.resourceObjects[strenv(RESOURCE)]' "$contract") || return 1
       [[ $object != null && -n $object ]] || return 1
-      query_action=$(ACTION=$action yq -r '.fineGrainedActionQueries[strenv(ACTION)] // strenv(ACTION)' "$contract") || return 1
-      if [[ $action == */\* ]]; then fine_grained=true; else fine_grained=false; fi
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-        "$resource" "$action" "$query_action" "$object" "$decision" "$status" "$fine_grained"
+      query_action=$action
+      probe_mode=ARGO_ACCOUNT_CAN_I
+      if [[ $action == */\* ]]; then
+        fine_grained=true
+        query_action=null
+        status=UNSUPPORTED
+        probe_mode=UNSUPPORTED
+      else
+        fine_grained=false
+      fi
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$resource" "$action" "$query_action" "$object" "$decision" "$status" "$probe_mode" "$fine_grained"
     done < <(CLASSIFICATION=$classification yq -r '.resources[] as $resource |
       $resource[strenv(CLASSIFICATION)][] | [$resource.name, .] | @tsv' "$action_inventory")
   done | sort
@@ -138,22 +147,69 @@ derive_matrix() {
 expected_matrix=$test_workspace/expected-matrix.tsv
 actual_matrix=$test_workspace/actual-matrix.tsv
 derive_matrix > "$expected_matrix" || test::fail "could not derive probe matrix from Action Inventory"
-yq -r '.entries[] | [.resource, .actionPattern, .queryAction, .object,
-  .expectedDecision, .expectedStatus, .requiresFineGrainedCapability] | @tsv' "$matrix" |
+# shellcheck disable=SC2016 # yq variable, not a shell expansion
+yq -r '.defaultProbeMode as $default | .entries[] | [.resource, .actionPattern, (.queryAction // "null"), .object,
+  .expectedDecision, .expectedStatus, (.probeMode // $default), .requiresFineGrainedCapability] | @tsv' "$matrix" |
   sort > "$actual_matrix"
 cmp -s "$actual_matrix" "$expected_matrix" ||
   test::fail "probe matrix differs from the complete Argo v3.5.1 Action Inventory"
 [[ $(wc -l < "$actual_matrix" | tr -d ' ') -eq 36 &&
 $(sort -u "$actual_matrix" | wc -l | tr -d ' ') -eq 36 &&
-$(yq '.completeness.authorizationMatrixEntries' "$contract") -eq 36 ]] ||
+$(yq '.completeness.authorizationMatrixEntries' "$contract") -eq 36 &&
+$(yq '[.entries[] | select(.expectedStatus == "UNSUPPORTED" and .queryAction == null and .probeMode == "UNSUPPORTED")] | length' "$matrix") -eq 3 &&
+$(yq '[.entries[] | select(.expectedStatus != "UNSUPPORTED")] | length' "$matrix") -eq 33 ]] ||
   test::fail "probe matrix is incomplete or duplicated"
 
 schema_keys() { yq -r '.required[]' "$1" | sort; }
 document_keys() { yq -r 'keys | .[]' "$1" | sort; }
+sha256_text() { shasum -a 256 | awk '{print $1}'; }
+
+desired_object_projection() {
+  yq -o=json -I=0 \
+    '.desiredObjects | sort_by(.apiVersion, .kind, .namespace, .name) |
+    (.. | select(tag == "!!map")) |= sort_keys(.)' "$1"
+}
+
+hydrate_desired_objects() {
+  local combined=$test_workspace/desired-hydration.yaml object_json api kind namespace name projection count sha
+  {
+    printf '%s\n' 'apiVersion: v1' 'kind: Namespace' 'metadata:' '  name: kube-system' '---'
+    kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay
+    printf '%s\n' '---'
+    kubectl kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening
+    printf '%s\n' '---'
+    kubectl kustomize gitops/platform/management/projects
+    printf '%s\n' '---'
+    yq '.' bootstrap/argocd/atlas-bootstrap-project.yaml
+    printf '%s\n' '---'
+    helm template atlas-argocd vendor/charts/argo-cd-10.3.3 --namespace argocd --include-crds \
+      --values gitops/platform/management/argocd-self/values.yaml \
+      --values gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml
+  } > "$combined" || return 1
+  while IFS= read -r object_json; do
+    api=$(yq -r '.apiVersion' <<< "$object_json") || return 1
+    kind=$(yq -r '.kind' <<< "$object_json") || return 1
+    namespace=$(yq -r '.namespace' <<< "$object_json") || return 1
+    name=$(yq -r '.name' <<< "$object_json") || return 1
+    count=$(API=$api KIND=$kind NS=$namespace NAME=$name yq ea \
+      '[select(.apiVersion == strenv(API) and .kind == strenv(KIND) and
+      (.metadata.namespace // "") == strenv(NS) and .metadata.name == strenv(NAME))] | length' \
+      "$combined" | tail -1) || return 1
+    [[ $count -eq 1 ]] || return 1
+    projection=$(API=$api KIND=$kind NS=$namespace NAME=$name yq ea -o=json -I=0 \
+      'select(.apiVersion == strenv(API) and .kind == strenv(KIND) and
+      (.metadata.namespace // "") == strenv(NS) and .metadata.name == strenv(NAME)) |
+      del(.metadata.creationTimestamp,.metadata.resourceVersion,.metadata.uid,
+      .metadata.generation,.metadata.managedFields,.status) | sort_keys(..)' "$combined") || return 1
+    sha=$(printf '%s' "$projection" | sha256_text) || return 1
+    printf '%s\t%s\t%s\t%s\t%s\n' "$api" "$kind" "$namespace" "$name" "$sha"
+  done < <(yq -o=json -I=0 '.desiredObjects[]' "$valid_target")
+}
 
 validate_target() {
   local target=$1 payload fingerprint environment cluster kube_context api_server
-  local server_address server_port tls_server_name
+  local server_address server_port tls_server_name desired_projection approved_projection
+  local desired_sha approved_sha object_json target_identities contract_identities
   yq -e '.' "$target" > /dev/null || return 1
   [[ $(document_keys "$target") == "$(schema_keys "$target_schema")" ]] || return 1
   [[ $(yq -r '.schemaVersion' "$target") == 1 &&
@@ -182,6 +238,10 @@ validate_target() {
     $(yq -r '.kubeSystemNamespaceUID' "$target") =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ &&
     $(yq -r '.apiServerCASPKISHA256' "$target") =~ ^[0-9a-f]{64}$ &&
     $(yq -r '.argocdServerCertificateSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+    $(yq -r '.identityDecisionSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+    $(yq -r '.expectedSubjectSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+    $(yq -r '.expectedIssuerSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+    $(yq -r '.expectedClaimsSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
     $(yq -r '.credentialReferenceSHA256' "$target") =~ ^[0-9a-f]{64}$ ]] || return 1
   case $(yq -r '.identityCategory' "$target") in
     EXISTING_IDENTITY | TEMPORARY_PROBE_IDENTITY) ;;
@@ -195,11 +255,33 @@ validate_target() {
     "$(yq -r '.repositoryURL' "$target")" "$(yq -r '.argocdServerAddress' "$target")" \
     "$(yq -r '.argocdTLSServerName' "$target")" "$(yq -r '.argocdServerCertificateSHA256' "$target")"
   fingerprint=$(printf '%s' "$payload" | shasum -a 256 | awk '{print $1}') || return 1
-  [[ $fingerprint == "$(yq -r '.targetFingerprintSHA256' "$target")" ]]
+  [[ $fingerprint == "$(yq -r '.targetFingerprintSHA256' "$target")" ]] || return 1
+  [[ $(yq '.desiredObjects | length' "$target") -eq 13 ]] || return 1
+  while IFS= read -r object_json; do
+    [[ $(yq -o=json -I=0 'keys | sort' <<< "$object_json") == '["apiVersion","desiredProjectionSHA256","kind","name","namespace"]' &&
+    $(yq -r '.desiredProjectionSHA256' <<< "$object_json") =~ ^[0-9a-f]{64}$ ]] || return 1
+  done < <(yq -o=json -I=0 '.desiredObjects[]' "$target")
+  [[ $(yq '[.desiredObjects[] | [.apiVersion,.kind,.namespace,.name] | @tsv] | unique | length' "$target") -eq 13 ]] || return 1
+  target_identities=$(yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name] | @tsv' "$target" | sort) || return 1
+  contract_identities=$(yq -r '.kubernetesReadContract.objects[] | [.apiVersion,.kind,.namespace,.name] | @tsv' "$contract" | sort) || return 1
+  [[ $target_identities == "$contract_identities" ]] || return 1
+  desired_projection=$(desired_object_projection "$target") || return 1
+  desired_sha=$(printf '%s' "$desired_projection" | sha256_text) || return 1
+  [[ $desired_sha == "$(yq -r '.desiredProjectionSHA256' "$target")" ]] || return 1
+  approved_projection=$(yq -o=json -I=0 'del(.approvedTargetDocumentSHA256) | sort_keys(..)' "$target") || return 1
+  approved_sha=$(printf '%s' "$approved_projection" | sha256_text) || return 1
+  [[ $approved_sha == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" ]]
 }
 
 validate_target "$valid_target" || test::fail "valid target-bound fixture was rejected"
-for mutation in authority-baseline http-api relative-kubeconfig client-version client-image bad-environment bad-cluster bad-port server-name-drift extra-field; do
+expected_desired_objects=$test_workspace/expected-desired-objects.tsv
+hydrated_desired_objects=$test_workspace/hydrated-desired-objects.tsv
+yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256] | @tsv' "$valid_target" |
+  sort > "$expected_desired_objects"
+hydrate_desired_objects | sort > "$hydrated_desired_objects" || test::fail "could not hydrate the reviewed Git desired projection"
+cmp -s "$expected_desired_objects" "$hydrated_desired_objects" ||
+  test::fail "reviewed desired projection differs from exact Git hydration"
+for mutation in authority-baseline http-api relative-kubeconfig client-version client-image bad-environment bad-cluster bad-port server-name-drift identity-decision subject issuer claims credential desired-object missing-object approved-document extra-field; do
   mutated_target=$test_workspace/target-${mutation}.json
   case $mutation in
     authority-baseline) yq '.authorityBaseline = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$valid_target" > "$mutated_target" ;;
@@ -211,6 +293,14 @@ for mutation in authority-baseline http-api relative-kubeconfig client-version c
     bad-cluster) yq '.clusterName = "bad_cluster"' "$valid_target" > "$mutated_target" ;;
     bad-port) yq '.argocdServerAddress = "argocd.fixture.invalid:65536"' "$valid_target" > "$mutated_target" ;;
     server-name-drift) yq '.argocdTLSServerName = "other.fixture.invalid"' "$valid_target" > "$mutated_target" ;;
+    identity-decision) yq '.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    subject) yq '.expectedSubjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    issuer) yq '.expectedIssuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    claims) yq '.expectedClaimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    credential) yq '.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    desired-object) yq '.desiredObjects[0].desiredProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
+    missing-object) yq 'del(.desiredObjects[-1])' "$valid_target" > "$mutated_target" ;;
+    approved-document) yq '.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_target" > "$mutated_target" ;;
     extra-field) yq '.insecure = true' "$valid_target" > "$mutated_target" ;;
   esac
   if validate_target "$mutated_target"; then test::fail "unsafe target fixture was accepted: ${mutation}"; fi
@@ -288,6 +378,13 @@ classify_case() {
       stderr=$(yq -r '.stderr' <<< "$case_json") || return 1
       if contains_sensitive_output "${stdout}"$'\n'"${stderr}"; then printf 'INVALID\n'; else printf 'READY\n'; fi
       ;;
+    adminProof)
+      if [[ $(yq -r '.credentialAvailable' <<< "$case_json") == false ]]; then
+        printf 'ADMIN_PROOF_UNAVAILABLE\n'
+      else
+        printf 'INVALID\n'
+      fi
+      ;;
     *) return 1 ;;
   esac
 }
@@ -302,22 +399,26 @@ while IFS= read -r case_json; do
 done < <(yq -o=json -I=0 '.cases[]' "$cases")
 
 validate_evidence() {
-  local evidence=$1 key lower_key forbidden_key expected_records actual_records
+  local evidence=$1 target=$2 key lower_key forbidden_key expected_records actual_records
   local identity_check_projection expected_identity_checks started_at completed_at sha_path sha_value
+  local expected_objects actual_objects expected_decision actual_decision status exit_code stdout_sha stderr_sha
   yq -e '.' "$evidence" > /dev/null || return 1
   [[ $(document_keys "$evidence") == "$(schema_keys "$evidence_schema")" ]] || return 1
-  [[ $(yq -o=json -I=0 '.target | keys | sort' "$evidence") == '["apiServerCASPKISHA256","argocdServerCertificateSHA256","clusterName","environmentName","targetFingerprintSHA256"]' &&
+  [[ $(yq -o=json -I=0 '.target | keys | sort' "$evidence") == '["apiServerCASPKISHA256","approvedTargetDocumentSHA256","argocdServerCertificateSHA256","clusterName","desiredProjectionSHA256","environmentName","targetFingerprintSHA256"]' &&
   $(yq -o=json -I=0 '.client | keys | sort' "$evidence") == '["digest","image","version"]' &&
   $(yq -o=json -I=0 '.server | keys | sort' "$evidence") == '["certificateSHA256","tlsServerName","version"]' &&
-  $(yq -o=json -I=0 '.identity | keys | sort' "$evidence") == '["category","claimsSHA256","issuerSHA256","subjectSHA256"]' &&
-  $(yq -o=json -I=0 '.liveProjection | keys | sort' "$evidence") == '["afterSHA256","beforeSHA256","reviewedPolicyFragments","status"]' &&
-  $(yq -o=json -I=0 '.completeness | keys | sort' "$evidence") == '["ambiguous","executed","expected","mutations","skipped"]' ]] || return 1
+  $(yq -o=json -I=0 '.identity | keys | sort' "$evidence") == '["category","claimsSHA256","credentialReferenceSHA256","identityDecisionSHA256","issuerSHA256","subjectSHA256"]' &&
+  $(yq -o=json -I=0 '.liveProjection | keys | sort' "$evidence") == '["desiredProjectionSHA256","liveAfterSHA256","liveBeforeSHA256","objects","reviewedPolicyFragments","status"]' &&
+  $(yq -o=json -I=0 '.completeness | keys | sort' "$evidence") == '["ambiguous","executed","expected","identityExecuted","identityExpected","identityUnavailable","mutations","skipped","unsupported"]' ]] || return 1
   while IFS= read -r probe_record; do
     [[ $(yq -o=json -I=0 'keys | sort' <<< "$probe_record") == '["actionPattern","actualDecision","exitCode","expectedDecision","object","queryAction","resource","status","stderrSHA256","stdoutSHA256"]' ]] || return 1
   done < <(yq -o=json -I=0 '.authorizationProbes[]' "$evidence")
   while IFS= read -r identity_record; do
-    [[ $(yq -o=json -I=0 'keys | sort' <<< "$identity_record") == '["name","reason","status"]' ]] || return 1
+    [[ $(yq -o=json -I=0 'keys | sort' <<< "$identity_record") == '["execution","name","reason","status"]' ]] || return 1
   done < <(yq -o=json -I=0 '.identityChecks[]' "$evidence")
+  while IFS= read -r object_record; do
+    [[ $(yq -o=json -I=0 'keys | sort' <<< "$object_record") == '["apiVersion","desiredProjectionSHA256","kind","liveAfterProjectionSHA256","liveBeforeProjectionSHA256","name","namespace"]' ]] || return 1
+  done < <(yq -o=json -I=0 '.liveProjection.objects[]' "$evidence")
   started_at=$(yq -r '.startedAt' "$evidence") || return 1
   completed_at=$(yq -r '.completedAt' "$evidence") || return 1
   [[ $(yq -r '.contractGitCommit' "$evidence") =~ ^[0-9a-f]{40}$ &&
@@ -336,12 +437,17 @@ validate_evidence() {
     .target.targetFingerprintSHA256 \
     .target.apiServerCASPKISHA256 \
     .target.argocdServerCertificateSHA256 \
+    .target.approvedTargetDocumentSHA256 \
+    .target.desiredProjectionSHA256 \
     .server.certificateSHA256 \
+    .identity.identityDecisionSHA256 \
+    .identity.credentialReferenceSHA256 \
     .identity.subjectSHA256 \
     .identity.issuerSHA256 \
     .identity.claimsSHA256 \
-    .liveProjection.beforeSHA256 \
-    .liveProjection.afterSHA256; do
+    .liveProjection.desiredProjectionSHA256 \
+    .liveProjection.liveBeforeSHA256 \
+    .liveProjection.liveAfterSHA256; do
     sha_value=$(yq -r "$sha_path" "$evidence") || return 1
     [[ $sha_value =~ ^[0-9a-f]{64}$ ]] || return 1
   done
@@ -353,34 +459,69 @@ validate_evidence() {
   $(yq -r '.client.digest' "$evidence") == "$argocd_digest" &&
   $(yq -r '.server.version' "$evidence") == "$argocd_version" &&
   $(yq -r '.server.certificateSHA256' "$evidence") == "$(yq -r '.target.argocdServerCertificateSHA256' "$evidence")" &&
-  $(yq -r '.result' "$evidence") == READY ]] || return 1
-  [[ $(yq -r '.liveProjection.beforeSHA256' "$evidence") == "$(yq -r '.liveProjection.afterSHA256' "$evidence")" &&
+  $(yq -r '.result' "$evidence") == UNSUPPORTED ]] || return 1
+  [[ $(yq -r '.contractGitCommit' "$evidence") == "$(yq -r '.contractGitCommit' "$target")" &&
+  $(yq -r '.target.environmentName' "$evidence") == "$(yq -r '.environmentName' "$target")" &&
+  $(yq -r '.target.clusterName' "$evidence") == "$(yq -r '.clusterName' "$target")" &&
+  $(yq -r '.target.targetFingerprintSHA256' "$evidence") == "$(yq -r '.targetFingerprintSHA256' "$target")" &&
+  $(yq -r '.target.apiServerCASPKISHA256' "$evidence") == "$(yq -r '.apiServerCASPKISHA256' "$target")" &&
+  $(yq -r '.target.argocdServerCertificateSHA256' "$evidence") == "$(yq -r '.argocdServerCertificateSHA256' "$target")" &&
+  $(yq -r '.target.approvedTargetDocumentSHA256' "$evidence") == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" &&
+  $(yq -r '.target.desiredProjectionSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
+  $(yq -r '.identity.category' "$evidence") == "$(yq -r '.identityCategory' "$target")" &&
+  $(yq -r '.identity.identityDecisionSHA256' "$evidence") == "$(yq -r '.identityDecisionSHA256' "$target")" &&
+  $(yq -r '.identity.credentialReferenceSHA256' "$evidence") == "$(yq -r '.credentialReferenceSHA256' "$target")" &&
+  $(yq -r '.identity.subjectSHA256' "$evidence") == "$(yq -r '.expectedSubjectSHA256' "$target")" &&
+  $(yq -r '.identity.issuerSHA256' "$evidence") == "$(yq -r '.expectedIssuerSHA256' "$target")" &&
+  $(yq -r '.identity.claimsSHA256' "$evidence") == "$(yq -r '.expectedClaimsSHA256' "$target")" ]] || return 1
+  [[ $(yq -r '.liveProjection.desiredProjectionSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
+  $(yq -r '.liveProjection.liveBeforeSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
+  $(yq -r '.liveProjection.liveAfterSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
   $(yq -r '.liveProjection.status' "$evidence") == MATCH &&
   $(yq -o=json -I=0 '.liveProjection.reviewedPolicyFragments' "$evidence") == '["policy.csv"]' ]] || return 1
+  [[ $(yq '.liveProjection.objects | length' "$evidence") -eq 13 &&
+  $(yq '[.liveProjection.objects[] | [.apiVersion,.kind,.namespace,.name] | @tsv] | unique | length' "$evidence") -eq 13 ]] || return 1
+  expected_objects=$test_workspace/evidence-expected-objects.tsv
+  actual_objects=$test_workspace/evidence-actual-objects.tsv
+  yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256,
+    .desiredProjectionSHA256,.desiredProjectionSHA256] | @tsv' "$target" | sort > "$expected_objects"
+  yq -r '.liveProjection.objects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256,
+    .liveBeforeProjectionSHA256,.liveAfterProjectionSHA256] | @tsv' "$evidence" | sort > "$actual_objects"
+  cmp -s "$actual_objects" "$expected_objects" || return 1
   [[ $(yq '.authorizationProbes | length' "$evidence") -eq 36 &&
   $(yq '.completeness.expected' "$evidence") -eq 36 &&
-  $(yq '.completeness.executed' "$evidence") -eq 36 &&
+  $(yq '.completeness.executed' "$evidence") -eq 33 &&
+  $(yq '.completeness.unsupported' "$evidence") -eq 3 &&
   $(yq '.completeness.skipped' "$evidence") -eq 0 &&
   $(yq '.completeness.ambiguous' "$evidence") -eq 0 &&
-  $(yq '.completeness.mutations' "$evidence") -eq 0 ]] || return 1
+  $(yq '.completeness.mutations' "$evidence") -eq 0 &&
+  $(yq '.completeness.identityExpected' "$evidence") -eq 3 &&
+  $(yq '.completeness.identityExecuted' "$evidence") -eq 2 &&
+  $(yq '.completeness.identityUnavailable' "$evidence") -eq 1 ]] || return 1
   expected_records=$test_workspace/evidence-expected.tsv
   actual_records=$test_workspace/evidence-actual.tsv
-  yq -r '.entries[] | [.resource, .actionPattern, .queryAction, .object, .expectedDecision, .expectedStatus] | @tsv' "$matrix" | sort > "$expected_records"
-  yq -r '.authorizationProbes[] | [.resource, .actionPattern, .queryAction, .object, .expectedDecision, .status] | @tsv' "$evidence" | sort > "$actual_records"
+  yq -r '.entries[] | [.resource, .actionPattern, (.queryAction // "null"), .object, .expectedDecision, .expectedStatus] | @tsv' "$matrix" | sort > "$expected_records"
+  yq -r '.authorizationProbes[] | [.resource, .actionPattern, (.queryAction // "null"), .object, .expectedDecision, .status] | @tsv' "$evidence" | sort > "$actual_records"
   cmp -s "$actual_records" "$expected_records" || return 1
   [[ $(sort -u "$actual_records" | wc -l | tr -d ' ') -eq 36 ]] || return 1
   while IFS=$'\t' read -r expected_decision actual_decision status exit_code stdout_sha stderr_sha; do
-    [[ $expected_decision == "$actual_decision" && $exit_code -eq 0 &&
-      $stderr_sha == e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ]] || return 1
-    if [[ $actual_decision == ALLOW ]]; then
-      [[ $status == READY && $stdout_sha == 5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee ]] || return 1
+    if [[ $status == UNSUPPORTED ]]; then
+      [[ $expected_decision == DENY && $actual_decision == UNPROVEN && $exit_code == null &&
+        $stdout_sha == e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 &&
+        $stderr_sha == e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ]] || return 1
     else
-      [[ $status == DENIED && $stdout_sha == 564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2 ]] || return 1
+      [[ $expected_decision == "$actual_decision" && $exit_code -eq 0 &&
+        $stderr_sha == e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ]] || return 1
+      if [[ $actual_decision == ALLOW ]]; then
+        [[ $status == READY && $stdout_sha == 5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee ]] || return 1
+      else
+        [[ $status == DENIED && $stdout_sha == 564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2 ]] || return 1
+      fi
     fi
-  done < <(yq -r '.authorizationProbes[] | [.expectedDecision, .actualDecision, .status, .exitCode, .stdoutSHA256, .stderrSHA256] | @tsv' "$evidence")
+  done < <(yq -r '.authorizationProbes[] | [.expectedDecision, .actualDecision, .status, (.exitCode // "null"), .stdoutSHA256, .stderrSHA256] | @tsv' "$evidence")
   identity_check_projection=$(yq -r \
-    '.identityChecks[] | [.name, .status, .reason] | @tsv' "$evidence" | sort) || return 1
-  expected_identity_checks=$'anonymous\tDENIED\tUNAUTHENTICATED\nauthenticated-subject\tREADY\tAUTHENTICATED\nbuilt-in-admin\tDENIED\tACCOUNT_DISABLED'
+    '.identityChecks[] | [.name, .status, .reason, .execution] | @tsv' "$evidence" | sort) || return 1
+  expected_identity_checks=$'anonymous\tDENIED\tUNAUTHENTICATED\tEXECUTED\nauthenticated-subject\tREADY\tAUTHENTICATED\tEXECUTED\nbuilt-in-admin\tADMIN_PROOF_UNAVAILABLE\tCREDENTIAL_UNAVAILABLE\tNOT_EXECUTED'
   [[ $identity_check_projection == "$expected_identity_checks" ]] || return 1
   while IFS= read -r key; do
     lower_key=${key,,}
@@ -391,12 +532,26 @@ validate_evidence() {
   ! grep -Eq '"/(Users|home|private|fixture)/' "$evidence" || return 1
 }
 
-validate_evidence "$valid_evidence" || test::fail "valid secret-free evidence fixture was rejected"
-for mutation in missing-probe changed-state bad-session time-reversal malformed-hash extra-secret-field nested-extra-field probe-extra-field host-path; do
+validate_evidence "$valid_evidence" "$valid_target" || test::fail "valid failure-closed evidence fixture was rejected"
+for mutation in missing-probe changed-state stable-drift missing-live-object replaced-live-object per-object-drift commit identity-decision credential subject issuer claims approved-document bad-session time-reversal malformed-hash extra-secret-field nested-extra-field probe-extra-field host-path; do
   mutated_evidence=$test_workspace/evidence-${mutation}.json
   case $mutation in
-    missing-probe) yq 'del(.authorizationProbes[-1]) | .completeness.executed = 35' "$valid_evidence" > "$mutated_evidence" ;;
-    changed-state) yq '.liveProjection.afterSHA256 = "9999999999999999999999999999999999999999999999999999999999999999"' "$valid_evidence" > "$mutated_evidence" ;;
+    missing-probe) yq 'del(.authorizationProbes[-1]) | .completeness.executed = 32' "$valid_evidence" > "$mutated_evidence" ;;
+    changed-state) yq '.liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    stable-drift) yq '.liveProjection.desiredProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
+      .liveProjection.liveBeforeSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
+      .liveProjection.liveAfterSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    missing-live-object) yq 'del(.liveProjection.objects[-1])' "$valid_evidence" > "$mutated_evidence" ;;
+    replaced-live-object) yq '.liveProjection.objects[0].name = "replacement"' "$valid_evidence" > "$mutated_evidence" ;;
+    per-object-drift) yq '.liveProjection.objects[0].liveBeforeProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" |
+      .liveProjection.objects[0].liveAfterProjectionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    commit) yq '.contractGitCommit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"' "$valid_evidence" > "$mutated_evidence" ;;
+    identity-decision) yq '.identity.identityDecisionSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    credential) yq '.identity.credentialReferenceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    subject) yq '.identity.subjectSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    issuer) yq '.identity.issuerSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    claims) yq '.identity.claimsSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
+    approved-document) yq '.target.approvedTargetDocumentSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$valid_evidence" > "$mutated_evidence" ;;
     bad-session) yq '.sessionID = "argo-authz-invalid"' "$valid_evidence" > "$mutated_evidence" ;;
     time-reversal) yq '.completedAt = "2026-08-26T23:59:59Z"' "$valid_evidence" > "$mutated_evidence" ;;
     malformed-hash) yq '.identity.claimsSHA256 = "not-a-sha"' "$valid_evidence" > "$mutated_evidence" ;;
@@ -405,18 +560,19 @@ for mutation in missing-probe changed-state bad-session time-reversal malformed-
     probe-extra-field) yq '.authorizationProbes[0].diagnostic = "ignored"' "$valid_evidence" > "$mutated_evidence" ;;
     host-path) yq '.target.hostPath = "/fixture/not-a-real-host/evidence"' "$valid_evidence" > "$mutated_evidence" ;;
   esac
-  if validate_evidence "$mutated_evidence"; then test::fail "invalid evidence fixture was accepted: ${mutation}"; fi
+  if validate_evidence "$mutated_evidence" "$valid_target"; then test::fail "invalid evidence fixture was accepted: ${mutation}"; fi
 done
 
 [[ $(yq -r '.additionalProperties' "$target_schema") == false &&
 $(yq -r '.additionalProperties' "$evidence_schema") == false &&
 $(yq -r '.properties.authorizationProbes.minItems' "$evidence_schema") -eq 36 &&
 $(yq -r '.properties.authorizationProbes.maxItems' "$evidence_schema") -eq 36 &&
-$(yq -o=json -I=0 '.classification.recordStatuses' "$contract") == '["READY","DENIED","DRIFTED","UNSUPPORTED","INVALID"]' &&
+$(yq -o=json -I=0 '.classification.recordStatuses' "$contract") == '["READY","DENIED","DRIFTED","UNSUPPORTED","ADMIN_PROOF_UNAVAILABLE","INVALID"]' &&
 $(yq -o=json -I=0 '.classification.overallExitCodes' "$contract") == '{"READY":0,"DRIFTED":20,"UNSUPPORTED":21,"INVALID":22}' ]] ||
   test::fail "Probe status, exit, or schema completeness contract drifted"
 
-if rg -n '(^|[;&|][[:space:]]*)(argocd|kubectl)[[:space:]]' "${BASH_SOURCE[0]}"; then
+forbidden_live_client_expression='(^|[;&|][[:space:]]*)argocd[[:space:]]|kubectl[[:space:]]+(get|create|apply|patch|delete|auth|version|config|exec|port-forward)[[:space:]]'
+if rg -n "$forbidden_live_client_expression" "${BASH_SOURCE[0]}"; then
   test::fail "repository-only Probe Contract test invokes a live client"
 fi
 

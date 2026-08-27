@@ -82,12 +82,18 @@
       "knownAction": true,
       "fineGrainedCapability": "UNSUPPORTED",
       "transport": "OK",
-      "grpcStatus": "OK",
-      "exitCode": 0,
-      "stdout": "no\n",
+      "grpcStatus": "NOT_CALLED",
+      "exitCode": null,
+      "stdout": "",
       "stderr": "",
       "expectedDecision": "DENY",
       "expectedStatus": "UNSUPPORTED"
+    },
+    {
+      "name": "admin-proof-without-approved-credential",
+      "kind": "adminProof",
+      "credentialAvailable": false,
+      "expectedStatus": "ADMIN_PROOF_UNAVAILABLE"
     },
     {
       "name": "grpc-output-conflict",

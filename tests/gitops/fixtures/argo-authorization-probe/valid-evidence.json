@@ -11,7 +11,9 @@
     "clusterName": "atlas-test",
     "targetFingerprintSHA256": "7b8336f06513d0d52db60640ddc0c257118b0f437f70ea91317ab416eac86e61",
     "apiServerCASPKISHA256": "1111111111111111111111111111111111111111111111111111111111111111",
-    "argocdServerCertificateSHA256": "2222222222222222222222222222222222222222222222222222222222222222"
+    "argocdServerCertificateSHA256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "approvedTargetDocumentSHA256": "dc06fe4266c2253776d2fc8f2a90a3f403f6a48e8fcbd37f6c56439f0e2cd772",
+    "desiredProjectionSHA256": "4985afebe6471eaf45c897ec372f91caeeca1cd171bf8901ee04aef4918ecd6c"
   },
   "client": {
     "version": "3.5.1",
@@ -25,28 +27,46 @@
   },
   "identity": {
     "category": "EXISTING_IDENTITY",
+    "identityDecisionSHA256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "credentialReferenceSHA256": "4444444444444444444444444444444444444444444444444444444444444444",
     "subjectSHA256": "5555555555555555555555555555555555555555555555555555555555555555",
     "issuerSHA256": "6666666666666666666666666666666666666666666666666666666666666666",
     "claimsSHA256": "7777777777777777777777777777777777777777777777777777777777777777"
   },
   "liveProjection": {
-    "beforeSHA256": "8888888888888888888888888888888888888888888888888888888888888888",
-    "afterSHA256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "desiredProjectionSHA256": "4985afebe6471eaf45c897ec372f91caeeca1cd171bf8901ee04aef4918ecd6c",
+    "liveBeforeSHA256": "4985afebe6471eaf45c897ec372f91caeeca1cd171bf8901ee04aef4918ecd6c",
+    "liveAfterSHA256": "4985afebe6471eaf45c897ec372f91caeeca1cd171bf8901ee04aef4918ecd6c",
     "reviewedPolicyFragments": ["policy.csv"],
+    "objects": [
+      {"apiVersion": "v1", "kind": "Namespace", "namespace": "", "name": "kube-system", "desiredProjectionSHA256": "f4932b1d7977365b84ee0bee557932e860b4368df9a0a206bb28efa8d831d09f", "liveBeforeProjectionSHA256": "f4932b1d7977365b84ee0bee557932e860b4368df9a0a206bb28efa8d831d09f", "liveAfterProjectionSHA256": "f4932b1d7977365b84ee0bee557932e860b4368df9a0a206bb28efa8d831d09f"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-cm", "desiredProjectionSHA256": "da76d4e8240df8078094eaeb7c2bcb0798bb6c86898ec9963af0fded34deb6df", "liveBeforeProjectionSHA256": "da76d4e8240df8078094eaeb7c2bcb0798bb6c86898ec9963af0fded34deb6df", "liveAfterProjectionSHA256": "da76d4e8240df8078094eaeb7c2bcb0798bb6c86898ec9963af0fded34deb6df"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-rbac-cm", "desiredProjectionSHA256": "0bab258e2161728aac34459e94dd8980333272684908d16b9ef1e268cbb2df56", "liveBeforeProjectionSHA256": "0bab258e2161728aac34459e94dd8980333272684908d16b9ef1e268cbb2df56", "liveAfterProjectionSHA256": "0bab258e2161728aac34459e94dd8980333272684908d16b9ef1e268cbb2df56"},
+      {"apiVersion": "v1", "kind": "ConfigMap", "namespace": "argocd", "name": "argocd-cmd-params-cm", "desiredProjectionSHA256": "85d77b8491c915530be75b0793f03d86d712577cf45d7fadab7743491e470d01", "liveBeforeProjectionSHA256": "85d77b8491c915530be75b0793f03d86d712577cf45d7fadab7743491e470d01", "liveAfterProjectionSHA256": "85d77b8491c915530be75b0793f03d86d712577cf45d7fadab7743491e470d01"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "namespace": "argocd", "name": "argocd-self", "desiredProjectionSHA256": "024d23442e79482623b3b7425c685696985797614390ee62902a66366eb70b8f", "liveBeforeProjectionSHA256": "024d23442e79482623b3b7425c685696985797614390ee62902a66366eb70b8f", "liveAfterProjectionSHA256": "024d23442e79482623b3b7425c685696985797614390ee62902a66366eb70b8f"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "atlas-bootstrap", "desiredProjectionSHA256": "4b6e3c07872fe71462ae22488f283f155ff7d4436adb2bdb670d8250b5211a6f", "liveBeforeProjectionSHA256": "4b6e3c07872fe71462ae22488f283f155ff7d4436adb2bdb670d8250b5211a6f", "liveAfterProjectionSHA256": "4b6e3c07872fe71462ae22488f283f155ff7d4436adb2bdb670d8250b5211a6f"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "platform-project", "desiredProjectionSHA256": "b94563b7e7ab663b4d84015d6331c447c0776d766945b3c815e24a02115728f2", "liveBeforeProjectionSHA256": "b94563b7e7ab663b4d84015d6331c447c0776d766945b3c815e24a02115728f2", "liveAfterProjectionSHA256": "b94563b7e7ab663b4d84015d6331c447c0776d766945b3c815e24a02115728f2"},
+      {"apiVersion": "argoproj.io/v1alpha1", "kind": "AppProject", "namespace": "argocd", "name": "workload-project", "desiredProjectionSHA256": "775992ad545eda57917c370920d06693258e55f3cf3b71c4259e6602a3604d95", "liveBeforeProjectionSHA256": "775992ad545eda57917c370920d06693258e55f3cf3b71c4259e6602a3604d95", "liveAfterProjectionSHA256": "775992ad545eda57917c370920d06693258e55f3cf3b71c4259e6602a3604d95"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-applicationset-controller", "desiredProjectionSHA256": "c15b6b909a12c3c4ca6804f6deb399bca436f686c28aba711e474d0e6f808175", "liveBeforeProjectionSHA256": "c15b6b909a12c3c4ca6804f6deb399bca436f686c28aba711e474d0e6f808175", "liveAfterProjectionSHA256": "c15b6b909a12c3c4ca6804f6deb399bca436f686c28aba711e474d0e6f808175"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-redis", "desiredProjectionSHA256": "d5d7a5baad74db1c0d78f66a41f86370d2b22f32a87f920f634ac28b5611247b", "liveBeforeProjectionSHA256": "d5d7a5baad74db1c0d78f66a41f86370d2b22f32a87f920f634ac28b5611247b", "liveAfterProjectionSHA256": "d5d7a5baad74db1c0d78f66a41f86370d2b22f32a87f920f634ac28b5611247b"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-repo-server", "desiredProjectionSHA256": "70ff2a986095b486c1103d99a30557881f725df89e3e9cb967ce5ad4b458db77", "liveBeforeProjectionSHA256": "70ff2a986095b486c1103d99a30557881f725df89e3e9cb967ce5ad4b458db77", "liveAfterProjectionSHA256": "70ff2a986095b486c1103d99a30557881f725df89e3e9cb967ce5ad4b458db77"},
+      {"apiVersion": "apps/v1", "kind": "Deployment", "namespace": "argocd", "name": "atlas-argocd-server", "desiredProjectionSHA256": "fdf58e448b5fa0ab7db9b33e9b3af1fbe5bdb4c5edaf2588d7a5a6c6f7803935", "liveBeforeProjectionSHA256": "fdf58e448b5fa0ab7db9b33e9b3af1fbe5bdb4c5edaf2588d7a5a6c6f7803935", "liveAfterProjectionSHA256": "fdf58e448b5fa0ab7db9b33e9b3af1fbe5bdb4c5edaf2588d7a5a6c6f7803935"},
+      {"apiVersion": "apps/v1", "kind": "StatefulSet", "namespace": "argocd", "name": "atlas-argocd-application-controller", "desiredProjectionSHA256": "d0eaff2f6fe1ac8e95ee56aaeafaffd64e3ee52137221c54cd4a447f187f5a02", "liveBeforeProjectionSHA256": "d0eaff2f6fe1ac8e95ee56aaeafaffd64e3ee52137221c54cd4a447f187f5a02", "liveAfterProjectionSHA256": "d0eaff2f6fe1ac8e95ee56aaeafaffd64e3ee52137221c54cd4a447f187f5a02"}
+    ],
     "status": "MATCH"
   },
   "authorizationProbes": [
     {"resource": "accounts", "actionPattern": "get", "queryAction": "get", "object": "*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "accounts", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-    {"resource": "applications", "actionPattern": "action/*", "queryAction": "action/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "action/*", "queryAction": null, "object": "*/*", "expectedDecision": "DENY", "actualDecision": "UNPROVEN", "status": "UNSUPPORTED", "exitCode": null, "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "create", "queryAction": "create", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "delete", "queryAction": "delete", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-    {"resource": "applications", "actionPattern": "delete/*", "queryAction": "delete/*/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "delete/*", "queryAction": null, "object": "*/*", "expectedDecision": "DENY", "actualDecision": "UNPROVEN", "status": "UNSUPPORTED", "exitCode": null, "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "get", "queryAction": "get", "object": "*/*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "override", "queryAction": "override", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "sync", "queryAction": "sync", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applications", "actionPattern": "update", "queryAction": "update", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-    {"resource": "applications", "actionPattern": "update/*", "queryAction": "update/*/*/*/*", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"resource": "applications", "actionPattern": "update/*", "queryAction": null, "object": "*/*", "expectedDecision": "DENY", "actualDecision": "UNPROVEN", "status": "UNSUPPORTED", "exitCode": null, "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applicationsets", "actionPattern": "create", "queryAction": "create", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applicationsets", "actionPattern": "delete", "queryAction": "delete", "object": "*/*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
     {"resource": "applicationsets", "actionPattern": "get", "queryAction": "get", "object": "*/*", "expectedDecision": "ALLOW", "actualDecision": "ALLOW", "status": "READY", "exitCode": 0, "stdoutSHA256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
@@ -74,10 +94,10 @@
     {"resource": "repositories", "actionPattern": "update", "queryAction": "update", "object": "*", "expectedDecision": "DENY", "actualDecision": "DENY", "status": "DENIED", "exitCode": 0, "stdoutSHA256": "564739ea8fa5926d4fa5c9734fed462061960a22e6b8d5c06e94969d97891bf2", "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
   ],
   "identityChecks": [
-    {"name": "authenticated-subject", "status": "READY", "reason": "AUTHENTICATED"},
-    {"name": "anonymous", "status": "DENIED", "reason": "UNAUTHENTICATED"},
-    {"name": "built-in-admin", "status": "DENIED", "reason": "ACCOUNT_DISABLED"}
+    {"name": "authenticated-subject", "status": "READY", "reason": "AUTHENTICATED", "execution": "EXECUTED"},
+    {"name": "anonymous", "status": "DENIED", "reason": "UNAUTHENTICATED", "execution": "EXECUTED"},
+    {"name": "built-in-admin", "status": "ADMIN_PROOF_UNAVAILABLE", "reason": "CREDENTIAL_UNAVAILABLE", "execution": "NOT_EXECUTED"}
   ],
-  "completeness": {"expected": 36, "executed": 36, "skipped": 0, "ambiguous": 0, "mutations": 0},
-  "result": "READY"
+  "completeness": {"expected": 36, "executed": 33, "unsupported": 3, "skipped": 0, "ambiguous": 0, "mutations": 0, "identityExpected": 3, "identityExecuted": 2, "identityUnavailable": 1},
+  "result": "UNSUPPORTED"
 }

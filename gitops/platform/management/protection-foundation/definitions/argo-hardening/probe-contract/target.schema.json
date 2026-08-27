@@ -23,8 +23,15 @@
     "argocdClientVersion",
     "argocdClientImage",
     "identityCategory",
+    "identityDecisionSHA256",
+    "expectedSubjectSHA256",
+    "expectedIssuerSHA256",
+    "expectedClaimsSHA256",
     "credentialReferenceSHA256",
-    "targetFingerprintSHA256"
+    "targetFingerprintSHA256",
+    "desiredObjects",
+    "desiredProjectionSHA256",
+    "approvedTargetDocumentSHA256"
   ],
   "properties": {
     "schemaVersion": {"const": 1},
@@ -45,7 +52,33 @@
     "argocdClientVersion": {"const": "3.5.1"},
     "argocdClientImage": {"const": "quay.io/argoproj/argocd:v3.5.1@sha256:0deb1a1c917629b960ead995ae3b6069450a866992676599658687ef9a641ee8"},
     "identityCategory": {"enum": ["EXISTING_IDENTITY", "TEMPORARY_PROBE_IDENTITY"]},
+    "identityDecisionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "expectedSubjectSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "expectedIssuerSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "expectedClaimsSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "credentialReferenceSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "targetFingerprintSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "targetFingerprintSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "desiredObjects": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {"$ref": "#/$defs/objectProjection"}
+    },
+    "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "approvedTargetDocumentSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "objectProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiVersion", "kind", "namespace", "name", "desiredProjectionSHA256"],
+      "properties": {
+        "apiVersion": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string"},
+        "name": {"type": "string", "minLength": 1},
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
   }
 }
