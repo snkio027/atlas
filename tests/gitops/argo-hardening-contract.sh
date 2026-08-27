@@ -20,9 +20,18 @@ cleanup() {
 trap cleanup EXIT
 
 render=$(kubectl kustomize "$root")
+comparison_render=$(kubectl kustomize "$root")
+cmp -s <(printf '%s\n' "$render") <(printf '%s\n' "$comparison_render") ||
+  test::fail "Argo hardening projection is not deterministic"
 [[ $(yq ea '[.] | length' <<< "$render") -eq 1 &&
 $(yq ea -r 'select(.) | .kind' <<< "$render") == Application ]] ||
   test::fail "Argo hardening entrypoint redeclares a Chart or Kustomize-owned child resource"
+
+for environment in local-orbstack prod; do
+  environment_render=$(kubectl kustomize "gitops/platform/applications/overlays/${environment}")
+  [[ $environment_render == "$render" ]] ||
+    test::fail "${environment} does not render the reviewed Argo hardening projection"
+done
 [[ $(yq '.configs.cm.create == false' "$hardening_values") == true ]] ||
   test::fail "Argo hardening values attempt to duplicate the Kustomize-owned argocd-cm"
 argocd_version=$(awk -F= '$1 == "ARGOCD_VERSION" {print $2}' versions.lock)
@@ -50,9 +59,23 @@ assert_actions() {
 
 assert_actions applications readOnly '["get"]'
 assert_actions applications sideEffecting '["create","update","update/*","delete","delete/*","sync","override","action/*"]'
+assert_actions applicationsets readOnly '["get"]'
 assert_actions applicationsets sideEffecting '["create","update","delete"]'
+for resource in clusters projects repositories; do
+  assert_actions "$resource" readOnly '["get"]'
+  assert_actions "$resource" sideEffecting '["create","update","delete"]'
+done
+assert_actions accounts readOnly '["get"]'
+assert_actions accounts sideEffecting '["update"]'
+for resource in certificates gpgkeys; do
+  assert_actions "$resource" readOnly '["get"]'
+  assert_actions "$resource" sideEffecting '["create","delete"]'
+done
+assert_actions logs readOnly '["get"]'
+assert_actions logs sideEffecting '[]'
 assert_actions exec readOnly '[]'
 assert_actions exec sideEffecting '["create"]'
+assert_actions extensions readOnly '[]'
 assert_actions extensions sideEffecting '["invoke"]'
 
 classify_action() {
@@ -81,6 +104,16 @@ classify_authority_context() {
   printf 'MATCH\n'
 }
 
+policy_fragments_are_reviewed() {
+  local config_map=$1 actual_fragments expected_fragments
+  actual_fragments=$(yq -r '
+    .data | keys | .[] |
+    select(. == "policy.csv" or test("^policy\\..*\\.csv$"))
+  ' <<< "$config_map" | sort) || return 1
+  expected_fragments=$(yq -r '.reviewedPolicyFragments[]' "$authority_inventory" | sort) || return 1
+  [[ $actual_fragments == "$expected_fragments" ]]
+}
+
 [[ $(classify_action applications get) == READ_ONLY &&
 $(classify_action applications action/restart) == SIDE_EFFECTING &&
 $(classify_action applications future-action) == AUTHORITY_DRIFTED &&
@@ -97,6 +130,8 @@ live_app=$(kubectl kustomize gitops/platform/applications/base | NAME=argocd-sel
   'select(.kind == "Application" and .metadata.name == strenv(NAME))')
 
 [[ -n $candidate_app && -n $live_app ]] || test::fail "argocd-self owner projection is missing"
+[[ $(yq ea '[select(.kind == "Application")] | length' <<< "$render") -eq 1 ]] ||
+  test::fail "Argo hardening does not retain a single argocd-self Application"
 approved_app_delta='del(.spec.sources[0].helm.valueFiles) |
   del(.spec.sources[1].path) |
   del(.spec.ignoreDifferences) |
@@ -144,10 +179,15 @@ approved_cm_delta='del(.data."admin.enabled") |
 
 live_chart="$test_workspace/live-chart.yaml"
 candidate_chart="$test_workspace/candidate-chart.yaml"
+comparison_chart="$test_workspace/candidate-chart-comparison.yaml"
 helm template atlas-argocd "$chart" --namespace argocd --include-crds \
   --values "$current_values" > "$live_chart"
 helm template atlas-argocd "$chart" --namespace argocd --include-crds \
   --values "$current_values" --values "$hardening_values" > "$candidate_chart"
+helm template atlas-argocd "$chart" --namespace argocd --include-crds \
+  --values "$current_values" --values "$hardening_values" > "$comparison_chart"
+cmp -s "$candidate_chart" "$comparison_chart" ||
+  test::fail "hydrated Argo Chart projection is not deterministic"
 normalize_chart() {
   yq ea -o=json -I=0 '
     del((select(.kind == "ConfigMap" and
@@ -174,15 +214,38 @@ $(yq -r '.data."server.rbac.disableApplicationFineGrainedRBACInheritance"' <<< "
 $(yq -r '.data."policy.matchMode"' <<< "$rbac_cm") == glob &&
 $(yq '.data | has("policy.atlas-recovery-freeze.csv")' <<< "$rbac_cm") == false ]] ||
   test::fail "Argo default policy or normal guard ownership projection drifted"
+[[ $(yq -r '.unknownPolicyFragment' "$authority_inventory") == AUTHORITY_DRIFTED ]] ||
+  test::fail "unknown Argo policy fragments do not fail closed"
+policy_fragments_are_reviewed "$rbac_cm" ||
+  test::fail "hydrated Argo policy fragments differ from the reviewed authority inventory"
+
+side_effecting_fragment=$(yq '.data."policy.unreviewed.csv" =
+  "p, role:unreviewed, applications, sync, */*, allow\n"' <<< "$rbac_cm") ||
+  test::fail "could not construct the side-effecting policy fragment counterexample"
+if policy_fragments_are_reviewed "$side_effecting_fragment"; then
+  test::fail "an unreviewed side-effecting Argo policy fragment was accepted"
+fi
+group_mapping_fragment=$(yq '.data."policy.unreviewed.csv" =
+  "g, unreviewed-user, role:unreviewed\n"' <<< "$rbac_cm") ||
+  test::fail "could not construct the inherited-role policy fragment counterexample"
+if policy_fragments_are_reviewed "$group_mapping_fragment"; then
+  test::fail "an unreviewed inherited-role Argo policy fragment was accepted"
+fi
 while IFS= read -r policy_line; do
   [[ $policy_line == p,\ role:atlas-authenticated-readonly,\ *,\ get,\ *,\ allow ]] ||
     test::fail "default Argo role contains a non-read-only grant: ${policy_line}"
 done < <(yq -r '.data."policy.csv"' <<< "$rbac_cm" | sed '/^[[:space:]]*$/d')
 
 combined="$test_workspace/combined-owner-render.yaml"
+candidate_kustomize="$test_workspace/candidate-kustomize.yaml"
+comparison_kustomize="$test_workspace/candidate-kustomize-comparison.yaml"
+kubectl kustomize "$root/argocd-self-base-overlay" > "$candidate_kustomize"
+kubectl kustomize "$root/argocd-self-base-overlay" > "$comparison_kustomize"
+cmp -s "$candidate_kustomize" "$comparison_kustomize" ||
+  test::fail "hydrated Argo Kustomize projection is not deterministic"
 {
   cat "$candidate_chart"
-  kubectl kustomize "$root/argocd-self-base-overlay"
+  cat "$candidate_kustomize"
 } > "$combined"
 identities="$test_workspace/combined-owner-identities.tsv"
 yq ea -r '[.apiVersion, .kind, (.metadata.namespace // "cluster"), .metadata.name] | @tsv' \
@@ -190,16 +253,99 @@ yq ea -r '[.apiVersion, .kind, (.metadata.namespace // "cluster"), .metadata.nam
 [[ $(wc -l < "$identities" | tr -d ' ') -eq $(sort -u "$identities" | wc -l | tr -d ' ') ]] ||
   test::fail "Argo hardening owner projection contains a duplicate resource identity"
 
-[[ $(yq -r '.builtInAdminEnabled' "$authority_inventory") == false &&
+[[ $(yq -r '.activationStage' "$authority_inventory") == ADR_0003_PHASE_1B_CHANGE_1 &&
+$(yq -r '.builtInAdminEnabled' "$authority_inventory") == false &&
 $(yq -r '.anonymousEnabled' "$authority_inventory") == false &&
 $(yq -r '.policyDefault' "$authority_inventory") == role:atlas-authenticated-readonly &&
-$(yq '.localAccounts | length' "$authority_inventory") -eq 0 &&
+$(yq -r '.policyMatchMode' "$authority_inventory") == glob &&
+$(yq -o=json -I=0 '.policyScopes' "$authority_inventory") == '["groups"]' ]] ||
+  test::fail "active Argo authority control settings drifted"
+
+[[ $(yq -r '.data."admin.enabled"' <<< "$candidate_cm") == false &&
+$(yq -r '.data."users.anonymous.enabled"' <<< "$candidate_cm") == false &&
+$(yq -r '.data."policy.default"' <<< "$rbac_cm") == "$(yq -r '.policyDefault' "$authority_inventory")" &&
+$(yq -r '.data."policy.matchMode"' <<< "$rbac_cm") == "$(yq -r '.policyMatchMode' "$authority_inventory")" &&
+$(yq -r '.data.scopes' <<< "$rbac_cm") == '[groups]' ]] ||
+  test::fail "hydrated Argo authorization differs from the active inventory"
+
+policy_inventory="$test_workspace/policy-inventory.tsv"
+if ! awk -F, '
+  function trim(value) {
+    sub(/^[[:space:]]+/, "", value)
+    sub(/[[:space:]]+$/, "", value)
+    return value
+  }
+  /^[[:space:]]*$/ { next }
+  {
+    if (NF != 6) exit 1
+    for (field = 1; field <= 6; field++) $field = trim($field)
+    print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6
+  }
+' <<< "$(yq -r '.data."policy.csv"' <<< "$rbac_cm")" > "$policy_inventory"; then
+  test::fail "hydrated Argo policy.csv is malformed"
+fi
+[[ $(wc -l < "$policy_inventory" | tr -d ' ') -eq 9 &&
+$(sort -u "$policy_inventory" | wc -l | tr -d ' ') -eq 9 ]] ||
+  test::fail "hydrated Argo policy.csv is incomplete or duplicated"
+
+expected_policy_inventory="$test_workspace/expected-policy-inventory.tsv"
+# shellcheck disable=SC2016 # yq expression, not a shell expansion
+yq -r '.globalRoles[] as $role | $role.permissions[] |
+  ["p", $role.name, .resource, .action, .object, .effect] | @tsv' \
+  "$authority_inventory" | sort > "$expected_policy_inventory"
+sort "$policy_inventory" > "$test_workspace/policy-inventory.sorted.tsv"
+cmp -s "$test_workspace/policy-inventory.sorted.tsv" "$expected_policy_inventory" ||
+  test::fail "hydrated policy.csv differs from the reviewed authority inventory"
+
+while IFS=$'\t' read -r policy_type role resource action object effect; do
+  [[ $policy_type == p && $role == role:atlas-authenticated-readonly &&
+    $resource != '*' && $action != '*' && $effect == allow && -n $object ]] ||
+    test::fail "default authority contains wildcard or non-allow policy: ${role} ${resource}/${action}"
+  [[ $(classify_action "$resource" "$action") == READ_ONLY ]] ||
+    test::fail "default authority contains side-effecting or unknown action: ${resource}/${action}"
+done < "$policy_inventory"
+
+# shellcheck disable=SC2016 # yq expression, not a shell expansion
+while IFS=$'\t' read -r role resource action classification; do
+  [[ $(classify_action "$resource" "$action") == "$classification" ]] ||
+    test::fail "authority permission classification drifted: ${role} ${resource}/${action}"
+done < <(yq -r '.globalRoles[] as $role | $role.permissions[] |
+  [$role.name, .resource, .action, .classification] | @tsv' "$authority_inventory")
+
+[[ $(yq '.localAccounts | length' "$authority_inventory") -eq 0 &&
 $(yq '.ssoSubjects | length' "$authority_inventory") -eq 0 &&
-$(yq '.appProjectRoles | length' "$authority_inventory") -eq 0 ]] ||
-  test::fail "Argo local, SSO, global, or AppProject authority inventory drifted"
+$(yq '.inheritedRoleMappings | length' "$authority_inventory") -eq 0 &&
+$(yq '.directPolicySubjects | length' "$authority_inventory") -eq 0 &&
+$(yq '.retainedSideEffectingRoles | length' "$authority_inventory") -eq 0 &&
+$(yq '.recoveryDenyCoverage.requiredRoles | length' "$authority_inventory") -eq 0 &&
+$(yq -r '.recoveryDenyCoverage.unclassifiedOrUncovered' "$authority_inventory") == AUTHORITY_DRIFTED ]] ||
+  test::fail "ordinary explicit authority or Recovery deny coverage drifted"
+[[ $(yq -r '.data | keys | .[] | select(test("^accounts\\."))' <<< "$candidate_cm" | wc -l | tr -d ' ') -eq 0 &&
+$(awk -F'\t' '$1 == "g" { count += 1 } END { print count + 0 }' "$policy_inventory") -eq 0 ]] ||
+  test::fail "unreviewed local account or inherited SSO authority is active"
+! grep -Fq 'atlas-phase1a-fixture' "$authority_inventory" "$policy_inventory" ||
+  test::fail "non-production fixture role is represented as live Argo authority"
 
-grep -Fq 'p, role:atlas-phase1a-fixture, *, *, *, deny' \
-  gitops/platform/management/protection-foundation/definitions/admission/base/recovery-guard-authorization.yaml ||
-  test::fail "Guard authorization is not bound to the inventoried non-production fixture role"
+projects_render="$test_workspace/projects.yaml"
+{
+  cat bootstrap/argocd/atlas-bootstrap-project.yaml
+  printf '%s\n' '---'
+  kubectl kustomize gitops/platform/management/projects
+} > "$projects_render"
+actual_projects="$test_workspace/actual-projects.tsv"
+expected_projects="$test_workspace/expected-projects.tsv"
+yq -r 'select(.kind == "AppProject") |
+  .metadata.name + "\t" + ((.spec.roles // []) | @json)' "$projects_render" |
+  grep -v '^---$' | sort > "$actual_projects"
+yq -r '.appProjects[] | [.name, (.roles | @json)] | @tsv' "$authority_inventory" |
+  sort > "$expected_projects"
+cmp -s "$actual_projects" "$expected_projects" ||
+  test::fail "AppProject role inventory differs from all canonical AppProjects"
 
-test::pass "Argo v3.5.1 hardening, Action Inventory, and guard ownership candidate"
+applicationset_deployment=$(NAME=atlas-argocd-applicationset-controller yq ea -o=json -I=0 \
+  'select(.kind == "Deployment" and .metadata.name == strenv(NAME))' "$candidate_chart")
+[[ -n $applicationset_deployment && $(yq '.spec.replicas' <<< "$applicationset_deployment") -eq 0 &&
+$(yq '.applicationSet.replicas' "$current_values") -eq 0 ]] ||
+  test::fail "ApplicationSet Controller is not pinned to zero replicas"
+
+test::pass "Phase 1B Change 1 Argo authorization hardening and active authority inventory"

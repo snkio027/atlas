@@ -43,7 +43,10 @@ grep -Fq 'argocd.argoproj.io/sync-wave: "-90"' <<< "$platform_output" || test::f
 grep -Fq 'project: platform-project' <<< "$platform_output" || test::fail "argocd-self must use platform-project"
 grep -Fq 'path: vendor/charts/argo-cd-10.3.3' <<< "$platform_output" || test::fail "argocd-self does not use the vendored chart"
 grep -Fq 'releaseName: atlas-argocd' <<< "$platform_output" || test::fail "argocd-self does not preserve Seed object identity"
-grep -Fq 'path: gitops/platform/management/argocd-self/base' <<< "$platform_output" || test::fail "argocd-self does not own the shared health capability"
+grep -Fq 'path: gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay' <<< "$platform_output" ||
+  test::fail "argocd-self does not activate hardening through the existing Kustomize owner"
+grep -Fq "\$values/gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml" <<< "$platform_output" ||
+  test::fail "argocd-self does not activate hardening through the existing Chart owner"
 test::pass "argocd-self management leaf"
 
 for project in atlas-bootstrap platform-project workload-project; do

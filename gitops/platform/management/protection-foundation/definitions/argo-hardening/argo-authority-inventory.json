@@ -1,21 +1,47 @@
 {
   "schemaVersion": 1,
+  "activationStage": "ADR_0003_PHASE_1B_CHANGE_1",
   "argocdVersion": "3.5.1",
   "fineGrainedApplicationInheritanceDisabled": true,
   "builtInAdminEnabled": false,
   "anonymousEnabled": false,
   "policyDefault": "role:atlas-authenticated-readonly",
+  "policyMatchMode": "glob",
+  "policyScopes": ["groups"],
+  "reviewedPolicyFragments": ["policy.csv"],
+  "unknownPolicyFragment": "AUTHORITY_DRIFTED",
   "unknownIdentityAuthority": "READ_ONLY_DEFAULT",
   "unknownResourceActionOrInheritance": "AUTHORITY_DRIFTED",
   "localAccounts": [],
   "ssoSubjects": [],
-  "globalExplicitRoles": [
+  "inheritedRoleMappings": [],
+  "directPolicySubjects": [],
+  "globalRoles": [
     {
-      "name": "role:atlas-phase1a-fixture",
-      "activationState": "NON_PRODUCTION_FIXTURE",
-      "subjects": [],
-      "sideEffectingPermissions": []
+      "name": "role:atlas-authenticated-readonly",
+      "authoritySource": "policy.default",
+      "permissions": [
+        {"resource": "applications", "action": "get", "object": "*/*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "applicationsets", "action": "get", "object": "*/*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "clusters", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "projects", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "repositories", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "accounts", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "certificates", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "gpgkeys", "action": "get", "object": "*", "effect": "allow", "classification": "READ_ONLY"},
+        {"resource": "logs", "action": "get", "object": "*/*", "effect": "allow", "classification": "READ_ONLY"}
+      ]
     }
   ],
-  "appProjectRoles": []
+  "retainedSideEffectingRoles": [],
+  "recoveryDenyCoverage": {
+    "guardKey": "policy.atlas-recovery-freeze.csv",
+    "requiredRoles": [],
+    "unclassifiedOrUncovered": "AUTHORITY_DRIFTED"
+  },
+  "appProjects": [
+    {"name": "atlas-bootstrap", "roles": []},
+    {"name": "platform-project", "roles": []},
+    {"name": "workload-project", "roles": []}
+  ]
 }
