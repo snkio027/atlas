@@ -8,6 +8,8 @@
   "policyDefault": "role:atlas-authenticated-readonly",
   "policyMatchMode": "glob",
   "policyScopes": ["groups"],
+  "reviewedPolicyFragments": ["policy.csv"],
+  "unknownPolicyFragment": "AUTHORITY_DRIFTED",
   "unknownIdentityAuthority": "READ_ONLY_DEFAULT",
   "unknownResourceActionOrInheritance": "AUTHORITY_DRIFTED",
   "localAccounts": [],

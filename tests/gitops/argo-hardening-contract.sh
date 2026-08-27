@@ -104,6 +104,16 @@ classify_authority_context() {
   printf 'MATCH\n'
 }
 
+policy_fragments_are_reviewed() {
+  local config_map=$1 actual_fragments expected_fragments
+  actual_fragments=$(yq -r '
+    .data | keys | .[] |
+    select(. == "policy.csv" or test("^policy\\..*\\.csv$"))
+  ' <<< "$config_map" | sort) || return 1
+  expected_fragments=$(yq -r '.reviewedPolicyFragments[]' "$authority_inventory" | sort) || return 1
+  [[ $actual_fragments == "$expected_fragments" ]]
+}
+
 [[ $(classify_action applications get) == READ_ONLY &&
 $(classify_action applications action/restart) == SIDE_EFFECTING &&
 $(classify_action applications future-action) == AUTHORITY_DRIFTED &&
@@ -204,6 +214,23 @@ $(yq -r '.data."server.rbac.disableApplicationFineGrainedRBACInheritance"' <<< "
 $(yq -r '.data."policy.matchMode"' <<< "$rbac_cm") == glob &&
 $(yq '.data | has("policy.atlas-recovery-freeze.csv")' <<< "$rbac_cm") == false ]] ||
   test::fail "Argo default policy or normal guard ownership projection drifted"
+[[ $(yq -r '.unknownPolicyFragment' "$authority_inventory") == AUTHORITY_DRIFTED ]] ||
+  test::fail "unknown Argo policy fragments do not fail closed"
+policy_fragments_are_reviewed "$rbac_cm" ||
+  test::fail "hydrated Argo policy fragments differ from the reviewed authority inventory"
+
+side_effecting_fragment=$(yq '.data."policy.unreviewed.csv" =
+  "p, role:unreviewed, applications, sync, */*, allow\n"' <<< "$rbac_cm") ||
+  test::fail "could not construct the side-effecting policy fragment counterexample"
+if policy_fragments_are_reviewed "$side_effecting_fragment"; then
+  test::fail "an unreviewed side-effecting Argo policy fragment was accepted"
+fi
+group_mapping_fragment=$(yq '.data."policy.unreviewed.csv" =
+  "g, unreviewed-user, role:unreviewed\n"' <<< "$rbac_cm") ||
+  test::fail "could not construct the inherited-role policy fragment counterexample"
+if policy_fragments_are_reviewed "$group_mapping_fragment"; then
+  test::fail "an unreviewed inherited-role Argo policy fragment was accepted"
+fi
 while IFS= read -r policy_line; do
   [[ $policy_line == p,\ role:atlas-authenticated-readonly,\ *,\ get,\ *,\ allow ]] ||
     test::fail "default Argo role contains a non-read-only grant: ${policy_line}"
