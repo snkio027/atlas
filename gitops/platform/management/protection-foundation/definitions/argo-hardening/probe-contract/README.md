@@ -56,3 +56,37 @@ They contain no real endpoint, identity, credential, kubeconfig, certificate,
 token, cookie, or host path. Live convergence, identity selection, credential
 handling, and probe execution remain subject to a separate Human Judgment
 Gate.
+
+## Personal Local rollout profile
+
+`personal-local-profile.json` defines the separately selected ADR-0003
+`PERSONAL_LOCAL` rollout profile. It is not a fallback from this Production
+contract: the Production result remains `UNSUPPORTED`, and profile selection
+must be explicit.
+
+The Personal Local profile replaces Argo API authorization execution with a
+Human-gated Kubernetes read-only preflight over the same thirteen exact desired
+objects. It permits only exact-object `get` operations and `/version`; Secret,
+collection, Argo API, `--core`, credential, and Mutation access remain
+forbidden. A Ready preflight must prove the complete Git-derived desired
+projection equals both live snapshots. Its assurance is still recorded as:
+
+```text
+Argo API authorization  RUNTIME_UNPROVEN
+Production recovery     NOT_AUTHORIZED
+```
+
+`personal-local-target.schema.json` binds the exact Git commit, target
+fingerprint, canonical profile-decision hash, action-specific Owner Gate hash,
+and thirteen desired object hashes. `personal-local-evidence.schema.json`
+binds those inputs to the per-object read and projection result. The checked-in
+fixture has execution mode `REPOSITORY_ONLY_SYNTHETIC`, uses the canonical
+`NOT_AUTHORIZED` Gate sentinel, and can produce only
+`PERSONAL_LOCAL_DEFINED`. It is not live evidence.
+
+Only a later, separately authorized `LIVE_READ_ONLY_PREFLIGHT` with an approved
+non-sentinel Owner Gate and complete reads may produce
+`PERSONAL_LOCAL_READY`. Any mismatch becomes `PERSONAL_LOCAL_BLOCKED`.
+Admission observation, candidate wiring, post-squash revalidation, and the
+30-to-60-minute observation window remain outside this repository-only
+definition change.

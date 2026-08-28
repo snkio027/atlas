@@ -55,3 +55,11 @@ executable probe, identity, credential, Kustomization, Application, or runtime
 wiring. Identity selection, cluster reads, and all live probes remain blocked
 until a separate Human Judgment Gate approves an exact target and credential
 lifecycle.
+
+That directory also defines the explicit ADR-0003 `PERSONAL_LOCAL` rollout
+profile. The profile is not a fallback from the Production Probe Contract. Its
+repository fixture stops at `PERSONAL_LOCAL_DEFINED`; a target-bound Owner Gate
+and thirteen exact live reads are required before
+`PERSONAL_LOCAL_READY` can exist. Argo API authorization remains
+`RUNTIME_UNPROVEN`, production recovery remains `NOT_AUTHORIZED`, and no file
+in the profile is an activation path.

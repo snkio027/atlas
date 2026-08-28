@@ -1483,6 +1483,101 @@ Snapshot, hash calculation, dry-run render, API discovery, diff, plan creation,
 and health reads are non-mutating and do not need a per-operation gate. They
 still require audit logging and must fail closed on uncertainty.
 
+### Rollout profiles
+
+ADR-0003 has two explicit rollout profiles. `PRODUCTION` remains the default
+and retains every authority, identity, custody, dynamic authorization, audit,
+and evidence requirement in this ADR. A caller must select a profile
+explicitly; an unavailable or failed `PRODUCTION` proof never falls back to a
+less strict profile.
+
+`PERSONAL_LOCAL` is a bounded waiver for the single-owner Atlas environment on
+the supported local macOS and OrbStack target. It reduces the proof ceremony
+needed to enter Phase-1B Admission observation, but it does not change the
+protected resources, recovery authority, enforcement ordering, or Phase-1C
+Human Judgment boundaries.
+
+The profile permits all of the following only before Admission observation:
+
+- no real Argo API probe identity is required;
+- the 33 base-action `argocd account can-i` queries are not executed and remain
+  `RUNTIME_UNPROVEN`;
+- the three Argo CD v3.5.1 fine-grained Application action families are closed
+  only from the exact live Git authority projection and remain
+  `STATICALLY_CLOSED / RUNTIME_UNPROVEN`;
+- built-in administrator and anonymous access are closed from the exact live
+  `argocd-cm`, Chart-derived Deployment/configuration projection, locked Argo
+  version, and authority inventory; no invalid-password inference or Secret
+  read is permitted;
+- one repository Owner may approve the target-bound read-only preflight;
+- redacted, hash-bound evidence may remain on owner-controlled encrypted local
+  storage; and
+- a later observing window may be shortened to 30 through 60 minutes only when
+  it contains at least three complete reconciliation and audit cycles.
+
+The following requirements are not waived:
+
+- the approved Git commit, target fingerprint, waiver decision, Owner Gate,
+  and all thirteen desired objects are exact inputs;
+- the Kubernetes surface is thirteen exact-object `get` operations plus
+  `/version`; Secret, collection `list`/`watch`, Mutation, impersonation, and
+  an ambient kubeconfig are forbidden;
+- the preflight must prove
+  `desired == live-before == live-after` for every object and for the aggregate
+  projection;
+- built-in admin and anonymous access are disabled, policy fragments are
+  exactly reviewed, wildcard allows and group mappings are absent, the
+  fine-grained inheritance mode is exact, and the ApplicationSet Controller
+  remains at zero replicas;
+- `argocd --core`, an Argo token, an Argo API call, or a mutation cannot be
+  presented as a Personal Local authorization proof;
+- Admission observation may contain `Audit` only and cannot activate `Deny`,
+  Escape or Session RBAC, Signal, Receipt, or another recovery authority; and
+- Phase 1C remains a separate Human-gated rollout.
+
+Every Personal Local Target and Evidence document binds these exact fields:
+
+```text
+rolloutProfile=PERSONAL_LOCAL
+waiverDecisionSHA256=<canonical PERSONAL_LOCAL profile decision SHA-256>
+ownerGateSHA256=<action-specific Owner Gate document SHA-256>
+```
+
+The Owner Gate also has an explicit state. Repository-only fixtures use the
+canonical `NOT_AUTHORIZED` sentinel and can prove at most
+`PERSONAL_LOCAL_DEFINED`. Only a separately approved, target-bound, live
+read-only preflight may produce `PERSONAL_LOCAL_READY`. Any commit, Target,
+waiver, Gate, object identity, projection, read inventory, or Evidence mismatch
+produces `PERSONAL_LOCAL_BLOCKED`; partial success is never retained as Ready.
+
+The Personal Local state sequence is:
+
+```text
+PERSONAL_LOCAL_DEFINED
+  -> PERSONAL_LOCAL_READY
+  -> PERSONAL_LOCAL_OBSERVING
+  -> PERSONAL_LOCAL_OBSERVED
+
+any failed or indeterminate transition -> PERSONAL_LOCAL_BLOCKED
+```
+
+`PERSONAL_LOCAL_READY` and later states always record:
+
+```text
+Argo API authorization  RUNTIME_UNPROVEN
+Production recovery     NOT_AUTHORIZED
+```
+
+They must never be translated to the Production Profile's `READY`. Production
+recovery, multi-operator custody, and a production-readiness claim still
+require the complete `PRODUCTION` profile.
+
+The observing activation change must bind three distinct Git authorities: the
+preflight `main`, the reviewed candidate Head/Base and desired tree, and the
+post-squash merged `main` plus rehydrated desired tree. Candidate review does
+not authorize a different squash result. Any mismatch blocks observation
+rather than carrying forward the earlier Personal Local Ready result.
+
 ### Definition and activation rollout
 
 Implementation is split into independently reviewable phases and PRs:

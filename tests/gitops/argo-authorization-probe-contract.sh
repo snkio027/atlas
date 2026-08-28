@@ -56,7 +56,16 @@ mapfile -t actual_contract_files < <(
     [[ -f $contract_file ]] && basename "$contract_file"
   done | sort
 )
-expected_contract_files=(README.md evidence.schema.json probe-contract.json probe-matrix.json target.schema.json)
+expected_contract_files=(
+  README.md
+  evidence.schema.json
+  personal-local-evidence.schema.json
+  personal-local-profile.json
+  personal-local-target.schema.json
+  probe-contract.json
+  probe-matrix.json
+  target.schema.json
+)
 [[ ${actual_contract_files[*]} == "${expected_contract_files[*]}" ]] ||
   test::fail "Probe Contract file inventory drifted"
 
