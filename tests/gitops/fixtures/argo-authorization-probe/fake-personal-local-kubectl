@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+: "${ATLAS_FAKE_REAL_KUBECTL:?}"
+: "${ATLAS_FAKE_OBJECTS:?}"
+: "${ATLAS_FAKE_READ_PLAN:?}"
+: "${ATLAS_FAKE_READ_LOG:?}"
+: "${ATLAS_FAKE_CONTEXT:?}"
+: "${ATLAS_FAKE_API_SERVER:?}"
+: "${ATLAS_FAKE_NAMESPACE_UID:?}"
+
+if [[ ${1:-} == kustomize ]]; then
+  exec "$ATLAS_FAKE_REAL_KUBECTL" "$@"
+fi
+
+if [[ ${1:-} == version && ${2:-} == --client && ${3:-} == -o && ${4:-} == json && $# -eq 4 ]]; then
+  printf '%s\n' '{"clientVersion":{"gitVersion":"v1.36.3"}}'
+  exit 0
+fi
+
+if [[ $# -eq 9 && $1 == --kubeconfig && $3 == config && $4 == view && $5 == --minify &&
+  $6 == --context && $7 == "$ATLAS_FAKE_CONTEXT" && $8 == -o && $9 == json ]]; then
+  CONTEXT=$ATLAS_FAKE_CONTEXT SERVER=$ATLAS_FAKE_API_SERVER yq -n -o=json -I=0 \
+    '{"current-context":strenv(CONTEXT),"clusters":[{"name":strenv(CONTEXT),
+    "cluster":{"server":strenv(SERVER)}}]}'
+  exit 0
+fi
+
+if [[ $# -ne 8 || $1 != --kubeconfig || $3 != --context || $4 != "$ATLAS_FAKE_CONTEXT" ||
+  $5 != --request-timeout=10s || $6 != get || $7 != --raw ]]; then
+  printf '%s\n' 'unexpected fake kubectl invocation' >&2
+  exit 64
+fi
+
+raw_path=${*: -1}
+printf '%s\n' "$raw_path" >> "$ATLAS_FAKE_READ_LOG"
+
+if [[ -n ${ATLAS_FAKE_STDERR_PATH:-} && $raw_path == "$ATLAS_FAKE_STDERR_PATH" ]]; then
+  printf '%s\n' 'simulated read diagnostic' >&2
+fi
+if [[ -n ${ATLAS_FAKE_MISSING_PATH:-} && $raw_path == "$ATLAS_FAKE_MISSING_PATH" ]]; then
+  exit 42
+fi
+if [[ $raw_path == /version ]]; then
+  printf '%s\n' '{"gitVersion":"v1.36.1"}'
+  exit 0
+fi
+
+record=$(awk -F '\t' -v path="$raw_path" '$6==path {print; exit}' "$ATLAS_FAKE_READ_PLAN")
+[[ -n $record ]] || {
+  printf '%s\n' 'unapproved raw path' >&2
+  exit 65
+}
+api=$(awk -F '\t' '{print $1}' <<< "$record")
+kind=$(awk -F '\t' '{print $2}' <<< "$record")
+namespace=$(awk -F '\t' '{print $3}' <<< "$record")
+name=$(awk -F '\t' '{print $4}' <<< "$record")
+verb=$(awk -F '\t' '{print $5}' <<< "$record")
+approved_path=$(awk -F '\t' '{print $6}' <<< "$record")
+[[ $verb == get && $approved_path == "$raw_path" ]] || exit 66
+
+API=$api KIND=$kind NS=$namespace NAME=$name NS_UID=$ATLAS_FAKE_NAMESPACE_UID yq ea -o=json -I=0 \
+  'select(.apiVersion == strenv(API) and .kind == strenv(KIND) and
+  (.metadata.namespace // "") == strenv(NS) and .metadata.name == strenv(NAME)) |
+  .metadata.uid = (strenv(NS_UID) | select(strenv(KIND) == "Namespace") // "00000000-0000-4000-8000-000000000099") |
+  .metadata.resourceVersion = "42" | .metadata.managedFields = [] | .status = {}' \
+  "$ATLAS_FAKE_OBJECTS" |
+  if [[ -n ${ATLAS_FAKE_DRIFT_PATH:-} && $raw_path == "$ATLAS_FAKE_DRIFT_PATH" ]]; then
+    yq -o=json -I=0 '.data."admin.enabled" = "true"'
+  elif [[ -n ${ATLAS_FAKE_IDENTITY_DRIFT_PATH:-} && $raw_path == "$ATLAS_FAKE_IDENTITY_DRIFT_PATH" ]]; then
+    yq -o=json -I=0 '.metadata.name = "drifted-object"'
+  else
+    yq -o=json -I=0 '.'
+  fi

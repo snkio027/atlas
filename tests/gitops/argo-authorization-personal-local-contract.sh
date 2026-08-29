@@ -10,15 +10,17 @@ cd "$ATLAS_TEST_ROOT"
 readonly probe_root=gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract
 readonly profile=$probe_root/personal-local-profile.json
 readonly target_schema=$probe_root/personal-local-target.schema.json
+readonly gate_schema=$probe_root/personal-local-owner-gate.schema.json
 readonly evidence_schema=$probe_root/personal-local-evidence.schema.json
+readonly preflight=$probe_root/personal-local-preflight
 readonly production_contract=$probe_root/probe-contract.json
 readonly authority_inventory=gitops/platform/management/protection-foundation/definitions/argo-hardening/argo-authority-inventory.json
 readonly fixture_root=tests/gitops/fixtures/argo-authorization-probe
 readonly target_fixture=$fixture_root/valid-personal-local-target.json
+readonly gate_fixture=$fixture_root/valid-personal-local-owner-gate.json
 readonly evidence_fixture=$fixture_root/valid-personal-local-defined-evidence.json
 readonly production_target=$fixture_root/valid-target.json
 readonly expected_contract_commit=${1:-}
-readonly fixture_gate_sha=dbb62b37538b65bb3c2f5c293d38efab3050a36b697674c42fb9d6407da074ee
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-personal-local-profile.XXXXXX")
 cleanup() {
   rm -rf "$test_workspace"
@@ -29,17 +31,24 @@ trap cleanup EXIT
   test::fail "expected contract commit must be supplied by the caller"
 
 sha256_text() { shasum -a 256 | awk '{print $1}'; }
+canonical_json_sha() {
+  local projection
+  projection=$(yq -o=json -I=0 'sort_keys(..)' "$1") || return 1
+  printf '%s' "$projection" | sha256_text
+}
 schema_keys() { yq -r '.required[]' "$1" | sort; }
 document_keys() { yq -r 'keys | .[]' "$1" | sort; }
 
-for json_file in "$profile" "$target_schema" "$evidence_schema" \
-  "$target_fixture" "$evidence_fixture"; do
+for json_file in "$profile" "$target_schema" "$gate_schema" "$evidence_schema" \
+  "$target_fixture" "$gate_fixture" "$evidence_fixture"; do
   yq -e '.' "$json_file" > /dev/null || test::fail "invalid PERSONAL_LOCAL JSON: ${json_file}"
 done
+[[ -x $preflight ]] || test::fail "PERSONAL_LOCAL preflight is not executable"
 
-profile_sha=$(yq -o=json -I=0 'sort_keys(..)' "$profile" | sha256_text) ||
+profile_sha=$(canonical_json_sha "$profile") ||
   test::fail "could not hash PERSONAL_LOCAL decision"
 [[ $profile_sha == "$(yq -r '.waiverDecisionSHA256' "$target_fixture")" &&
+$profile_sha == "$(yq -r '.waiverDecisionSHA256' "$gate_fixture")" &&
 $profile_sha == "$(yq -r '.target.waiverDecisionSHA256' "$evidence_fixture")" ]] ||
   test::fail "PERSONAL_LOCAL waiver is not bound to the canonical profile decision"
 
@@ -67,13 +76,16 @@ $(yq -r '.classification.partialResult' "$profile") == PERSONAL_LOCAL_BLOCKED ]]
 [[ $(yq -r '.repositoryFixture.executionMode' "$profile") == REPOSITORY_ONLY_SYNTHETIC &&
 $(yq -r '.repositoryFixture.maximumResult' "$profile") == PERSONAL_LOCAL_DEFINED &&
 $(yq -r '.repositoryFixture.ownerGateState' "$profile") == NOT_AUTHORIZED &&
-$(yq -r '.repositoryFixture.ownerGateSHA256' "$profile") == "$fixture_gate_sha" &&
 $(yq -r '.livePreflight.executionMode' "$profile") == LIVE_READ_ONLY_PREFLIGHT &&
 $(yq -r '.livePreflight.ownerGateState' "$profile") == APPROVED &&
 $(yq -r '.livePreflight.requiredObjectCount' "$profile") -eq 13 &&
+$(yq -r '.livePreflight.requiredSnapshotCount' "$profile") -eq 2 &&
+$(yq -r '.livePreflight.requiredReadCount' "$profile") -eq 26 &&
 $(yq -r '.livePreflight.requiredVerb' "$profile") == get &&
 $(yq -r '.livePreflight.argoAPICallCount' "$profile") -eq 0 &&
-$(yq -r '.livePreflight.mutationCount' "$profile") -eq 0 ]] ||
+$(yq -r '.livePreflight.mutationCount' "$profile") -eq 0 &&
+$(yq -r '.ownerGate.operation' "$profile") == PERSONAL_LOCAL_READ_ONLY_PREFLIGHT &&
+$(yq -r '.ownerGate.independentExpectedSHARequired' "$profile") == true ]] ||
   test::fail "PERSONAL_LOCAL repository/live boundary drifted"
 
 [[ $(yq -r '.waivers.baseArgoActions.count' "$profile") -eq 33 &&
@@ -117,15 +129,54 @@ done
 
 target_fingerprint() {
   local target=$1 payload
-  printf -v payload 'rolloutProfile=%s\nauthorityBaseline=%s\ncontractGitCommit=%s\nenvironmentName=%s\nclusterName=%s\nkubeContext=%s\nkubeconfigSHA256=%s\napiServerURL=%s\nkubeSystemNamespaceUID=%s\napiServerCASPKISHA256=%s\nrepositoryURL=%s\nwaiverDecisionSHA256=%s\nownerGateState=%s\nownerGateSHA256=%s\n' \
+  printf -v payload 'rolloutProfile=%s\nauthorityBaseline=%s\ncontractGitCommit=%s\nenvironmentName=%s\nclusterName=%s\nkubeContext=%s\nkubeconfigPath=%s\nkubeconfigSHA256=%s\nkubectlPath=%s\nkubectlSHA256=%s\nkubectlVersion=%s\nkubernetesVersion=%s\napiServerURL=%s\nkubeSystemNamespaceUID=%s\napiServerCASPKISHA256=%s\nrepositoryURL=%s\nwaiverDecisionSHA256=%s\nownerGateState=%s\nownerGateSHA256=%s\nownerGateTargetProjectionSHA256=%s\n' \
     "$(yq -r '.rolloutProfile' "$target")" "$(yq -r '.authorityBaseline' "$target")" \
     "$(yq -r '.contractGitCommit' "$target")" "$(yq -r '.environmentName' "$target")" \
     "$(yq -r '.clusterName' "$target")" "$(yq -r '.kubeContext' "$target")" \
-    "$(yq -r '.kubeconfigSHA256' "$target")" "$(yq -r '.apiServerURL' "$target")" \
+    "$(yq -r '.kubeconfigPath' "$target")" "$(yq -r '.kubeconfigSHA256' "$target")" \
+    "$(yq -r '.kubectlPath' "$target")" "$(yq -r '.kubectlSHA256' "$target")" \
+    "$(yq -r '.kubectlVersion' "$target")" "$(yq -r '.kubernetesVersion' "$target")" \
+    "$(yq -r '.apiServerURL' "$target")" \
     "$(yq -r '.kubeSystemNamespaceUID' "$target")" "$(yq -r '.apiServerCASPKISHA256' "$target")" \
     "$(yq -r '.repositoryURL' "$target")" "$(yq -r '.waiverDecisionSHA256' "$target")" \
-    "$(yq -r '.ownerGateState' "$target")" "$(yq -r '.ownerGateSHA256' "$target")"
+    "$(yq -r '.ownerGateState' "$target")" "$(yq -r '.ownerGateSHA256' "$target")" \
+    "$(yq -r '.ownerGateTargetProjectionSHA256' "$target")"
   printf '%s' "$payload" | sha256_text
+}
+
+owner_gate_target_sha() {
+  local projection
+  projection=$(yq -o=json -I=0 \
+    'del(.ownerGateState,.ownerGateSHA256,.ownerGateTargetProjectionSHA256,
+      .targetFingerprintSHA256,.approvedTargetDocumentSHA256) | sort_keys(..)' "$1") || return 1
+  printf '%s' "$projection" | sha256_text
+}
+
+raw_path() {
+  case "$1|$2|$3" in
+    'v1|Namespace|') printf '/api/v1/namespaces/%s' "$4" ;;
+    'v1|ConfigMap|argocd') printf '/api/v1/namespaces/argocd/configmaps/%s' "$4" ;;
+    'argoproj.io/v1alpha1|Application|argocd') printf '/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/%s' "$4" ;;
+    'argoproj.io/v1alpha1|AppProject|argocd') printf '/apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/%s' "$4" ;;
+    'apps/v1|Deployment|argocd') printf '/apis/apps/v1/namespaces/argocd/deployments/%s' "$4" ;;
+    'apps/v1|StatefulSet|argocd') printf '/apis/apps/v1/namespaces/argocd/statefulsets/%s' "$4" ;;
+    *) return 1 ;;
+  esac
+}
+
+read_plan_sha() {
+  local object api kind namespace name path plan
+  plan=$(
+    while IFS= read -r object; do
+      api=$(yq -r '.apiVersion' <<< "$object")
+      kind=$(yq -r '.kind' <<< "$object")
+      namespace=$(yq -r '.namespace' <<< "$object")
+      name=$(yq -r '.name' <<< "$object")
+      path=$(raw_path "$api" "$kind" "$namespace" "$name")
+      printf '%s\t%s\t%s\t%s\tget\t%s\n' "$api" "$kind" "$namespace" "$name" "$path"
+    done < <(yq -o=json -I=0 '.desiredObjects[]' "$1") | sort
+  ) || return 1
+  printf '%s' "$plan" | sha256_text
 }
 
 seal_target() {
@@ -135,13 +186,34 @@ seal_target() {
   APPROVED_SHA=$sha yq '.approvedTargetDocumentSHA256 = strenv(APPROVED_SHA)' "$input" > "$output"
 }
 
-bind_target() {
-  local input=$1 commit=$2 output=$3 draft=$test_workspace/target-draft.json fingerprint
+bind_authority() {
+  local input=$1 gate_input=$2 commit=$3 output=$4 gate_output=$5
+  local draft=$test_workspace/target-draft.json gated=$test_workspace/target-gated.json
+  local gate_target_sha gate_sha fingerprint
   EXPECTED_COMMIT=$commit PROFILE_SHA=$profile_sha yq \
     '.contractGitCommit = strenv(EXPECTED_COMMIT) | .waiverDecisionSHA256 = strenv(PROFILE_SHA)' \
     "$input" > "$draft" || return 1
-  fingerprint=$(target_fingerprint "$draft") || return 1
-  TARGET_SHA=$fingerprint yq '.targetFingerprintSHA256 = strenv(TARGET_SHA)' "$draft" > "${draft}.fingerprinted" || return 1
+  gate_target_sha=$(owner_gate_target_sha "$draft") || return 1
+  GATE_TARGET_SHA=$gate_target_sha yq \
+    '.ownerGateTargetProjectionSHA256 = strenv(GATE_TARGET_SHA)' "$draft" > "${draft}.gate-target" || return 1
+  EXPECTED_COMMIT=$commit PROFILE_SHA=$profile_sha GATE_TARGET_SHA=$gate_target_sha \
+    DESIRED_SHA=$(yq -r '.desiredProjectionSHA256' "${draft}.gate-target") \
+    PLAN_SHA=$(read_plan_sha "${draft}.gate-target") \
+    KUBE_CONTEXT=$(yq -r '.kubeContext' "${draft}.gate-target") \
+    KUBECONFIG_SHA=$(yq -r '.kubeconfigSHA256' "${draft}.gate-target") \
+    CA_SHA=$(yq -r '.apiServerCASPKISHA256' "${draft}.gate-target") \
+    yq -o=json -I=2 '.contractGitCommit = strenv(EXPECTED_COMMIT) |
+      .waiverDecisionSHA256 = strenv(PROFILE_SHA) |
+      .ownerGateTargetProjectionSHA256 = strenv(GATE_TARGET_SHA) |
+      .desiredProjectionSHA256 = strenv(DESIRED_SHA) |
+      .readPlanSHA256 = strenv(PLAN_SHA) |
+      .kubeContext = strenv(KUBE_CONTEXT) |
+      .kubeconfigSHA256 = strenv(KUBECONFIG_SHA) |
+      .apiServerCASPKISHA256 = strenv(CA_SHA)' "$gate_input" > "$gate_output" || return 1
+  gate_sha=$(canonical_json_sha "$gate_output") || return 1
+  GATE_SHA=$gate_sha yq '.ownerGateSHA256 = strenv(GATE_SHA)' "${draft}.gate-target" > "$gated" || return 1
+  fingerprint=$(target_fingerprint "$gated") || return 1
+  TARGET_SHA=$fingerprint yq '.targetFingerprintSHA256 = strenv(TARGET_SHA)' "$gated" > "${draft}.fingerprinted" || return 1
   seal_target "${draft}.fingerprinted" "$output"
 }
 
@@ -152,17 +224,19 @@ bind_evidence() {
   PROFILE_SHA=$(yq -r '.waiverDecisionSHA256' "$target") \
   GATE_STATE=$(yq -r '.ownerGateState' "$target") \
   GATE_SHA=$(yq -r '.ownerGateSHA256' "$target") \
+  GATE_TARGET_SHA=$(yq -r '.ownerGateTargetProjectionSHA256' "$target") \
   APPROVED_SHA=$(yq -r '.approvedTargetDocumentSHA256' "$target") \
     yq '.contractGitCommit = strenv(EXPECTED_COMMIT) |
       .target.targetFingerprintSHA256 = strenv(TARGET_SHA) |
       .target.waiverDecisionSHA256 = strenv(PROFILE_SHA) |
       .target.ownerGateState = strenv(GATE_STATE) |
       .target.ownerGateSHA256 = strenv(GATE_SHA) |
+      .target.ownerGateTargetProjectionSHA256 = strenv(GATE_TARGET_SHA) |
       .target.approvedTargetDocumentSHA256 = strenv(APPROVED_SHA)' "$input" > "$output"
 }
 
 validate_target() {
-  local target=$1 expected_commit=$2 expected_objects actual_objects projection sha
+  local target=$1 expected_commit=$2 expected_gate_sha=$3 expected_objects actual_objects projection sha
   yq -e '.' "$target" > /dev/null || return 1
   [[ $(document_keys "$target") == "$(schema_keys "$target_schema")" ]] || return 1
   [[ $(yq -r '.schemaVersion' "$target") == 1 &&
@@ -172,16 +246,20 @@ validate_target() {
   $(yq -r '.waiverDecisionSHA256' "$target") == "$profile_sha" &&
   $(yq -r '.repositoryURL' "$target") == https://github.com/snkio027/atlas.git &&
   $(yq -r '.kubeconfigPath' "$target") == /* &&
+  $(yq -r '.kubectlPath' "$target") == /* &&
   $(yq -r '.kubeconfigSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+  $(yq -r '.kubectlSHA256' "$target") =~ ^[0-9a-f]{64}$ &&
+  $(yq -r '.kubectlVersion' "$target") == 1.36.3 &&
+  $(yq -r '.kubernetesVersion' "$target") == 1.36.1 &&
   $(yq -r '.apiServerURL' "$target") =~ ^https://[^[:space:]]+$ &&
   $(yq -r '.kubeSystemNamespaceUID' "$target") =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ &&
   $(yq -r '.apiServerCASPKISHA256' "$target") =~ ^[0-9a-f]{64}$ &&
-  $(yq -r '.ownerGateSHA256' "$target") =~ ^[0-9a-f]{64}$ ]] || return 1
+  $(yq -r '.ownerGateSHA256' "$target") == "$expected_gate_sha" ]] || return 1
   case $(yq -r '.ownerGateState' "$target") in
-    NOT_AUTHORIZED) [[ $(yq -r '.ownerGateSHA256' "$target") == "$fixture_gate_sha" ]] || return 1 ;;
-    APPROVED) [[ $(yq -r '.ownerGateSHA256' "$target") != "$fixture_gate_sha" ]] || return 1 ;;
+    NOT_AUTHORIZED | APPROVED) ;;
     *) return 1 ;;
   esac
+  [[ $(owner_gate_target_sha "$target") == "$(yq -r '.ownerGateTargetProjectionSHA256' "$target")" ]] || return 1
   [[ $(target_fingerprint "$target") == "$(yq -r '.targetFingerprintSHA256' "$target")" ]] || return 1
   [[ $(yq '.desiredObjects | length' "$target") -eq 13 &&
   $(yq '[.desiredObjects[] | [.apiVersion,.kind,.namespace,.name] | @tsv] | unique | length' "$target") -eq 13 ]] || return 1
@@ -195,6 +273,25 @@ validate_target() {
   projection=$(yq -o=json -I=0 'del(.approvedTargetDocumentSHA256) | sort_keys(..)' "$target") || return 1
   sha=$(printf '%s' "$projection" | sha256_text) || return 1
   [[ $sha == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" ]]
+}
+
+validate_gate() {
+  local gate=$1 target=$2 expected_gate_sha=$3 gate_sha
+  [[ $(document_keys "$gate") == "$(schema_keys "$gate_schema")" ]] || return 1
+  gate_sha=$(canonical_json_sha "$gate") || return 1
+  [[ $gate_sha == "$expected_gate_sha" &&
+    $gate_sha == "$(yq -r '.ownerGateSHA256' "$target")" &&
+    $(yq -r '.gateID' "$gate") == atlas.argocd.authorization-personal-local-owner-gate/v1 &&
+    $(yq -r '.operation' "$gate") == PERSONAL_LOCAL_READ_ONLY_PREFLIGHT &&
+    $(yq -r '.decision' "$gate") == "$(yq -r '.ownerGateState' "$target")" &&
+    $(yq -r '.rolloutProfile' "$gate") == PERSONAL_LOCAL &&
+    $(yq -r '.contractGitCommit' "$gate") == "$(yq -r '.contractGitCommit' "$target")" &&
+    $(yq -r '.waiverDecisionSHA256' "$gate") == "$profile_sha" &&
+    $(yq -r '.ownerGateTargetProjectionSHA256' "$gate") == "$(yq -r '.ownerGateTargetProjectionSHA256' "$target")" &&
+    $(yq -r '.desiredProjectionSHA256' "$gate") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
+    $(yq -r '.readPlanSHA256' "$gate") == "$(read_plan_sha "$target")" &&
+    $(yq -r '.readObjectCount' "$gate") -eq 13 &&
+    $(yq -r '.snapshotCount' "$gate") -eq 2 ]]
 }
 
 validate_evidence() {
@@ -213,6 +310,7 @@ validate_evidence() {
   $(yq -r '.target.waiverDecisionSHA256' "$evidence") == "$(yq -r '.waiverDecisionSHA256' "$target")" &&
   $(yq -r '.target.ownerGateState' "$evidence") == "$(yq -r '.ownerGateState' "$target")" &&
   $(yq -r '.target.ownerGateSHA256' "$evidence") == "$(yq -r '.ownerGateSHA256' "$target")" &&
+  $(yq -r '.target.ownerGateTargetProjectionSHA256' "$evidence") == "$(yq -r '.ownerGateTargetProjectionSHA256' "$target")" &&
   $(yq -r '.target.approvedTargetDocumentSHA256' "$evidence") == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" &&
   $(yq -r '.target.desiredProjectionSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" ]] || return 1
   [[ $(yq -r '.waiver.baseArgoActions' "$evidence") == RUNTIME_UNPROVEN &&
@@ -231,26 +329,30 @@ validate_evidence() {
   expected_objects=$(yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256] | @tsv' "$target" | sort) || return 1
   actual_objects=$(yq -r '.liveProjection.objects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256] | @tsv' "$evidence" | sort) || return 1
   [[ $actual_objects == "$expected_objects" ]] || return 1
-  expected_reads=$(yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,"get"] | @tsv' "$target" | sort) || return 1
-  actual_reads=$(yq -r '.kubernetesReads[] | [.apiVersion,.kind,.namespace,.name,.verb] | @tsv' "$evidence" | sort) || return 1
+  expected_reads=$(
+    for phase in BEFORE AFTER; do
+      PHASE=$phase yq -r '.desiredObjects[] | [strenv(PHASE),.apiVersion,.kind,.namespace,.name,"get"] | @tsv' "$target"
+    done | sort
+  ) || return 1
+  actual_reads=$(yq -r '.kubernetesReads[] | [.phase,.apiVersion,.kind,.namespace,.name,.verb] | @tsv' "$evidence" | sort) || return 1
   [[ $actual_reads == "$expected_reads" ]] || return 1
   case $(yq -r '.executionMode' "$evidence") in
     REPOSITORY_ONLY_SYNTHETIC)
       [[ $(yq -r '.result' "$evidence") == PERSONAL_LOCAL_DEFINED &&
       $(yq -r '.target.ownerGateState' "$evidence") == NOT_AUTHORIZED &&
-      $(yq -r '.target.ownerGateSHA256' "$evidence") == "$fixture_gate_sha" &&
       $(yq -r '.liveProjection.status' "$evidence") == NOT_EXECUTED &&
       $(yq -r '.liveProjection.liveBeforeSHA256' "$evidence") == null &&
       $(yq -r '.liveProjection.liveAfterSHA256' "$evidence") == null &&
       $(yq '[.liveProjection.objects[] | select(.liveBeforeProjectionSHA256 != null or .liveAfterProjectionSHA256 != null)] | length' "$evidence") -eq 0 &&
       $(yq '[.kubernetesReads[] | select(.status != "NOT_EXECUTED")] | length' "$evidence") -eq 0 &&
-      $(yq -r '.completeness.expectedReads' "$evidence") -eq 13 &&
+      $(yq -r '.completeness.plannedObjects' "$evidence") -eq 13 &&
+      $(yq -r '.completeness.snapshotCount' "$evidence") -eq 2 &&
+      $(yq -r '.completeness.expectedReads' "$evidence") -eq 26 &&
       $(yq -r '.completeness.executedReads' "$evidence") -eq 0 &&
-      $(yq -r '.completeness.skippedReads' "$evidence") -eq 13 ]]
+      $(yq -r '.completeness.skippedReads' "$evidence") -eq 26 ]]
       ;;
     LIVE_READ_ONLY_PREFLIGHT)
-      [[ $(yq -r '.target.ownerGateState' "$evidence") == APPROVED &&
-      $(yq -r '.target.ownerGateSHA256' "$evidence") != "$fixture_gate_sha" ]] || return 1
+      [[ $(yq -r '.target.ownerGateState' "$evidence") == APPROVED ]] || return 1
       if [[ $(yq -r '.result' "$evidence") == PERSONAL_LOCAL_READY ]]; then
         [[ $(yq -r '.liveProjection.status' "$evidence") == MATCH &&
         $(yq -r '.liveProjection.desiredProjectionSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
@@ -258,7 +360,7 @@ validate_evidence() {
         $(yq -r '.liveProjection.liveAfterSHA256' "$evidence") == "$(yq -r '.desiredProjectionSHA256' "$target")" &&
         $(yq '[.liveProjection.objects[] | select(.desiredProjectionSHA256 != .liveBeforeProjectionSHA256 or .desiredProjectionSHA256 != .liveAfterProjectionSHA256)] | length' "$evidence") -eq 0 &&
         $(yq '[.kubernetesReads[] | select(.status != "READY")] | length' "$evidence") -eq 0 &&
-        $(yq -r '.completeness.executedReads' "$evidence") -eq 13 &&
+        $(yq -r '.completeness.executedReads' "$evidence") -eq 26 &&
         $(yq -r '.completeness.skippedReads' "$evidence") -eq 0 ]]
       else
         [[ $(yq -r '.result' "$evidence") == PERSONAL_LOCAL_BLOCKED ]]
@@ -269,13 +371,18 @@ validate_evidence() {
 }
 
 bound_target=$test_workspace/target.json
+bound_gate=$test_workspace/owner-gate.json
 bound_evidence=$test_workspace/evidence.json
-bind_target "$target_fixture" "$expected_contract_commit" "$bound_target" ||
-  test::fail "could not bind PERSONAL_LOCAL target to the approved commit"
+bind_authority "$target_fixture" "$gate_fixture" "$expected_contract_commit" "$bound_target" "$bound_gate" ||
+  test::fail "could not bind PERSONAL_LOCAL target and Owner Gate to the approved commit"
+bound_gate_sha=$(canonical_json_sha "$bound_gate") ||
+  test::fail "could not hash the bound Owner Gate"
 bind_evidence "$evidence_fixture" "$bound_target" "$bound_evidence" ||
   test::fail "could not bind PERSONAL_LOCAL Evidence to the target"
-validate_target "$bound_target" "$expected_contract_commit" ||
+validate_target "$bound_target" "$expected_contract_commit" "$bound_gate_sha" ||
   test::fail "valid PERSONAL_LOCAL definition Target was rejected"
+validate_gate "$bound_gate" "$bound_target" "$bound_gate_sha" ||
+  test::fail "valid PERSONAL_LOCAL Owner Gate was rejected"
 validate_evidence "$bound_evidence" "$bound_target" ||
   test::fail "valid PERSONAL_LOCAL_DEFINED fixture was rejected"
 
@@ -300,7 +407,7 @@ for mutation in production-profile waiver gate-state gate-hash commit-resealed f
     missing-object) yq 'del(.desiredObjects[-1])' "$bound_target" > "$mutated" ;;
     extra-field) yq '.identity = "ambient"' "$bound_target" > "$mutated" ;;
   esac
-  if validate_target "$mutated" "$expected_contract_commit"; then
+  if validate_target "$mutated" "$expected_contract_commit" "$bound_gate_sha"; then
     test::fail "unsafe PERSONAL_LOCAL Target was accepted: ${mutation}"
   fi
 done

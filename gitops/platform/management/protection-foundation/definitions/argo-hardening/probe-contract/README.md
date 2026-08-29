@@ -78,14 +78,31 @@ Production recovery     NOT_AUTHORIZED
 
 `personal-local-target.schema.json` binds the exact Git commit, target
 fingerprint, canonical profile-decision hash, action-specific Owner Gate hash,
-and thirteen desired object hashes. `personal-local-evidence.schema.json`
-binds those inputs to the per-object read and projection result. The checked-in
-fixture has execution mode `REPOSITORY_ONLY_SYNTHETIC`, uses the canonical
-`NOT_AUTHORIZED` Gate sentinel, and can produce only
-`PERSONAL_LOCAL_DEFINED`. It is not live evidence.
+locked kubectl, and thirteen desired object hashes.
+`personal-local-owner-gate.schema.json` defines the independently supplied
+Owner Gate document. Its canonical hash binds the operation, profile, commit,
+pre-authorization Target projection, thirteen-object read plan, two snapshots,
+and target fingerprint inputs. The Target cannot authorize itself: the
+preflight caller must separately provide the expected canonical Gate SHA.
+
+`personal-local-preflight` is the authoritative `run` and `validate` entrypoint.
+`run` verifies the external Gate and exact Git hydration before using the
+approved kubeconfig for `/version` and two complete snapshots of the thirteen
+exact raw object paths. It recursively projects live values through the desired
+field mask, verifies array shape, and writes `PERSONAL_LOCAL_READY` only when
+all 26 reads and both aggregate hashes equal the approved desired projection.
+`validate` independently repeats Target, Gate, hydration, read-inventory, and
+Evidence validation. Both commands return `24` and
+`PERSONAL_LOCAL_BLOCKED` for uncertainty.
+
+The checked-in fixtures have execution mode `REPOSITORY_ONLY_SYNTHETIC`, use a
+canonical `NOT_AUTHORIZED` Gate document, and can produce only
+`PERSONAL_LOCAL_DEFINED`. They are not live evidence. Required Quality runs the
+entrypoint only against a local fake kubectl whose executable SHA is bound into
+the Target and Gate; it does not access a Kubernetes API.
 
 Only a later, separately authorized `LIVE_READ_ONLY_PREFLIGHT` with an approved
-non-sentinel Owner Gate and complete reads may produce
+Owner Gate, independently supplied Gate SHA, and complete reads may produce
 `PERSONAL_LOCAL_READY`. Any mismatch becomes `PERSONAL_LOCAL_BLOCKED`.
 Admission observation, candidate wiring, post-squash revalidation, and the
 30-to-60-minute observation window remain outside this repository-only

@@ -43,6 +43,7 @@
         "waiverDecisionSHA256",
         "ownerGateState",
         "ownerGateSHA256",
+        "ownerGateTargetProjectionSHA256",
         "approvedTargetDocumentSHA256",
         "desiredProjectionSHA256"
       ],
@@ -54,6 +55,7 @@
         "waiverDecisionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "ownerGateState": {"enum": ["NOT_AUTHORIZED", "APPROVED"]},
         "ownerGateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "ownerGateTargetProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "approvedTargetDocumentSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
@@ -106,7 +108,7 @@
     "kubernetesReads": {
       "type": "array",
       "minItems": 13,
-      "maxItems": 13,
+      "maxItems": 26,
       "items": {"$ref": "#/$defs/kubernetesRead"}
     },
     "assurance": {
@@ -121,11 +123,13 @@
     "completeness": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["expectedReads", "executedReads", "skippedReads", "secretReads", "collectionReads", "argoAPICalls", "mutations"],
+      "required": ["plannedObjects", "snapshotCount", "expectedReads", "executedReads", "skippedReads", "secretReads", "collectionReads", "argoAPICalls", "mutations"],
       "properties": {
-        "expectedReads": {"const": 13},
-        "executedReads": {"type": "integer", "minimum": 0, "maximum": 13},
-        "skippedReads": {"type": "integer", "minimum": 0, "maximum": 13},
+        "plannedObjects": {"const": 13},
+        "snapshotCount": {"const": 2},
+        "expectedReads": {"const": 26},
+        "executedReads": {"type": "integer", "minimum": 0, "maximum": 26},
+        "skippedReads": {"type": "integer", "minimum": 0, "maximum": 26},
         "secretReads": {"const": 0},
         "collectionReads": {"const": 0},
         "argoAPICalls": {"const": 0},
@@ -142,7 +146,8 @@
           "result": {"const": "PERSONAL_LOCAL_DEFINED"},
           "target": {"properties": {"ownerGateState": {"const": "NOT_AUTHORIZED"}}},
           "liveProjection": {"properties": {"status": {"const": "NOT_EXECUTED"}}},
-          "completeness": {"properties": {"executedReads": {"const": 0}, "skippedReads": {"const": 13}}}
+          "kubernetesReads": {"minItems": 26, "maxItems": 26, "items": {"properties": {"status": {"const": "NOT_EXECUTED"}}}},
+          "completeness": {"properties": {"executedReads": {"const": 0}, "skippedReads": {"const": 26}}}
         }
       }
     },
@@ -151,7 +156,33 @@
       "then": {
         "properties": {
           "result": {"enum": ["PERSONAL_LOCAL_READY", "PERSONAL_LOCAL_BLOCKED"]},
-          "target": {"properties": {"ownerGateState": {"const": "APPROVED"}}}
+          "target": {"properties": {"ownerGateState": {"const": "APPROVED"}}},
+          "kubernetesReads": {"minItems": 26, "maxItems": 26}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"result": {"const": "PERSONAL_LOCAL_READY"}}},
+      "then": {
+        "properties": {
+          "executionMode": {"const": "LIVE_READ_ONLY_PREFLIGHT"},
+          "liveProjection": {
+            "properties": {
+              "liveBeforeSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "liveAfterSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "status": {"const": "MATCH"},
+              "objects": {
+                "items": {
+                  "properties": {
+                    "liveBeforeProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "liveAfterProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                  }
+                }
+              }
+            }
+          },
+          "kubernetesReads": {"items": {"properties": {"status": {"const": "READY"}}}},
+          "completeness": {"properties": {"executedReads": {"const": 26}, "skippedReads": {"const": 0}}}
         }
       }
     }
@@ -182,8 +213,9 @@
     "kubernetesRead": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["apiVersion", "kind", "namespace", "name", "verb", "status"],
+      "required": ["phase", "apiVersion", "kind", "namespace", "name", "verb", "status"],
       "properties": {
+        "phase": {"enum": ["BEFORE", "AFTER"]},
         "apiVersion": {"type": "string"},
         "kind": {"type": "string"},
         "namespace": {"type": "string"},

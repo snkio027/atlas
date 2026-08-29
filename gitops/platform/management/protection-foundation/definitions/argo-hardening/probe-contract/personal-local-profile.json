@@ -31,13 +31,14 @@
   "repositoryFixture": {
     "executionMode": "REPOSITORY_ONLY_SYNTHETIC",
     "maximumResult": "PERSONAL_LOCAL_DEFINED",
-    "ownerGateState": "NOT_AUTHORIZED",
-    "ownerGateSHA256": "dbb62b37538b65bb3c2f5c293d38efab3050a36b697674c42fb9d6407da074ee"
+    "ownerGateState": "NOT_AUTHORIZED"
   },
   "livePreflight": {
     "executionMode": "LIVE_READ_ONLY_PREFLIGHT",
     "ownerGateState": "APPROVED",
     "requiredObjectCount": 13,
+    "requiredSnapshotCount": 2,
+    "requiredReadCount": 26,
     "requiredVerb": "get",
     "requiredAggregateEquality": "DESIRED_EQUALS_LIVE_BEFORE_EQUALS_LIVE_AFTER",
     "allowedNonResourceURLs": ["/version"],
@@ -45,6 +46,14 @@
     "forbiddenVerbs": ["create", "delete", "deletecollection", "list", "patch", "update", "watch"],
     "argoAPICallCount": 0,
     "mutationCount": 0
+  },
+  "ownerGate": {
+    "schema": "atlas.argocd.authorization-personal-local-owner-gate/v1",
+    "operation": "PERSONAL_LOCAL_READ_ONLY_PREFLIGHT",
+    "canonicalEncoding": "UTF8_CANONICAL_JSON_RECURSIVE_KEY_SORT_NO_TRAILING_NEWLINE",
+    "independentExpectedSHARequired": true,
+    "targetProjection": "FULL_TARGET_EXCLUDING_GATE_AND_DERIVED_HASH_FIELDS",
+    "readPlanEncoding": "IDENTITY_SORTED_TSV_NO_TRAILING_NEWLINE"
   },
   "waivers": {
     "baseArgoActions": {

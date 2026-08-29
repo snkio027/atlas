@@ -60,6 +60,8 @@ expected_contract_files=(
   README.md
   evidence.schema.json
   personal-local-evidence.schema.json
+  personal-local-owner-gate.schema.json
+  personal-local-preflight
   personal-local-profile.json
   personal-local-target.schema.json
   probe-contract.json

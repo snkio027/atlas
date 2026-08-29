@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "gateID": "atlas.argocd.authorization-personal-local-owner-gate/v1",
+  "operation": "PERSONAL_LOCAL_READ_ONLY_PREFLIGHT",
+  "decision": "NOT_AUTHORIZED",
+  "rolloutProfile": "PERSONAL_LOCAL",
+  "contractGitCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "authorityBaseline": "48867ada7a38e551098b5c698ddfefc899d9b09e",
+  "waiverDecisionSHA256": "34e42bc31933ecf63fa5d878b611c3119415c3503481c7863e5e1cb5a4eff949",
+  "ownerGateTargetProjectionSHA256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "desiredProjectionSHA256": "4985afebe6471eaf45c897ec372f91caeeca1cd171bf8901ee04aef4918ecd6c",
+  "readPlanSHA256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "readObjectCount": 13,
+  "snapshotCount": 2,
+  "kubeContext": "kind-atlas-test",
+  "kubeconfigSHA256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "apiServerCASPKISHA256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "sessionID": "personal-local-20260829T000000Z-00000000000000000000000000000001",
+  "issuedAt": "2000-01-01T00:00:00Z",
+  "expiresAt": "2099-12-31T23:59:59Z"
+}

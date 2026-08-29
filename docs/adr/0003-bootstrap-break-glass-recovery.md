@@ -1544,11 +1544,16 @@ ownerGateSHA256=<action-specific Owner Gate document SHA-256>
 ```
 
 The Owner Gate also has an explicit state. Repository-only fixtures use the
-canonical `NOT_AUTHORIZED` sentinel and can prove at most
-`PERSONAL_LOCAL_DEFINED`. Only a separately approved, target-bound, live
-read-only preflight may produce `PERSONAL_LOCAL_READY`. Any commit, Target,
-waiver, Gate, object identity, projection, read inventory, or Evidence mismatch
-produces `PERSONAL_LOCAL_BLOCKED`; partial success is never retained as Ready.
+canonical `NOT_AUTHORIZED` document and can prove at most
+`PERSONAL_LOCAL_DEFINED`. An approved Gate is a separate canonical document
+whose hash is supplied independently of the Target. It binds the exact
+operation, profile decision, commit, pre-authorization Target projection,
+thirteen-object read plan, two snapshots, kubeconfig and CA authority, and
+session window. The Target cannot declare that hash authoritative by itself.
+Only a separately approved, target-bound, live read-only preflight may produce
+`PERSONAL_LOCAL_READY`. Any commit, Target, waiver, Gate, object identity,
+projection, read inventory, or Evidence mismatch produces
+`PERSONAL_LOCAL_BLOCKED`; partial success is never retained as Ready.
 
 The Personal Local state sequence is:
 
