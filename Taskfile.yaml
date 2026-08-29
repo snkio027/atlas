@@ -63,6 +63,8 @@ tasks:
       - ./tests/gitops/protection-foundation-contract.sh
       - ./tests/gitops/argo-hardening-contract.sh
       - ./tests/gitops/argo-authorization-probe-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
+      - ./tests/gitops/argo-authorization-personal-local-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
+      - ./tests/gitops/argo-authorization-personal-local-preflight-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
       - ./tests/gitops/applicationset-recovery-contract.sh
       - ./tests/gitops/protection-foundation-reachability-contract.sh
 

@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "profileID": "atlas.argocd.authorization-probe-profile/personal-local/v1",
+  "authorityBaseline": "48867ada7a38e551098b5c698ddfefc899d9b09e",
+  "rolloutProfile": "PERSONAL_LOCAL",
+  "selection": {
+    "explicitSelectionRequired": true,
+    "implicitFallbackAllowed": false,
+    "productionProfileStatus": "UNSUPPORTED"
+  },
+  "states": {
+    "repositoryDefinition": "PERSONAL_LOCAL_DEFINED",
+    "liveReadOnlyPreflight": "PERSONAL_LOCAL_READY",
+    "admissionObserving": "PERSONAL_LOCAL_OBSERVING",
+    "observationComplete": "PERSONAL_LOCAL_OBSERVED",
+    "failure": "PERSONAL_LOCAL_BLOCKED"
+  },
+  "classification": {
+    "preflightResults": ["PERSONAL_LOCAL_DEFINED", "PERSONAL_LOCAL_READY", "PERSONAL_LOCAL_BLOCKED"],
+    "exitCodes": {
+      "PERSONAL_LOCAL_DEFINED": 0,
+      "PERSONAL_LOCAL_READY": 0,
+      "PERSONAL_LOCAL_BLOCKED": 24
+    },
+    "unknownProfile": "PERSONAL_LOCAL_BLOCKED",
+    "syntheticReady": "PERSONAL_LOCAL_BLOCKED",
+    "inputMismatch": "PERSONAL_LOCAL_BLOCKED",
+    "unavailableRead": "PERSONAL_LOCAL_BLOCKED",
+    "partialResult": "PERSONAL_LOCAL_BLOCKED"
+  },
+  "repositoryFixture": {
+    "executionMode": "REPOSITORY_ONLY_SYNTHETIC",
+    "maximumResult": "PERSONAL_LOCAL_DEFINED",
+    "ownerGateState": "NOT_AUTHORIZED"
+  },
+  "livePreflight": {
+    "executionMode": "LIVE_READ_ONLY_PREFLIGHT",
+    "ownerGateState": "APPROVED",
+    "requiredObjectCount": 13,
+    "requiredSnapshotCount": 2,
+    "requiredReadCount": 26,
+    "requiredVerb": "get",
+    "requiredAggregateEquality": "DESIRED_EQUALS_LIVE_BEFORE_EQUALS_LIVE_AFTER",
+    "allowedNonResourceURLs": ["/version"],
+    "forbiddenResources": ["secrets"],
+    "forbiddenVerbs": ["create", "delete", "deletecollection", "list", "patch", "update", "watch"],
+    "argoAPICallCount": 0,
+    "mutationCount": 0
+  },
+  "ownerGate": {
+    "schema": "atlas.argocd.authorization-personal-local-owner-gate/v1",
+    "operation": "PERSONAL_LOCAL_READ_ONLY_PREFLIGHT",
+    "canonicalEncoding": "UTF8_CANONICAL_JSON_RECURSIVE_KEY_SORT_NO_TRAILING_NEWLINE",
+    "independentExpectedSHARequired": true,
+    "targetProjection": "FULL_TARGET_EXCLUDING_GATE_AND_DERIVED_HASH_FIELDS",
+    "readPlanEncoding": "IDENTITY_SORTED_TSV_NO_TRAILING_NEWLINE"
+  },
+  "waivers": {
+    "baseArgoActions": {
+      "count": 33,
+      "execution": "NOT_EXECUTED",
+      "result": "RUNTIME_UNPROVEN"
+    },
+    "fineGrainedApplicationActions": {
+      "count": 3,
+      "patterns": ["action/*", "delete/*", "update/*"],
+      "execution": "NOT_EXECUTED",
+      "result": "STATICALLY_CLOSED_RUNTIME_UNPROVEN"
+    },
+    "builtInAdmin": {
+      "credentialRequired": false,
+      "loginExecuted": false,
+      "result": "STATICALLY_CLOSED_RUNTIME_UNPROVEN",
+      "requiredProjectionFacts": [
+        "admin.enabled=false",
+        "users.anonymous.enabled=false",
+        "argocd-version=3.5.1",
+        "reviewed-policy-fragments=policy.csv"
+      ]
+    },
+    "custody": {
+      "model": "SINGLE_OWNER_HUMAN_GATE",
+      "productionIndependentCustodySatisfied": false
+    },
+    "evidence": {
+      "storage": "OWNER_CONTROLLED_ENCRYPTED_LOCAL",
+      "redacted": true,
+      "hashBound": true,
+      "productionExternalAnchorSatisfied": false
+    }
+  },
+  "assurance": {
+    "argoAPIAuthorization": "RUNTIME_UNPROVEN",
+    "productionRecovery": "NOT_AUTHORIZED"
+  },
+  "observation": {
+    "minimumMinutes": 30,
+    "maximumMinutes": 60,
+    "minimumCompleteReconciliationAuditCycles": 3,
+    "zeroEventsMeansSuccess": false,
+    "insufficientEvidenceResult": "PERSONAL_LOCAL_BLOCKED"
+  },
+  "observationTransition": {
+    "requiredGitAuthorities": [
+      "preflightMainCommit",
+      "candidateBaseCommit",
+      "candidateHeadCommit",
+      "candidateDesiredTree",
+      "postMergeMainCommit",
+      "postMergeDesiredTree"
+    ],
+    "candidateBaseMustEqualPreflightMain": true,
+    "postMergeRevalidationRequired": true,
+    "mismatchResult": "PERSONAL_LOCAL_BLOCKED"
+  },
+  "prohibitions": {
+    "ambientKubeconfig": true,
+    "argoAuthToken": true,
+    "argoCore": true,
+    "argoAPI": true,
+    "secretRead": true,
+    "collectionRead": true,
+    "mutation": true,
+    "admissionDeny": true,
+    "recoveryRBAC": true,
+    "signal": true,
+    "receipt": true
+  }
+}
