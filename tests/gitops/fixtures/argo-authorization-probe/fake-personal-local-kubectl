@@ -20,11 +20,15 @@ if [[ ${1:-} == version && ${2:-} == --client && ${3:-} == -o && ${4:-} == json 
   exit 0
 fi
 
-if [[ $# -eq 9 && $1 == --kubeconfig && $3 == config && $4 == view && $5 == --minify &&
-  $6 == --context && $7 == "$ATLAS_FAKE_CONTEXT" && $8 == -o && $9 == json ]]; then
-  CONTEXT=$ATLAS_FAKE_CONTEXT SERVER=$ATLAS_FAKE_API_SERVER yq -n -o=json -I=0 \
-    '{"current-context":strenv(CONTEXT),"clusters":[{"name":strenv(CONTEXT),
-    "cluster":{"server":strenv(SERVER)}}]}'
+if [[ $# -eq 10 && $1 == --kubeconfig && $3 == config && $4 == view && $5 == --minify &&
+  $6 == --raw && $7 == --context && $8 == "$ATLAS_FAKE_CONTEXT" && $9 == -o && ${10} == json ]]; then
+  CONTEXT=$ATLAS_FAKE_CONTEXT SERVER=$ATLAS_FAKE_API_SERVER CA_DATA=${ATLAS_FAKE_CA_DATA:-} \
+    INSECURE=${ATLAS_FAKE_INSECURE_TLS:-false} yq -n -o=json -I=0 \
+    '{"current-context":strenv(CONTEXT),
+    "contexts":[{"name":strenv(CONTEXT),"context":{"cluster":"fake-cluster","user":"fake-user"}}],
+    "clusters":[{"name":"fake-cluster","cluster":{"server":strenv(SERVER),
+      "certificate-authority-data":strenv(CA_DATA),
+      "insecure-skip-tls-verify":(strenv(INSECURE) == "true")}}]}'
   exit 0
 fi
 

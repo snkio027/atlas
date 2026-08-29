@@ -108,6 +108,23 @@ render_desired_objects() {
 }
 
 profile_sha=$(canonical_json_sha "$profile")
+ca_key=$test_workspace/ca.key
+ca_certificate=$test_workspace/ca.crt
+wrong_ca_key=$test_workspace/wrong-ca.key
+wrong_ca_certificate=$test_workspace/wrong-ca.crt
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$ca_key" > /dev/null 2>&1
+openssl req -x509 -sha256 -key "$ca_key" -subj /CN=atlas-personal-local-test-ca \
+  -days 1 -out "$ca_certificate" > /dev/null 2>&1
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$wrong_ca_key" > /dev/null 2>&1
+openssl req -x509 -sha256 -key "$wrong_ca_key" -subj /CN=atlas-personal-local-wrong-ca \
+  -days 1 -out "$wrong_ca_certificate" > /dev/null 2>&1
+ca_data=$(openssl base64 -A -in "$ca_certificate")
+wrong_ca_data=$(openssl base64 -A -in "$wrong_ca_certificate")
+ca_spki_sha=$(
+  openssl x509 -in "$ca_certificate" -pubkey -noout |
+    openssl pkey -pubin -outform DER |
+    sha256_text
+)
 kubeconfig=$test_workspace/kubeconfig
 printf '%s\n' 'fake-kubeconfig-bound-by-sha' > "$kubeconfig"
 chmod 0600 "$kubeconfig"
@@ -123,23 +140,25 @@ target=$test_workspace/target.json
 gate=$test_workspace/owner-gate.json
 PROFILE_SHA=$profile_sha COMMIT=$expected_commit KUBECONFIG=$kubeconfig \
   KUBECONFIG_SHA=$(sha256_file "$kubeconfig") KUBECTL=$fake_kubectl \
-  KUBECTL_SHA=$(sha256_file "$fake_kubectl") yq \
+  KUBECTL_SHA=$(sha256_file "$fake_kubectl") CA_SHA=$ca_spki_sha yq \
   '.contractGitCommit = strenv(COMMIT) | .waiverDecisionSHA256 = strenv(PROFILE_SHA) |
   .ownerGateState = "APPROVED" | .kubeconfigPath = strenv(KUBECONFIG) |
   .kubeconfigSHA256 = strenv(KUBECONFIG_SHA) | .kubectlPath = strenv(KUBECTL) |
-  .kubectlSHA256 = strenv(KUBECTL_SHA)' "$target_fixture" > "$target_draft"
+  .kubectlSHA256 = strenv(KUBECTL_SHA) |
+  .apiServerCASPKISHA256 = strenv(CA_SHA)' "$target_fixture" > "$target_draft"
 gate_target_sha=$(owner_gate_target_sha "$target_draft")
 GATE_TARGET_SHA=$gate_target_sha yq \
   '.ownerGateTargetProjectionSHA256 = strenv(GATE_TARGET_SHA)' "$target_draft" > "$target_gate_projection"
 plan=$test_workspace/read-plan.tsv
 read_plan "$target_gate_projection" > "$plan"
 plan_sha=$(printf '%s' "$(< "$plan")" | sha256_text)
-COMMIT=$expected_commit PROFILE_SHA=$profile_sha GATE_TARGET_SHA=$gate_target_sha \
+COMMIT=$expected_commit PROFILE_SHA=$profile_sha GATE_TARGET_SHA=$gate_target_sha CA_SHA=$ca_spki_sha \
   PLAN_SHA=$plan_sha KUBECONFIG_SHA=$(sha256_file "$kubeconfig") yq -o=json -I=2 \
   '.decision = "APPROVED" | .contractGitCommit = strenv(COMMIT) |
   .waiverDecisionSHA256 = strenv(PROFILE_SHA) |
   .ownerGateTargetProjectionSHA256 = strenv(GATE_TARGET_SHA) |
-  .readPlanSHA256 = strenv(PLAN_SHA) | .kubeconfigSHA256 = strenv(KUBECONFIG_SHA)' \
+  .readPlanSHA256 = strenv(PLAN_SHA) | .kubeconfigSHA256 = strenv(KUBECONFIG_SHA) |
+  .apiServerCASPKISHA256 = strenv(CA_SHA)' \
   "$gate_fixture" > "$gate"
 gate_sha=$(canonical_json_sha "$gate")
 GATE_SHA=$gate_sha yq '.ownerGateSHA256 = strenv(GATE_SHA)' "$target_gate_projection" > "$target_gated"
@@ -154,6 +173,7 @@ export ATLAS_FAKE_READ_LOG=$read_log
 export ATLAS_FAKE_CONTEXT=kind-atlas-test
 export ATLAS_FAKE_API_SERVER=https://127.0.0.1:6443
 export ATLAS_FAKE_NAMESPACE_UID=00000000-0000-4000-8000-000000000001
+export ATLAS_FAKE_CA_DATA=$ca_data
 
 run_preflight() {
   local target_file=$1 gate_file=$2 expected_gate_sha=$3 output_file=$4 stdout_file=$5 stderr_file=$6 status
@@ -188,6 +208,15 @@ validator_stderr=$test_workspace/validator.stderr
 [[ $(< "$validator_stdout") == PERSONAL_LOCAL_READY && ! -s $validator_stderr ]] ||
   test::fail "Evidence Validator emitted an ambiguous result"
 
+assert_validator_rejects() {
+  local name=$1 evidence_file=$2
+  if "$preflight" validate --target "$target" --owner-gate "$gate" \
+    --expected-owner-gate-sha "$gate_sha" --expected-commit "$expected_commit" \
+    --evidence "$evidence_file" > /dev/null 2>&1; then
+    test::fail "Evidence Validator accepted ${name}"
+  fi
+}
+
 [[ $(grep -Fxc /version "$read_log") -eq 1 ]] || test::fail "Kubernetes /version was not read exactly once"
 object_reads=$(grep -Fvx /version "$read_log")
 [[ $(wc -l <<< "$object_reads" | tr -d ' ') -eq 26 && $(sort -u <<< "$object_reads" | wc -l | tr -d ' ') -eq 13 ]] ||
@@ -208,6 +237,33 @@ if "$preflight" validate --target "$target" --owner-gate "$gate" \
   --evidence "$invalid_evidence" > /dev/null 2>&1; then
   test::fail "zero-read READY Evidence was accepted"
 fi
+
+for mutation in ca waiver fragments nested-sensitive reverse-time; do
+  mutated_evidence=$test_workspace/evidence-invalid-${mutation}.json
+  case $mutation in
+    ca)
+      yq '.target.apiServerCASPKISHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+    waiver)
+      yq '.waiver.baseArgoActions = "RUNTIME_PROVEN"' "$evidence" > "$mutated_evidence"
+      ;;
+    fragments)
+      yq '.liveProjection.reviewedPolicyFragments += ["policy.unreviewed.csv"]' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+    nested-sensitive)
+      yq '.liveProjection.objects[0].token = "ATLAS_FIXTURE_NOT_A_TOKEN"' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+    reverse-time)
+      STARTED=$(yq -r '.startedAt' "$evidence") COMPLETED=$(yq -r '.completedAt' "$evidence") \
+        yq '.startedAt = strenv(COMPLETED) | .completedAt = strenv(STARTED)' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+  esac
+  assert_validator_rejects "$mutation mutation" "$mutated_evidence"
+done
 
 tampered_gate=$test_workspace/tampered-gate.json
 tampered_target_draft=$test_workspace/tampered-target-draft.json
@@ -253,6 +309,31 @@ if run_preflight "$target" "$gate" "$gate_sha" "$test_workspace/stderr-evidence.
   test::fail "Kubernetes diagnostic was ignored"
 fi
 unset ATLAS_FAKE_STDERR_PATH
+
+reads_before=$(wc -l < "$read_log" | tr -d ' ')
+export ATLAS_FAKE_CA_DATA=$wrong_ca_data
+if run_preflight "$target" "$gate" "$gate_sha" "$test_workspace/wrong-ca-evidence.json" \
+  "$test_workspace/wrong-ca.stdout" "$test_workspace/wrong-ca.stderr"; then
+  test::fail "wrong API Server CA produced READY Evidence"
+fi
+[[ $(wc -l < "$read_log" | tr -d ' ') -eq "$reads_before" ]] ||
+  test::fail "wrong API Server CA reached a Kubernetes object read"
+
+ATLAS_FAKE_CA_DATA='' run_preflight "$target" "$gate" "$gate_sha" \
+  "$test_workspace/missing-ca-evidence.json" "$test_workspace/missing-ca.stdout" \
+  "$test_workspace/missing-ca.stderr" && test::fail "missing API Server CA produced READY Evidence"
+[[ $(wc -l < "$read_log" | tr -d ' ') -eq "$reads_before" ]] ||
+  test::fail "missing API Server CA reached a Kubernetes object read"
+
+export ATLAS_FAKE_CA_DATA=$ca_data
+export ATLAS_FAKE_INSECURE_TLS=true
+if run_preflight "$target" "$gate" "$gate_sha" "$test_workspace/insecure-evidence.json" \
+  "$test_workspace/insecure.stdout" "$test_workspace/insecure.stderr"; then
+  test::fail "insecure kubeconfig produced READY Evidence"
+fi
+unset ATLAS_FAKE_INSECURE_TLS
+[[ $(wc -l < "$read_log" | tr -d ' ') -eq "$reads_before" ]] ||
+  test::fail "insecure kubeconfig reached a Kubernetes object read"
 
 if KUBECONFIG=/tmp/ambient "$preflight" validate --target "$target" --owner-gate "$gate" \
   --expected-owner-gate-sha "$gate_sha" --expected-commit "$expected_commit" \

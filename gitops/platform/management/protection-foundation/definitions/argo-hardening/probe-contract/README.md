@@ -88,11 +88,17 @@ preflight caller must separately provide the expected canonical Gate SHA.
 `personal-local-preflight` is the authoritative `run` and `validate` entrypoint.
 `run` verifies the external Gate and exact Git hydration before using the
 approved kubeconfig for `/version` and two complete snapshots of the thirteen
-exact raw object paths. It recursively projects live values through the desired
-field mask, verifies array shape, and writes `PERSONAL_LOCAL_READY` only when
-all 26 reads and both aggregate hashes equal the approved desired projection.
-`validate` independently repeats Target, Gate, hydration, read-inventory, and
-Evidence validation. Both commands return `24` and
+exact raw object paths. The selected context must use its embedded
+`certificate-authority-data`, must not enable insecure TLS, and the decoded CA
+SPKI must equal the Gate-approved target hash. External CA paths are rejected
+to keep the authority check and subsequent reads within one hash-bound
+kubeconfig boundary. The preflight recursively projects live values through
+the desired field mask, verifies array shape, and writes
+`PERSONAL_LOCAL_READY` only when all 26 reads and both aggregate hashes equal
+the approved desired projection. `validate` independently repeats Target,
+Gate, hydration, complete nested Evidence shape and semantic validation,
+read-inventory, time ordering, and sensitive-content rejection. Both commands
+return `24` and
 `PERSONAL_LOCAL_BLOCKED` for uncertainty.
 
 The checked-in fixtures have execution mode `REPOSITORY_ONLY_SYNTHETIC`, use a
