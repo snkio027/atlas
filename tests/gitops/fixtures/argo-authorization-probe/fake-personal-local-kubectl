@@ -7,6 +7,7 @@ IFS=$'\n\t'
 : "${ATLAS_FAKE_OBJECTS:?}"
 : "${ATLAS_FAKE_READ_PLAN:?}"
 : "${ATLAS_FAKE_READ_LOG:?}"
+: "${ATLAS_FAKE_CONFIG_VIEW_LOG:?}"
 : "${ATLAS_FAKE_CONTEXT:?}"
 : "${ATLAS_FAKE_API_SERVER:?}"
 : "${ATLAS_FAKE_NAMESPACE_UID:?}"
@@ -20,15 +21,38 @@ if [[ ${1:-} == version && ${2:-} == --client && ${3:-} == -o && ${4:-} == json 
   exit 0
 fi
 
-if [[ $# -eq 10 && $1 == --kubeconfig && $3 == config && $4 == view && $5 == --minify &&
-  $6 == --raw && $7 == --context && $8 == "$ATLAS_FAKE_CONTEXT" && $9 == -o && ${10} == json ]]; then
-  CONTEXT=$ATLAS_FAKE_CONTEXT SERVER=$ATLAS_FAKE_API_SERVER CA_DATA=${ATLAS_FAKE_CA_DATA:-} \
-    INSECURE=${ATLAS_FAKE_INSECURE_TLS:-false} yq -n -o=json -I=0 \
-    '{"current-context":strenv(CONTEXT),
-    "contexts":[{"name":strenv(CONTEXT),"context":{"cluster":"fake-cluster","user":"fake-user"}}],
-    "clusters":[{"name":"fake-cluster","cluster":{"server":strenv(SERVER),
-      "certificate-authority-data":strenv(CA_DATA),
-      "insecure-skip-tls-verify":(strenv(INSECURE) == "true")}}]}'
+if [[ ($# -eq 9 || $# -eq 10) && $1 == --kubeconfig && $3 == config && $4 == view &&
+  $5 == --minify ]]; then
+  raw=false
+  argument=6
+  if [[ ${!argument} == --raw ]]; then
+    raw=true
+    argument=$((argument + 1))
+  fi
+  [[ ${!argument} == --context ]] || exit 64
+  argument=$((argument + 1))
+  [[ ${!argument} == "$ATLAS_FAKE_CONTEXT" ]] || exit 64
+  argument=$((argument + 1))
+  [[ ${!argument} == -o ]] || exit 64
+  argument=$((argument + 1))
+  format=${!argument}
+  [[ $argument -eq $# ]] || exit 64
+  case $format in
+    'jsonpath={.contexts[0].name}') value=$ATLAS_FAKE_CONTEXT ;;
+    'jsonpath={.contexts[0].context.cluster}') value=fake-cluster ;;
+    'jsonpath={.clusters[0].name}') value=fake-cluster ;;
+    'jsonpath={.clusters[0].cluster.server}') value=$ATLAS_FAKE_API_SERVER ;;
+    'jsonpath={.clusters[0].cluster.insecure-skip-tls-verify}') value=${ATLAS_FAKE_INSECURE_TLS:-} ;;
+    'jsonpath={.clusters[0].cluster.certificate-authority}') value=${ATLAS_FAKE_CA_FILE:-} ;;
+    'jsonpath={.clusters[0].cluster.certificate-authority-data}')
+      [[ $raw == true ]] || exit 64
+      value=${ATLAS_FAKE_CA_DATA:-}
+      ;;
+    *) exit 64 ;;
+  esac
+  [[ $raw == false || $format == 'jsonpath={.clusters[0].cluster.certificate-authority-data}' ]] || exit 64
+  printf '%s\t%s\t%s\n' "$raw" "$format" "$value" >> "$ATLAS_FAKE_CONFIG_VIEW_LOG"
+  printf '%s' "$value"
   exit 0
 fi
 

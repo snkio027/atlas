@@ -126,12 +126,23 @@ ca_spki_sha=$(
     sha256_text
 )
 kubeconfig=$test_workspace/kubeconfig
-printf '%s\n' 'fake-kubeconfig-bound-by-sha' > "$kubeconfig"
+readonly token_sentinel=ATLAS_FIXTURE_TOKEN_MUST_NOT_BE_PROJECTED
+readonly private_key_sentinel=ATLAS_FIXTURE_PRIVATE_KEY_MUST_NOT_BE_PROJECTED
+printf '%s\n' \
+  'apiVersion: v1' \
+  'kind: Config' \
+  'users:' \
+  '  - name: fake-user' \
+  '    user:' \
+  "      token: ${token_sentinel}" \
+  "      client-key-data: ${private_key_sentinel}" > "$kubeconfig"
 chmod 0600 "$kubeconfig"
 objects=$test_workspace/objects.yaml
 render_desired_objects > "$objects"
 read_log=$test_workspace/read.log
 : > "$read_log"
+config_view_log=$test_workspace/config-view.log
+: > "$config_view_log"
 
 target_draft=$test_workspace/target-draft.json
 target_gate_projection=$test_workspace/target-gate-projection.json
@@ -170,6 +181,7 @@ export ATLAS_FAKE_REAL_KUBECTL=$real_kubectl
 export ATLAS_FAKE_OBJECTS=$objects
 export ATLAS_FAKE_READ_PLAN=$plan
 export ATLAS_FAKE_READ_LOG=$read_log
+export ATLAS_FAKE_CONFIG_VIEW_LOG=$config_view_log
 export ATLAS_FAKE_CONTEXT=kind-atlas-test
 export ATLAS_FAKE_API_SERVER=https://127.0.0.1:6443
 export ATLAS_FAKE_NAMESPACE_UID=00000000-0000-4000-8000-000000000001
@@ -207,6 +219,15 @@ validator_stderr=$test_workspace/validator.stderr
   test::fail "authoritative Evidence Validator rejected generated Evidence"
 [[ $(< "$validator_stdout") == PERSONAL_LOCAL_READY && ! -s $validator_stderr ]] ||
   test::fail "Evidence Validator emitted an ambiguous result"
+for output_file in "$stdout_file" "$stderr_file" "$validator_stdout" "$validator_stderr" "$evidence" "$config_view_log"; do
+  if grep -Fq "$token_sentinel" "$output_file" || grep -Fq "$private_key_sentinel" "$output_file"; then
+    test::fail "kubeconfig credential sentinel escaped its hash-bound file"
+  fi
+done
+grep -Fq '.users' "$config_view_log" && test::fail "config projection requested a users field"
+raw_config_queries=$(awk -F '\t' '$1 == "true" {print $2}' "$config_view_log" | sort -u)
+[[ $raw_config_queries == 'jsonpath={.clusters[0].cluster.certificate-authority-data}' ]] ||
+  test::fail "raw config access was not limited to the CA data projection"
 
 assert_validator_rejects() {
   local name=$1 evidence_file=$2
@@ -214,6 +235,20 @@ assert_validator_rejects() {
     --expected-owner-gate-sha "$gate_sha" --expected-commit "$expected_commit" \
     --evidence "$evidence_file" > /dev/null 2>&1; then
     test::fail "Evidence Validator accepted ${name}"
+  fi
+}
+
+assert_sensitive_scanner_rejects() {
+  local name=$1 evidence_file=$2
+  if (
+    # shellcheck source=/dev/null
+    source "$preflight"
+    # shellcheck disable=SC2034 # consumed by the sourced preflight cleanup trap
+    preflight_tmp=$(mktemp -d "${TMPDIR:-/tmp}/atlas-personal-local-sensitive-scan.XXXXXX")
+    preflight::_assert_evidence_shape "$evidence_file" &&
+      preflight::_assert_evidence_has_no_sensitive_content "$evidence_file"
+  ); then
+    test::fail "sensitive-content scanner accepted ${name}"
   fi
 }
 
@@ -238,7 +273,7 @@ if "$preflight" validate --target "$target" --owner-gate "$gate" \
   test::fail "zero-read READY Evidence was accepted"
 fi
 
-for mutation in ca waiver fragments nested-sensitive reverse-time; do
+for mutation in ca waiver fragments nested-sensitive reverse-time sensitive-cookie sensitive-kubeconfig sensitive-token; do
   mutated_evidence=$test_workspace/evidence-invalid-${mutation}.json
   case $mutation in
     ca)
@@ -261,8 +296,23 @@ for mutation in ca waiver fragments nested-sensitive reverse-time; do
         yq '.startedAt = strenv(COMPLETED) | .completedAt = strenv(STARTED)' \
         "$evidence" > "$mutated_evidence"
       ;;
+    sensitive-cookie)
+      yq '.target.environmentName = "cookie=ATLAS_FIXTURE_NOT_A_COOKIE"' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+    sensitive-kubeconfig)
+      yq '.target.environmentName = "kubeconfig:/fixture/not-a-real-host/config"' \
+        "$evidence" > "$mutated_evidence"
+      ;;
+    sensitive-token)
+      yq '.target.environmentName = "token:ATLAS_FIXTURE_NOT_A_TOKEN"' \
+        "$evidence" > "$mutated_evidence"
+      ;;
   esac
   assert_validator_rejects "$mutation mutation" "$mutated_evidence"
+  case $mutation in
+    sensitive-*) assert_sensitive_scanner_rejects "$mutation mutation" "$mutated_evidence" ;;
+  esac
 done
 
 tampered_gate=$test_workspace/tampered-gate.json

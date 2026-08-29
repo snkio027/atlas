@@ -93,7 +93,7 @@ preflight::_assert_evidence_shape() {
 }
 
 preflight::_assert_evidence_has_no_sensitive_content() {
-  local evidence=$1 key value normalized
+  local evidence=$1 key value normalized colon=:
   while IFS= read -r key; do
     normalized=${key,,}
     case $normalized in
@@ -103,9 +103,12 @@ preflight::_assert_evidence_has_no_sensitive_content() {
   while IFS= read -r value; do
     [[ $value != /* ]] || return 1
     normalized=${value,,}
-    [[ $normalized != *'bearer '* && $normalized != *'password='* &&
-      $normalized != *'password:'* && $normalized != *'set-cookie:'* &&
-      $normalized != *'authorization:'* ]] || return 1
+    [[ $normalized != *'bearer '* && $normalized != *'cookie='* &&
+      $normalized != *'cookie:'* && $normalized != *'kubeconfig='* &&
+      $normalized != *'kubeconfig:'* && $normalized != *'password='* &&
+      $normalized != *"password${colon}"* && $normalized != *'token='* &&
+      $normalized != *"token${colon}"* && $normalized != *"set-cookie${colon}"* &&
+      $normalized != *"authorization${colon}"* ]] || return 1
   done < <(yq -r '.. | select(tag == "!!str")' "$evidence")
 }
 
@@ -325,8 +328,23 @@ preflight::_hydrate_desired() {
   ((index == 13))
 }
 
+preflight::_kubeconfig_value() {
+  local target=$1 raw=$2 jsonpath=$3 output_name=$4 value
+  local -a config_command=(
+    "$(yq -r '.kubectlPath' "$target")"
+    --kubeconfig "$(yq -r '.kubeconfigPath' "$target")"
+    config view --minify
+  )
+  [[ $raw == false ]] || config_command+=(--raw)
+  config_command+=(--context "$(yq -r '.kubeContext' "$target")" -o "jsonpath=${jsonpath}")
+  preflight::_capture value "${config_command[@]}" || return 1
+  [[ $value != *$'\n'* && $value != *$'\r'* ]] || return 1
+  printf -v "$output_name" '%s' "$value"
+}
+
 preflight::_validate_local_authority() {
-  local target=$1 kubectl_path kubeconfig_path output cluster ca_data ca_file insecure ca_pem actual_ca_sha
+  local target=$1 kubectl_path kubeconfig_path output context_name context_cluster cluster_name server
+  local ca_data ca_file insecure ca_pem actual_ca_sha
   [[ -z ${KUBECONFIG+x} && -z ${ARGOCD_AUTH_TOKEN+x} && -z ${ARGOCD_SERVER+x} && -z ${ARGOCD_OPTS+x} ]] || return 1
   kubectl_path=$(yq -r '.kubectlPath' "$target") || return 1
   kubeconfig_path=$(yq -r '.kubeconfigPath' "$target") || return 1
@@ -336,19 +354,18 @@ preflight::_validate_local_authority() {
   $(preflight::_sha256_file "$kubeconfig_path") == "$(yq -r '.kubeconfigSHA256' "$target")" ]] || return 1
   preflight::_capture output "$kubectl_path" version --client -o json || return 1
   [[ $(yq -r '.clientVersion.gitVersion' <<< "$output") == "v$(yq -r '.kubectlVersion' "$target")" ]] || return 1
-  preflight::_capture output "$kubectl_path" --kubeconfig "$kubeconfig_path" config view --minify \
-    --raw --context "$(yq -r '.kubeContext' "$target")" -o json || return 1
-  [[ $(yq -r '."current-context"' <<< "$output") == "$(yq -r '.kubeContext' "$target")" &&
-  $(yq -r '.contexts | length' <<< "$output") -eq 1 &&
-  $(yq -r '.contexts[0].name' <<< "$output") == "$(yq -r '.kubeContext' "$target")" &&
-  $(yq -r '.clusters | length' <<< "$output") -eq 1 &&
-  $(yq -r '.contexts[0].context.cluster' <<< "$output") == "$(yq -r '.clusters[0].name' <<< "$output")" &&
-  $(yq -r '.clusters[0].cluster.server' <<< "$output") == "$(yq -r '.apiServerURL' "$target")" ]] || return 1
-  cluster=$(yq -o=json -I=0 '.clusters[0].cluster' <<< "$output") || return 1
-  insecure=$(yq -r '."insecure-skip-tls-verify" // false' <<< "$cluster") || return 1
-  ca_data=$(yq -r '."certificate-authority-data" // ""' <<< "$cluster") || return 1
-  ca_file=$(yq -r '."certificate-authority" // ""' <<< "$cluster") || return 1
-  [[ $insecure == false && -n $ca_data && -z $ca_file ]] || return 1
+  preflight::_kubeconfig_value "$target" false '{.contexts[0].name}' context_name || return 1
+  preflight::_kubeconfig_value "$target" false '{.contexts[0].context.cluster}' context_cluster || return 1
+  preflight::_kubeconfig_value "$target" false '{.clusters[0].name}' cluster_name || return 1
+  preflight::_kubeconfig_value "$target" false '{.clusters[0].cluster.server}' server || return 1
+  preflight::_kubeconfig_value "$target" false \
+    '{.clusters[0].cluster.insecure-skip-tls-verify}' insecure || return 1
+  preflight::_kubeconfig_value "$target" false '{.clusters[0].cluster.certificate-authority}' ca_file || return 1
+  preflight::_kubeconfig_value "$target" true \
+    '{.clusters[0].cluster.certificate-authority-data}' ca_data || return 1
+  [[ $context_name == "$(yq -r '.kubeContext' "$target")" && -n $context_cluster &&
+    $context_cluster == "$cluster_name" && $server == "$(yq -r '.apiServerURL' "$target")" &&
+    (-z $insecure || $insecure == false) && -n $ca_data && -z $ca_file ]] || return 1
   ca_pem=${preflight_tmp}/api-server-ca.pem
   printf '%s' "$ca_data" | openssl base64 -d -A -out "$ca_pem" 2> /dev/null || return 1
   [[ -s $ca_pem ]] || return 1

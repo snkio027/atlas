@@ -92,7 +92,10 @@ exact raw object paths. The selected context must use its embedded
 `certificate-authority-data`, must not enable insecure TLS, and the decoded CA
 SPKI must equal the Gate-approved target hash. External CA paths are rejected
 to keep the authority check and subsequent reads within one hash-bound
-kubeconfig boundary. The preflight recursively projects live values through
+kubeconfig boundary. Context, cluster, server, and TLS mode use individual
+non-raw JSONPath projections; the only raw projection is the exact CA-data
+field. No config-view command projects `.users` or another credential field.
+The preflight recursively projects live values through
 the desired field mask, verifies array shape, and writes
 `PERSONAL_LOCAL_READY` only when all 26 reads and both aggregate hashes equal
 the approved desired projection. `validate` independently repeats Target,
