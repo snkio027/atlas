@@ -5,7 +5,7 @@
 - Deciders: repository owner and required CODEOWNERS
 - Clarifies: ADR-0002 evidence protection and recovery authority
 - Amended by: [ADR-0004](0004-length-bounded-recovery-principal-identities.md) principal identity contract
-- Proposed amendment: [ADR-0005](0005-personal-local-target-materialization.md) PERSONAL_LOCAL target-materialization contract
+- Amended by: [ADR-0005](0005-personal-local-target-materialization.md) PERSONAL_LOCAL target-materialization contract
 - Supersedes: none
 - Superseded by: none
 

@@ -1,6 +1,6 @@
 # ADR-0005: Define PERSONAL_LOCAL target materialization
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-30
 - Deciders: repository owner and required CODEOWNERS
 - Amends: [ADR-0003](0003-bootstrap-break-glass-recovery.md) PERSONAL_LOCAL authorization flow
