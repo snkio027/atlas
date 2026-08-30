@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+if (($# >= 1)) && [[ $1 == kustomize ]]; then
+  exec "${ATLAS_REAL_KUBECTL:?real renderer kubectl is required}" "$@"
+fi
+
+if (($# == 4)) && [[ $1 == version && $2 == --client && $3 == -o && $4 == json ]]; then
+  printf '{"clientVersion":{"gitVersion":"v%s"}}\n' "${ATLAS_FAKE_V2_RENDERER_VERSION:-1.36.3}"
+  exit 0
+fi
+
+exit 97

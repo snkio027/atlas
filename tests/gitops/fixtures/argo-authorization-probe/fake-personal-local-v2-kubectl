@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly log_file=${ATLAS_FAKE_V2_LOG:?fake invocation log is required}
+readonly state_dir=${ATLAS_FAKE_V2_STATE_DIR:?fake state directory is required}
+readonly object_map=${ATLAS_FAKE_V2_OBJECT_MAP:?fake object map is required}
+readonly expected_kubeconfig=${ATLAS_FAKE_V2_KUBECONFIG:?expected kubeconfig is required}
+readonly expected_context=${ATLAS_FAKE_V2_CONTEXT:?expected context is required}
+
+fake_v2::log() {
+  printf '%s\n' "$1" >> "$log_file"
+}
+
+fake_v2::count() {
+  local key=$1 value=0
+  local file=${state_dir}/${key}
+  [[ ! -f $file ]] || value=$(< "$file")
+  value=$((value + 1))
+  printf '%s' "$value" > "$file"
+  printf '%s\n' "$value"
+}
+
+fake_v2::fault() {
+  local operation=$1
+  if [[ ${ATLAS_FAKE_V2_STDERR:-} == "$operation" ]]; then
+    printf '%s\n' 'synthetic kubectl diagnostic' >&2
+  fi
+  if [[ ${ATLAS_FAKE_V2_NONZERO:-} == "$operation" ]]; then
+    exit 42
+  fi
+}
+
+if (($# == 4)) && [[ $1 == version && $2 == --client && $3 == -o && $4 == json ]]; then
+  fake_v2::log CLIENT_VERSION
+  fake_v2::fault CLIENT_VERSION
+  printf '{"clientVersion":{"gitVersion":"%s"}}\n' "${ATLAS_FAKE_V2_CLIENT_VERSION:-v1.36.3}"
+  exit 0
+fi
+
+if (($# != 8)) || [[ $1 != --kubeconfig || $2 != "$expected_kubeconfig" ||
+  $3 != --context || $4 != "$expected_context" || $5 != --request-timeout=10s ||
+  $6 != get || $7 != --raw ]]; then
+  fake_v2::log "UNEXPECTED:$*"
+  exit 97
+fi
+
+readonly request_path=$8
+request_key=$(printf '%s' "$request_path" | shasum -a 256 | awk '{print $1}')
+request_count=$(fake_v2::count "$request_key")
+fake_v2::log "RAW:${request_path}:${request_count}"
+fake_v2::fault "${request_path}:${request_count}"
+
+if [[ ${ATLAS_FAKE_V2_MALFORMED:-} == "${request_path}:${request_count}" ]]; then
+  printf '%s\n' '{'
+  exit 0
+fi
+
+case $request_path in
+  /version)
+    printf '{"gitVersion":"%s"}\n' "${ATLAS_FAKE_V2_SERVER_VERSION:-v1.36.1}"
+    ;;
+  *)
+    object_file=$(awk -F '\t' -v path="$request_path" '$1 == path {print $2}' "$object_map")
+    [[ -n $object_file && -f $object_file ]] || exit 44
+    if [[ ${ATLAS_FAKE_V2_REPLACEMENT_AT:-} == "${request_path}:${request_count}" ]]; then
+      cat "${ATLAS_FAKE_V2_REPLACEMENT_FILE:?replacement file is required}"
+    elif [[ ${ATLAS_FAKE_V2_WRONG_UID_AT:-} == "${request_path}:${request_count}" ]]; then
+      sed 's/12345678-1234-1234-1234-123456789abc/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/g' "$object_file"
+    else
+      cat "$object_file"
+    fi
+    ;;
+esac
+
+if [[ ${ATLAS_FAKE_V2_DRIFT_AFTER_REQUEST:-} == "${request_path}:${request_count}" ]]; then
+  printf '\n' >> "$expected_kubeconfig"
+fi
+if [[ ${ATLAS_FAKE_V2_DRIFT_KUBECTL_AFTER_REQUEST:-} == "${request_path}:${request_count}" ]]; then
+  chmod g+w "$0"
+fi

@@ -91,11 +91,12 @@ PERSONAL_LOCAL_READ_ONLY_PREFLIGHT
   -> PERSONAL_LOCAL_READY
 ```
 
-The repository contains the dedicated
-`personal-local-target-materialization` executor and offline provenance
-validator. Repository tests exercise it only with synthetic credentials and a
-fake kubectl backend. No checked-in fixture, schema, test, or merge authorizes
-real Target Materialization, and no v2 final live preflight is implemented.
+The repository contains dedicated, separate executables for Target
+Materialization, Final Target projection/sealing, and the final read-only
+preflight. Repository tests exercise the complete B2-to-B3 path only with
+synthetic credentials and a fake kubectl backend. No checked-in fixture,
+schema, test, or merge authorizes real Target Materialization or a real v2
+live preflight.
 
 The v2 Profile keeps the Personal Local assurance classification fixed:
 
@@ -159,6 +160,26 @@ or Mutation calls, and thirteen per-object hashes satisfying
 revalidated through the existing two Namespace snapshot reads, never a new
 request. The final Gate may be issued only zero to 900 seconds after successful
 Materialization Evidence completion.
+
+`personal-local-target-v2 project` produces only an offline review aid; it
+does not construct, approve, or hash a Human Gate. `seal` requires the
+independently supplied approved Final Gate and expected SHA, revalidates the
+complete B2 claim/terminal/Evidence provenance, hydrates desired state from the
+exact Git commit, and publishes a create-once canonical Target. Desired-state
+hydration binds `versions.lock` and resolves one immutable executable set for
+exact `kubectl`, `helm`, and `yq` versions; every renderer is rechecked after
+hydration and no ambient renderer version is accepted.
+
+`personal-local-read-only-preflight run` validates all repository, B2, Target,
+Final Gate, desired-state, read-plan, and local custody authority before the
+first live request. Its entire request surface is one exact `/version` read
+followed by the two ordered thirteen-object snapshots. Evidence is validated
+in private staging and atomically published as the final success commit. The
+Final Gate is revalidated locally immediately before every Kubernetes request;
+if a request completes after expiry, no subsequent request is issued and no
+READY Evidence can be published.
+`validate` reconstructs the Target and validates the final Evidence offline;
+it neither reads nor hashes the target kubeconfig or target kubectl.
 
 All files in this directory remain unreachable from every live Kustomization
 and Application. Runtime Materialization, kubeconfig or credential use,

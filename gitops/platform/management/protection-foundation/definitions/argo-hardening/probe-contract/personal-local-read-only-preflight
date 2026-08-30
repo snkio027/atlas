@@ -1,0 +1,845 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+preflight_v2_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+readonly preflight_v2_dir
+readonly target_builder=${preflight_v2_dir}/personal-local-target-v2
+readonly target_schema=${preflight_v2_dir}/personal-local-target-v2.schema.json
+readonly gate_schema=${preflight_v2_dir}/personal-local-owner-gate-v2.schema.json
+readonly evidence_schema=${preflight_v2_dir}/personal-local-evidence-v2.schema.json
+readonly blocked_exit=24
+readonly waiver_sha=c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a
+readonly authority_baseline=165fb2a31068e3de2ac1064dbf8f95966ff8aad1
+
+preflight_v2_tmp=
+preflight_v2_renderer_kubectl=
+preflight_v2_renderer_helm=
+preflight_v2_renderer_yq=
+preflight_v2_renderer_identity=
+
+preflight_v2::_cleanup() {
+  if [[ -n ${preflight_v2_tmp:-} && -d $preflight_v2_tmp ]]; then
+    rm -rf "$preflight_v2_tmp" || :
+  fi
+}
+trap preflight_v2::_cleanup EXIT
+
+preflight_v2::_blocked() {
+  printf '%s\n' "PERSONAL_LOCAL_BLOCKED: $*" >&2
+  exit "$blocked_exit"
+}
+
+preflight_v2::_sha256_text() {
+  shasum -a 256 | awk '{print $1}'
+}
+
+preflight_v2::_sha256_file() {
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+preflight_v2::_canonical_json() {
+  yq -o=json -I=0 'sort_keys(..)' "$1" 2> /dev/null
+}
+
+preflight_v2::_canonical_sha() {
+  local projection
+  projection=$(preflight_v2::_canonical_json "$1") || return 1
+  printf '%s' "$projection" | preflight_v2::_sha256_text
+}
+
+preflight_v2::_document_is_canonical() {
+  local projection
+  projection=$(preflight_v2::_canonical_json "$1") || return 1
+  cmp -s "$1" <(printf '%s' "$projection")
+}
+
+preflight_v2::_document_keys() {
+  yq -r 'keys | .[]' "$1" | sort
+}
+
+preflight_v2::_schema_keys() {
+  yq -r '.required[]' "$1" | sort
+}
+
+preflight_v2::_assert_exact_keys() {
+  [[ $(preflight_v2::_document_keys "$1") == "$(preflight_v2::_schema_keys "$2")" ]]
+}
+
+preflight_v2::_keys_at() {
+  yq -o=json -I=0 "$2 | keys | sort" "$1"
+}
+
+preflight_v2::_all_array_keys_are() {
+  local document=$1 expression=$2 expected=$3 keys
+  keys=$(yq -r "${expression}[] | (keys | sort | join(\",\"))" "$document" | sort -u) || return 1
+  [[ $keys == "$expected" ]]
+}
+
+preflight_v2::_has_tag() {
+  yq -e "($2 | tag) == \"$3\"" "$1" > /dev/null 2>&1
+}
+
+preflight_v2::_assert_tags() {
+  local document=$1 expected=$2 expression
+  shift 2
+  for expression in "$@"; do
+    preflight_v2::_has_tag "$document" "$expression" "$expected" || return 1
+  done
+}
+
+preflight_v2::_path_uid() {
+  local value
+  if value=$(stat -f '%u' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%u' "$1"
+  fi
+}
+
+preflight_v2::_path_mode() {
+  local value
+  if value=$(stat -f '%Lp' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%a' "$1"
+  fi
+}
+
+preflight_v2::_path_identity() {
+  local value
+  if value=$(stat -f '%d:%i:%u:%Lp:%z' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%d:%i:%u:%a:%s' "$1"
+  fi
+}
+
+preflight_v2::_canonical_directory() {
+  (cd "$1" 2> /dev/null && pwd -P)
+}
+
+preflight_v2::_assert_private_file() {
+  local path=$1 require_owner=$2 mode mode_value parent canonical_parent
+  [[ $path == /* && -f $path && ! -L $path ]] || return 1
+  parent=$(dirname "$path")
+  canonical_parent=$(preflight_v2::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$path")" == "$path" ]] || return 1
+  if [[ $require_owner == true ]]; then
+    [[ $(preflight_v2::_path_uid "$path") == "$(id -u)" ]] || return 1
+  fi
+  mode=$(preflight_v2::_path_mode "$path") || return 1
+  [[ $mode =~ ^[0-7]{3,4}$ ]] || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0077) == 0))
+}
+
+preflight_v2::_assert_executable_file() {
+  local path=$1 mode mode_value parent canonical_parent
+  [[ $path == /* && -f $path && ! -L $path && -x $path ]] || return 1
+  parent=$(dirname "$path")
+  canonical_parent=$(preflight_v2::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$path")" == "$path" ]] || return 1
+  mode=$(preflight_v2::_path_mode "$path") || return 1
+  [[ $mode =~ ^[0-7]{3,4}$ ]] || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0022) == 0))
+}
+
+preflight_v2::_assert_owner_directory() {
+  local path=$1 canonical
+  [[ $path == /* && -d $path && ! -L $path ]] || return 1
+  canonical=$(preflight_v2::_canonical_directory "$path") || return 1
+  [[ $canonical == "$path" && $(preflight_v2::_path_uid "$path") == "$(id -u)" &&
+  $(preflight_v2::_path_mode "$path") == 700 ]]
+}
+
+preflight_v2::_assert_output_destination() {
+  local output=$1 parent canonical_parent
+  [[ $output == /* && ! -e $output && ! -L $output ]] || return 1
+  parent=$(dirname "$output")
+  preflight_v2::_assert_owner_directory "$parent" || return 1
+  canonical_parent=$(preflight_v2::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$output")" == "$output" ]]
+}
+
+preflight_v2::_capture() {
+  local output_name=$1
+  shift
+  local stderr_file=${preflight_v2_tmp}/command.stderr captured status
+  : > "$stderr_file" || return 1
+  if captured=$("$@" 2> "$stderr_file"); then status=0; else status=$?; fi
+  ((status == 0)) || return 1
+  [[ ! -s $stderr_file ]] || return 1
+  printf -v "$output_name" '%s' "$captured"
+}
+
+preflight_v2::_locked_version() {
+  local versions_file=$1 key=$2 count value
+  [[ -f $versions_file && ! -L $versions_file ]] || return 1
+  count=$(awk -F= -v key="$key" '$1 == key {count++} END {print count+0}' "$versions_file") || return 1
+  [[ $count -eq 1 ]] || return 1
+  value=$(awk -F= -v key="$key" '$1 == key {print substr($0, index($0, "=") + 1)}' "$versions_file") || return 1
+  [[ $value =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+  printf '%s\n' "$value"
+}
+
+preflight_v2::_resolve_renderer_tcb() {
+  local root=$1 expected_commit=$2 forbidden_kubectl=$3 versions_file=${root}/versions.lock
+  local expected_blob actual_blob kubectl_path helm_path yq_path kubectl_version helm_version yq_version path
+  local expected_kubectl expected_helm expected_yq
+  expected_blob=$(preflight_v2::_git -C "$root" rev-parse "${expected_commit}:versions.lock") || return 1
+  actual_blob=$(preflight_v2::_git -C "$root" hash-object --no-filters "$versions_file") || return 1
+  [[ $actual_blob == "$expected_blob" ]] || return 1
+  expected_kubectl=$(preflight_v2::_locked_version "$versions_file" KUBECTL_VERSION) || return 1
+  expected_helm=$(preflight_v2::_locked_version "$versions_file" HELM_VERSION) || return 1
+  expected_yq=$(preflight_v2::_locked_version "$versions_file" YQ_VERSION) || return 1
+  kubectl_path=$(realpath "$(command -v kubectl)") || return 1
+  helm_path=$(realpath "$(command -v helm)") || return 1
+  yq_path=$(realpath "$(command -v yq)") || return 1
+  for path in "$kubectl_path" "$helm_path" "$yq_path"; do
+    [[ $path == /* && -f $path && ! -L $path && -x $path ]] || return 1
+  done
+  [[ $kubectl_path != "$forbidden_kubectl" ]] || return 1
+  preflight_v2::_capture kubectl_version "$kubectl_path" version --client -o json || return 1
+  preflight_v2::_capture helm_version "$helm_path" version --template '{{.Version}}' || return 1
+  preflight_v2::_capture yq_version "$yq_path" --version || return 1
+  [[ $("$yq_path" -r '.clientVersion.gitVersion' <<< "$kubectl_version" 2> /dev/null) == "v${expected_kubectl}" &&
+  $helm_version == "v${expected_helm}" &&
+  $yq_version == "yq (https://github.com/mikefarah/yq/) version v${expected_yq}" ]] || return 1
+  preflight_v2_renderer_kubectl=$kubectl_path
+  preflight_v2_renderer_helm=$helm_path
+  preflight_v2_renderer_yq=$yq_path
+  preflight_v2_renderer_identity="$(preflight_v2::_path_identity "$kubectl_path")"$'\t'"$(preflight_v2::_path_identity "$helm_path")"$'\t'"$(preflight_v2::_path_identity "$yq_path")" || return 1
+}
+
+preflight_v2::_revalidate_renderer_tcb() {
+  [[ -n $preflight_v2_renderer_identity &&
+  "$(preflight_v2::_path_identity "$preflight_v2_renderer_kubectl")"$'\t'"$(preflight_v2::_path_identity "$preflight_v2_renderer_helm")"$'\t'"$(preflight_v2::_path_identity "$preflight_v2_renderer_yq")" == "$preflight_v2_renderer_identity" ]]
+}
+
+preflight_v2::_assert_no_ambient_authority() {
+  local variable
+  [[ -z ${KUBECONFIG+x} ]] || return 1
+  while IFS= read -r variable; do
+    [[ $variable != ARGOCD_* ]] || return 1
+  done < <(compgen -A variable)
+}
+
+preflight_v2::_git() {
+  env -i PATH="$PATH" LC_ALL=C git --no-replace-objects \
+    -c core.fsmonitor=false -c core.ignoreStat=false "$@"
+}
+
+preflight_v2::_repository_root() {
+  local root expected_dir
+  root=$(preflight_v2::_git -C "$preflight_v2_dir" rev-parse --show-toplevel) || return 1
+  expected_dir=${root}/gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract
+  [[ $preflight_v2_dir == "$expected_dir" ]] || return 1
+  printf '%s\n' "$root"
+}
+
+preflight_v2::_validate_documents() {
+  local target=$1 materialization_gate=$2 materialization_gate_sha=$3 materialization_evidence=$4
+  local final_gate=$5 final_gate_sha=$6 expected_commit=$7 require_current=$8 sealed gate_issued gate_expires now target_result
+  preflight_v2::_assert_private_file "$target" true || return 1
+  sealed=${preflight_v2_tmp}/sealed-target.json
+  preflight_v2::_capture target_result "$target_builder" seal \
+    --materialization-owner-gate "$materialization_gate" \
+    --expected-materialization-owner-gate-sha "$materialization_gate_sha" \
+    --materialization-evidence "$materialization_evidence" \
+    --final-owner-gate "$final_gate" --expected-final-owner-gate-sha "$final_gate_sha" \
+    --expected-commit "$expected_commit" --output "$sealed" || return 1
+  [[ $target_result == TARGET_SEALED && $(preflight_v2::_sha256_file "$sealed") == "$(preflight_v2::_sha256_file "$target")" ]] || return 1
+  preflight_v2::_document_is_canonical "$target" || return 1
+  preflight_v2::_assert_exact_keys "$target" "$target_schema" || return 1
+  preflight_v2::_assert_exact_keys "$final_gate" "$gate_schema" || return 1
+  if [[ $require_current == true ]]; then
+    gate_issued=$(yq -r '.issuedAt | to_unix' "$final_gate") || return 1
+    gate_expires=$(yq -r '.expiresAt | to_unix' "$final_gate") || return 1
+    now=$(date -u +%s) || return 1
+    [[ $gate_issued =~ ^[0-9]+$ && $gate_expires =~ ^[0-9]+$ ]] || return 1
+    ((gate_issued < now && now < gate_expires)) || return 1
+  fi
+}
+
+preflight_v2::_assert_final_gate_active() {
+  local final_gate=$1 issued expires now
+  issued=$(yq -r '.issuedAt | to_unix' "$final_gate") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$final_gate") || return 1
+  now=$(date -u +%s) || return 1
+  [[ $issued =~ ^[0-9]+$ && $expires =~ ^[0-9]+$ && $now =~ ^[0-9]+$ ]] || return 1
+  ((issued < now && now < expires))
+}
+
+preflight_v2::_hydrate_desired() {
+  local target=$1 output_dir=$2 root source_root combined target_kubectl expected_commit
+  local object api kind namespace name count projection sha index=0
+  root=$(preflight_v2::_repository_root) || return 1
+  expected_commit=$(yq -r '.contractGitCommit' "$target") || return 1
+  target_kubectl=$(yq -r '.kubectlPath' "$target") || return 1
+  preflight_v2::_resolve_renderer_tcb "$root" "$expected_commit" "$target_kubectl" || return 1
+  source_root=${preflight_v2_tmp}/source
+  mkdir -m 0700 "$source_root" "$output_dir" || return 1
+  preflight_v2::_git -C "$root" archive "$expected_commit" | tar -x -C "$source_root" || return 1
+  combined=${preflight_v2_tmp}/desired.yaml
+  (
+    cd "$source_root" || exit 1
+    {
+      printf '%s\n' 'apiVersion: v1' 'kind: Namespace' 'metadata:' '  name: kube-system' '---'
+      "$preflight_v2_renderer_kubectl" kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay
+      printf '%s\n' '---'
+      "$preflight_v2_renderer_kubectl" kustomize gitops/platform/management/protection-foundation/definitions/argo-hardening
+      printf '%s\n' '---'
+      "$preflight_v2_renderer_kubectl" kustomize gitops/platform/management/projects
+      printf '%s\n' '---'
+      "$preflight_v2_renderer_yq" '.' bootstrap/argocd/atlas-bootstrap-project.yaml
+      printf '%s\n' '---'
+      "$preflight_v2_renderer_helm" template atlas-argocd vendor/charts/argo-cd-10.3.3 --namespace argocd --include-crds \
+        --values gitops/platform/management/argocd-self/values.yaml \
+        --values gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-values-hardening.yaml
+    }
+  ) > "$combined" || return 1
+  while IFS= read -r object; do
+    api=$("$preflight_v2_renderer_yq" -r '.apiVersion' <<< "$object") || return 1
+    kind=$("$preflight_v2_renderer_yq" -r '.kind' <<< "$object") || return 1
+    namespace=$("$preflight_v2_renderer_yq" -r '.namespace' <<< "$object") || return 1
+    name=$("$preflight_v2_renderer_yq" -r '.name' <<< "$object") || return 1
+    count=$(API=$api KIND=$kind NS=$namespace NAME=$name "$preflight_v2_renderer_yq" ea \
+      '[select(.apiVersion == strenv(API) and .kind == strenv(KIND) and
+      (.metadata.namespace // "") == strenv(NS) and .metadata.name == strenv(NAME))] | length' \
+      "$combined" | tail -1) || return 1
+    [[ $count -eq 1 ]] || return 1
+    projection=$(API=$api KIND=$kind NS=$namespace NAME=$name "$preflight_v2_renderer_yq" ea -o=json -I=0 \
+      'select(.apiVersion == strenv(API) and .kind == strenv(KIND) and
+      (.metadata.namespace // "") == strenv(NS) and .metadata.name == strenv(NAME)) |
+      del(.metadata.creationTimestamp,.metadata.resourceVersion,.metadata.uid,
+      .metadata.generation,.metadata.managedFields,.status) | sort_keys(..)' "$combined") || return 1
+    sha=$(printf '%s' "$projection" | preflight_v2::_sha256_text) || return 1
+    [[ $sha == "$("$preflight_v2_renderer_yq" -r '.desiredProjectionSHA256' <<< "$object")" ]] || return 1
+    printf '%s' "$projection" > "${output_dir}/${index}.json" || return 1
+    index=$((index + 1))
+  done < <("$preflight_v2_renderer_yq" -o=json -I=0 '.desiredObjects | sort_by(.apiVersion,.kind,.namespace,.name)[]' "$target")
+  ((index == 13)) || return 1
+  preflight_v2::_revalidate_renderer_tcb
+}
+
+preflight_v2::_project_kubeconfig() {
+  local kubeconfig=$1 approved_context=$2 context_count cluster_name user_name cluster_count user_count
+  local context_keys user_keys cluster_keys server insecure insecure_present ca_data
+  context_count=$(CONTEXT=$approved_context yq '[.contexts[] | select(.name == strenv(CONTEXT))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $context_count -eq 1 ]] || return 1
+  context_keys=$(CONTEXT=$approved_context yq -o=json -I=0 \
+    '.contexts[] | select(.name == strenv(CONTEXT)) | .context | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $context_keys == '["cluster","user"]' ]] || return 1
+  cluster_name=$(CONTEXT=$approved_context yq -r '.contexts[] | select(.name == strenv(CONTEXT)) | .context.cluster' "$kubeconfig" 2> /dev/null) || return 1
+  user_name=$(CONTEXT=$approved_context yq -r '.contexts[] | select(.name == strenv(CONTEXT)) | .context.user' "$kubeconfig" 2> /dev/null) || return 1
+  [[ -n $cluster_name && $cluster_name != null && -n $user_name && $user_name != null ]] || return 1
+  cluster_count=$(CLUSTER=$cluster_name yq '[.clusters[] | select(.name == strenv(CLUSTER))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  user_count=$(USER_NAME=$user_name yq '[.users[] | select(.name == strenv(USER_NAME))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $cluster_count -eq 1 && $user_count -eq 1 ]] || return 1
+  user_keys=$(USER_NAME=$user_name yq -o=json -I=0 '.users[] | select(.name == strenv(USER_NAME)) | .user | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $user_keys == '["client-certificate-data","client-key-data"]' ]] || return 1
+  cluster_keys=$(CLUSTER=$cluster_name yq -o=json -I=0 '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $cluster_keys == '["certificate-authority-data","server"]' ||
+    $cluster_keys == '["certificate-authority-data","insecure-skip-tls-verify","server"]' ]] || return 1
+  server=$(CLUSTER=$cluster_name yq -r '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster.server' "$kubeconfig" 2> /dev/null) || return 1
+  insecure=$(CLUSTER=$cluster_name yq -r '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."insecure-skip-tls-verify" // false' "$kubeconfig" 2> /dev/null) || return 1
+  insecure_present=$(CLUSTER=$cluster_name yq -r '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster | has("insecure-skip-tls-verify")' "$kubeconfig" 2> /dev/null) || return 1
+  ca_data=$(CLUSTER=$cluster_name yq -r '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."certificate-authority-data"' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $server =~ ^https://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$ &&
+    $insecure == false && -n $ca_data && $ca_data != null ]] || return 1
+  if [[ $insecure_present == true ]]; then
+    CLUSTER=$cluster_name yq -e '(.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."insecure-skip-tls-verify" | tag) == "!!bool"' "$kubeconfig" > /dev/null 2>&1 || return 1
+  fi
+  printf '%s\t%s\n' "$server" "$ca_data"
+}
+
+preflight_v2::_ca_spki_sha() {
+  local ca_data=$1 ca_pem=${preflight_v2_tmp}/api-server-ca.pem certificates
+  printf '%s' "$ca_data" | openssl base64 -d -A -out "$ca_pem" 2> /dev/null || return 1
+  chmod 0600 "$ca_pem" || return 1
+  [[ -s $ca_pem ]] || return 1
+  certificates=$(grep -c -- '-----BEGIN CERTIFICATE-----' "$ca_pem") || return 1
+  [[ $certificates -eq 1 ]] || return 1
+  openssl x509 -in "$ca_pem" -pubkey -noout 2> /dev/null |
+    openssl pkey -pubin -outform DER 2> /dev/null | preflight_v2::_sha256_text
+}
+
+preflight_v2::_target_kubectl() {
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u NO_PROXY \
+    -u http_proxy -u https_proxy -u all_proxy -u no_proxy "$@"
+}
+
+preflight_v2::_validate_local_authority() {
+  local target=$1 evidence=$2 output_name=$3 kubeconfig kubectl kubeconfig_identity kubectl_identity
+  local mode mode_value version projected server ca_data ca_sha
+  kubeconfig=$(yq -r '.kubeconfigPath' "$target") || return 1
+  kubectl=$(yq -r '.kubectlPath' "$target") || return 1
+  preflight_v2::_assert_private_file "$kubeconfig" true || return 1
+  [[ -r $kubeconfig ]] || return 1
+  mode=$(preflight_v2::_path_mode "$kubeconfig") || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0400) != 0)) || return 1
+  preflight_v2::_assert_executable_file "$kubectl" || return 1
+  [[ $(preflight_v2::_sha256_file "$kubeconfig") == "$(yq -r '.kubeconfigSHA256' "$target")" &&
+  $(preflight_v2::_sha256_file "$kubeconfig") == "$(yq -r '.kubeconfigSHA256' "$evidence")" &&
+  $(preflight_v2::_sha256_file "$kubectl") == "$(yq -r '.kubectlSHA256' "$target")" &&
+  $(preflight_v2::_sha256_file "$kubectl") == "$(yq -r '.kubectlSHA256' "$evidence")" ]] || return 1
+  preflight_v2::_capture version preflight_v2::_target_kubectl "$kubectl" version --client -o json || return 1
+  [[ $(yq -r '.clientVersion.gitVersion' <<< "$version" 2> /dev/null) == v1.36.3 ]] || return 1
+  projected=$(preflight_v2::_project_kubeconfig "$kubeconfig" "$(yq -r '.kubeContext' "$target")") || return 1
+  IFS=$'\t' read -r server ca_data <<< "$projected"
+  ca_sha=$(preflight_v2::_ca_spki_sha "$ca_data") || return 1
+  [[ $server == "$(yq -r '.apiServerURL' "$target")" &&
+  $server == "$(yq -r '.apiServerURL' "$evidence")" &&
+  $ca_sha == "$(yq -r '.apiServerCASPKISHA256' "$target")" &&
+  $ca_sha == "$(yq -r '.apiServerCASPKISHA256' "$evidence")" ]] || return 1
+  kubeconfig_identity=$(preflight_v2::_path_identity "$kubeconfig") || return 1
+  kubectl_identity=$(preflight_v2::_path_identity "$kubectl") || return 1
+  printf -v "$output_name" '%s\t%s' "$kubeconfig_identity" "$kubectl_identity"
+}
+
+preflight_v2::_revalidate_local_authority() {
+  local target=$1 evidence=$2 expected=$3 kubeconfig kubectl actual
+  kubeconfig=$(yq -r '.kubeconfigPath' "$target") || return 1
+  kubectl=$(yq -r '.kubectlPath' "$target") || return 1
+  preflight_v2::_assert_private_file "$kubeconfig" true || return 1
+  preflight_v2::_assert_executable_file "$kubectl" || return 1
+  [[ $(preflight_v2::_sha256_file "$kubeconfig") == "$(yq -r '.kubeconfigSHA256' "$target")" &&
+  $(preflight_v2::_sha256_file "$kubeconfig") == "$(yq -r '.kubeconfigSHA256' "$evidence")" &&
+  $(preflight_v2::_sha256_file "$kubectl") == "$(yq -r '.kubectlSHA256' "$target")" &&
+  $(preflight_v2::_sha256_file "$kubectl") == "$(yq -r '.kubectlSHA256' "$evidence")" ]] || return 1
+  actual="$(preflight_v2::_path_identity "$kubeconfig")"$'\t'"$(preflight_v2::_path_identity "$kubectl")" || return 1
+  [[ $actual == "$expected" ]]
+}
+
+preflight_v2::_raw_path() {
+  local api_version=$1 kind=$2 namespace=$3 name=$4
+  case "${api_version}|${kind}|${namespace}" in
+    'v1|Namespace|') printf '/api/v1/namespaces/%s' "$name" ;;
+    'v1|ConfigMap|argocd') printf '/api/v1/namespaces/argocd/configmaps/%s' "$name" ;;
+    'argoproj.io/v1alpha1|Application|argocd') printf '/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/%s' "$name" ;;
+    'argoproj.io/v1alpha1|AppProject|argocd') printf '/apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/%s' "$name" ;;
+    'apps/v1|Deployment|argocd') printf '/apis/apps/v1/namespaces/argocd/deployments/%s' "$name" ;;
+    'apps/v1|StatefulSet|argocd') printf '/apis/apps/v1/namespaces/argocd/statefulsets/%s' "$name" ;;
+    *) return 1 ;;
+  esac
+}
+
+preflight_v2::_kubectl_raw() {
+  local target=$1 final_gate=$2 path=$3 output_name=$4 output
+  preflight_v2::_assert_final_gate_active "$final_gate" || return 1
+  preflight_v2::_capture output preflight_v2::_target_kubectl "$(yq -r '.kubectlPath' "$target")" \
+    --kubeconfig "$(yq -r '.kubeconfigPath' "$target")" --context "$(yq -r '.kubeContext' "$target")" \
+    --request-timeout=10s get --raw "$path" || return 1
+  [[ -n $output ]] || return 1
+  printf -v "$output_name" '%s' "$output"
+}
+
+preflight_v2::_project_live() {
+  local desired=$1 live=$2 marker masked shallow desired_lengths live_lengths
+  marker="__REQUIRED_LEAF_${RANDOM}_${RANDOM}__"
+  masked=$(MARKER=$marker yq -o=json -I=0 '(.. | select(tag != "!!map" and tag != "!!seq")) = strenv(MARKER)' "$desired") || return 1
+  masked=$(yq ea -o=json -I=0 'select(fileIndex == 0) *?d select(fileIndex == 1)' <(printf '%s' "$masked") "$live") || return 1
+  [[ $masked != *"$marker"* ]] || return 1
+  shallow=$(yq ea -o=json -I=0 'select(fileIndex == 0) *? select(fileIndex == 1)' "$desired" "$live") || return 1
+  desired_lengths=$(yq -r '.. | select(tag == "!!seq") | [(path | join("/")), length] | @tsv' "$desired" | sort) || return 1
+  live_lengths=$(yq -r '.. | select(tag == "!!seq") | [(path | join("/")), length] | @tsv' <<< "$shallow" | sort) || return 1
+  [[ $desired_lengths == "$live_lengths" ]] || return 1
+  yq ea -o=json -I=0 'select(fileIndex == 0) *?d select(fileIndex == 1) | sort_keys(..)' "$desired" "$live"
+}
+
+preflight_v2::_snapshot() {
+  local phase=$1 target=$2 evidence=$3 final_gate=$4 desired_dir=$5 output=$6 object api kind namespace name desired_sha raw live live_file projection sha index=0
+  : > "$output" || return 1
+  while IFS= read -r object; do
+    api=$(yq -r '.apiVersion' <<< "$object") || return 1
+    kind=$(yq -r '.kind' <<< "$object") || return 1
+    namespace=$(yq -r '.namespace' <<< "$object") || return 1
+    name=$(yq -r '.name' <<< "$object") || return 1
+    desired_sha=$(yq -r '.desiredProjectionSHA256' <<< "$object") || return 1
+    raw=$(preflight_v2::_raw_path "$api" "$kind" "$namespace" "$name") || return 1
+    preflight_v2::_kubectl_raw "$target" "$final_gate" "$raw" live || return 1
+    live_file=${preflight_v2_tmp}/live-${phase}-${index}.json
+    printf '%s' "$live" > "$live_file" || return 1
+    yq -e '.' "$live_file" > /dev/null 2>&1 || return 1
+    [[ $(yq -r '.apiVersion' "$live_file") == "$api" && $(yq -r '.kind' "$live_file") == "$kind" &&
+    $(yq -r '.metadata.namespace // ""' "$live_file") == "$namespace" &&
+    $(yq -r '.metadata.name' "$live_file") == "$name" ]] || return 1
+    if [[ $kind == Namespace && $name == kube-system ]]; then
+      [[ $(yq -r '.metadata.uid' "$live_file") == "$(yq -r '.kubeSystemNamespaceUID' "$target")" &&
+      $(yq -r '.metadata.uid' "$live_file") == "$(yq -r '.kubeSystemNamespaceUID' "$evidence")" ]] || return 1
+    fi
+    projection=$(preflight_v2::_project_live "${desired_dir}/${index}.json" "$live_file") || return 1
+    sha=$(printf '%s' "$projection" | preflight_v2::_sha256_text) || return 1
+    [[ $sha == "$desired_sha" ]] || return 1
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$api" "$kind" "${namespace:-@cluster}" "$name" "$desired_sha" "$sha" >> "$output"
+    index=$((index + 1))
+  done < <(yq -o=json -I=0 '.desiredObjects | sort_by(.apiVersion,.kind,.namespace,.name)[]' "$target")
+  ((index == 13))
+}
+
+preflight_v2::_snapshot_aggregate() {
+  local snapshot=$1 docs=${preflight_v2_tmp}/aggregate.yaml api kind record_namespace namespace name desired_sha live_sha first=true projection
+  : > "$docs"
+  while IFS=$'\t' read -r api kind record_namespace name desired_sha live_sha; do
+    namespace=$record_namespace
+    [[ $namespace == @cluster ]] && namespace=''
+    if [[ $first == false ]]; then printf '%s\n' '---' >> "$docs"; fi
+    first=false
+    API=$api KIND=$kind NS=$namespace NAME=$name SHA=$live_sha yq -n -o=json -I=0 \
+      '{"apiVersion":strenv(API),"kind":strenv(KIND),"namespace":strenv(NS),"name":strenv(NAME),"desiredProjectionSHA256":strenv(SHA)}' >> "$docs" || return 1
+  done < "$snapshot"
+  projection=$(yq ea -o=json -I=0 '[.] | sort_by(.apiVersion,.kind,.namespace,.name) | (.. | select(tag == "!!map")) |= sort_keys(.)' "$docs") || return 1
+  printf '%s' "$projection" | preflight_v2::_sha256_text
+}
+
+preflight_v2::_assert_evidence_shape() {
+  local evidence=$1
+  [[ $(preflight_v2::_keys_at "$evidence" '.target') == '["apiServerCASPKISHA256","approvedTargetDocumentSHA256","clusterName","desiredProjectionSHA256","environmentName","ownerGateSHA256","ownerGateState","ownerGateTargetProjectionSHA256","targetFingerprintSHA256","targetMaterializationEvidenceSHA256","waiverDecisionSHA256"]' &&
+  $(preflight_v2::_keys_at "$evidence" '.waiver') == '["anonymousAccess","baseArgoActions","builtInAdmin","custody","fineGrainedApplicationActions","identity"]' &&
+  $(preflight_v2::_keys_at "$evidence" '.liveProjection') == '["desiredProjectionSHA256","liveAfterSHA256","liveBeforeSHA256","objects","reviewedPolicyFragments","status"]' &&
+  $(preflight_v2::_keys_at "$evidence" '.assurance') == '["argoAPIAuthorization","productionRecovery"]' &&
+  $(preflight_v2::_keys_at "$evidence" '.completeness') == '["ArgoAPICalls","SecretReads","collectionReads","executedReads","expectedReads","extraReads","mutations","nonResourceReads","plannedObjects","snapshotCount"]' ]] || return 1
+  preflight_v2::_all_array_keys_are "$evidence" '.liveProjection.objects' 'apiVersion,desiredProjectionSHA256,kind,liveAfterProjectionSHA256,liveBeforeProjectionSHA256,name,namespace' || return 1
+  preflight_v2::_all_array_keys_are "$evidence" '.kubernetesReads' 'apiVersion,kind,name,namespace,phase,status,verb'
+}
+
+preflight_v2::_assert_evidence_types() {
+  local evidence=$1 field tags
+  preflight_v2::_assert_tags "$evidence" '!!int' '.schemaVersion' || return 1
+  preflight_v2::_assert_tags "$evidence" '!!str' \
+    '.contractID' '.rolloutProfile' '.profileID' '.contractGitCommit' '.authorityBaseline' \
+    '.sessionID' '.startedAt' '.completedAt' '.targetMaterializationEvidenceSHA256' \
+    '.materializationOwnerGateSHA256' '.finalOwnerGateSHA256' '.approvedTargetDocumentSHA256' \
+    '.result' || return 1
+  preflight_v2::_assert_tags "$evidence" '!!str' \
+    '.target.environmentName' '.target.clusterName' '.target.targetFingerprintSHA256' \
+    '.target.apiServerCASPKISHA256' '.target.waiverDecisionSHA256' \
+    '.target.targetMaterializationEvidenceSHA256' '.target.ownerGateState' \
+    '.target.ownerGateSHA256' '.target.ownerGateTargetProjectionSHA256' \
+    '.target.approvedTargetDocumentSHA256' '.target.desiredProjectionSHA256' || return 1
+  preflight_v2::_assert_tags "$evidence" '!!str' \
+    '.waiver.baseArgoActions' '.waiver.fineGrainedApplicationActions' '.waiver.builtInAdmin' \
+    '.waiver.anonymousAccess' '.waiver.identity' '.waiver.custody' \
+    '.liveProjection.desiredProjectionSHA256' '.liveProjection.liveBeforeSHA256' \
+    '.liveProjection.liveAfterSHA256' '.liveProjection.status' \
+    '.assurance.argoAPIAuthorization' '.assurance.productionRecovery' || return 1
+  preflight_v2::_assert_tags "$evidence" '!!seq' '.liveProjection.reviewedPolicyFragments' \
+    '.liveProjection.objects' '.nonResourceReads' '.kubernetesReads' || return 1
+  for field in '.liveProjection.objects[]' '.nonResourceReads[]' '.kubernetesReads[]'; do
+    tags=$(yq -r "${field} | tag" "$evidence" | sort -u) || return 1
+    [[ $tags == '!!map' ]] || return 1
+    tags=$(yq -r "${field} | .[] | tag" "$evidence" | sort -u) || return 1
+    [[ $tags == '!!str' ]] || return 1
+  done
+  for field in nonResourceReads plannedObjects snapshotCount expectedReads executedReads extraReads \
+    SecretReads collectionReads ArgoAPICalls mutations; do
+    preflight_v2::_has_tag "$evidence" ".completeness.${field}" '!!int' || return 1
+  done
+}
+
+preflight_v2::_assert_evidence_has_no_sensitive_content() {
+  local evidence=$1 key value normalized colon=:
+  while IFS= read -r key; do
+    normalized=${key,,}
+    case $normalized in
+      authtoken | authorization | clientcertificatedata | clientkeydata | cookie | kubeconfigpath | kubectlpath | password | privatekey | sessionreceiptroot | setcookie | token) return 1 ;;
+    esac
+  done < <(yq -r '.. | select(tag == "!!map") | keys | .[]' "$evidence")
+  while IFS= read -r value; do
+    if [[ $value == /* && $value != /version ]]; then return 1; fi
+    normalized=${value,,}
+    [[ $normalized != *'bearer '* && $normalized != *'cookie='* && $normalized != *'cookie:'* &&
+      $normalized != *'kubeconfig='* && $normalized != *'kubeconfig:'* &&
+      $normalized != *'password='* && $normalized != *"password${colon}"* &&
+      $normalized != *'token='* && $normalized != *"token${colon}"* &&
+      $normalized != *"set-cookie${colon}"* && $normalized != *"authorization${colon}"* ]] || return 1
+  done < <(yq -r '.. | select(tag == "!!str")' "$evidence")
+}
+
+preflight_v2::_build_evidence() {
+  local target=$1 materialization_gate=$2 materialization_evidence=$3 final_gate=$4 before=$5 after=$6 started=$7 completed=$8 output=$9
+  local objects=${preflight_v2_tmp}/objects.yaml reads=${preflight_v2_tmp}/reads.yaml before_sha after_sha first=true
+  local api kind record_namespace namespace name desired_sha before_object_sha after_object_sha phase projection
+  before_sha=$(preflight_v2::_snapshot_aggregate "$before") || return 1
+  after_sha=$(preflight_v2::_snapshot_aggregate "$after") || return 1
+  [[ $before_sha == "$(yq -r '.desiredProjectionSHA256' "$target")" && $after_sha == "$before_sha" ]] || return 1
+  : > "$objects"
+  : > "$reads"
+  while IFS=$'\t' read -r api kind record_namespace name desired_sha before_object_sha; do
+    namespace=$record_namespace
+    [[ $namespace == @cluster ]] && namespace=''
+    after_object_sha=$(awk -F '\t' -v a="$api" -v k="$kind" -v n="$record_namespace" -v x="$name" '$1==a&&$2==k&&$3==n&&$4==x{print $6}' "$after")
+    [[ $before_object_sha == "$desired_sha" && $after_object_sha == "$desired_sha" ]] || return 1
+    if [[ $first == false ]]; then printf '%s\n' '---' >> "$objects"; fi
+    first=false
+    API=$api KIND=$kind NS=$namespace NAME=$name SHA=$desired_sha yq -n -o=json -I=0 \
+      '{"apiVersion":strenv(API),"kind":strenv(KIND),"namespace":strenv(NS),"name":strenv(NAME),
+      "desiredProjectionSHA256":strenv(SHA),"liveBeforeProjectionSHA256":strenv(SHA),"liveAfterProjectionSHA256":strenv(SHA)}' >> "$objects" || return 1
+  done < "$before"
+  first=true
+  for phase in BEFORE AFTER; do
+    while IFS=$'\t' read -r api kind record_namespace name desired_sha before_object_sha; do
+      namespace=$record_namespace
+      [[ $namespace == @cluster ]] && namespace=''
+      if [[ $first == false ]]; then printf '%s\n' '---' >> "$reads"; fi
+      first=false
+      PHASE=$phase API=$api KIND=$kind NS=$namespace NAME=$name yq -n -o=json -I=0 \
+        '{"phase":strenv(PHASE),"apiVersion":strenv(API),"kind":strenv(KIND),"namespace":strenv(NS),
+        "name":strenv(NAME),"verb":"get","status":"READY"}' >> "$reads" || return 1
+    done < "$before"
+  done
+  # shellcheck disable=SC2016 # yq reads the exported strenv/load values.
+  projection=$(TARGET=$target MGATE=$materialization_gate MEVIDENCE=$materialization_evidence FGATE=$final_gate \
+    OBJECTS=$objects READS=$reads STARTED=$started COMPLETED=$completed BEFORE=$before_sha AFTER=$after_sha \
+    yq -n -o=json -I=0 \
+    'load(strenv(TARGET)) as $target | load(strenv(MGATE)) as $mgate | load(strenv(MEVIDENCE)) as $me |
+    load(strenv(FGATE)) as $fgate |
+    {"schemaVersion":2,"contractID":"atlas.argocd.authorization-personal-local-preflight/v2",
+    "rolloutProfile":"PERSONAL_LOCAL","profileID":$target.profileID,
+    "contractGitCommit":$target.contractGitCommit,"authorityBaseline":$target.authorityBaseline,
+    "sessionID":$fgate.sessionID,"startedAt":strenv(STARTED),"completedAt":strenv(COMPLETED),
+    "targetMaterializationEvidenceSHA256":$target.targetMaterializationEvidenceSHA256,
+    "materializationOwnerGateSHA256":$me.materializationOwnerGateSHA256,
+    "finalOwnerGateSHA256":$target.ownerGateSHA256,
+    "approvedTargetDocumentSHA256":$target.approvedTargetDocumentSHA256,
+    "target":{"environmentName":$target.environmentName,"clusterName":$target.clusterName,
+      "targetFingerprintSHA256":$target.targetFingerprintSHA256,
+      "apiServerCASPKISHA256":$target.apiServerCASPKISHA256,
+      "waiverDecisionSHA256":$target.waiverDecisionSHA256,
+      "targetMaterializationEvidenceSHA256":$target.targetMaterializationEvidenceSHA256,
+      "ownerGateState":$target.ownerGateState,"ownerGateSHA256":$target.ownerGateSHA256,
+      "ownerGateTargetProjectionSHA256":$target.ownerGateTargetProjectionSHA256,
+      "approvedTargetDocumentSHA256":$target.approvedTargetDocumentSHA256,
+      "desiredProjectionSHA256":$target.desiredProjectionSHA256},
+    "waiver":{"baseArgoActions":"RUNTIME_UNPROVEN","fineGrainedApplicationActions":"STATICALLY_CLOSED_RUNTIME_UNPROVEN",
+      "builtInAdmin":"STATICALLY_CLOSED_RUNTIME_UNPROVEN","anonymousAccess":"STATICALLY_CLOSED_RUNTIME_UNPROVEN",
+      "identity":"NOT_PROVIDED","custody":"SINGLE_OWNER_HUMAN_GATE"},
+    "liveProjection":{"desiredProjectionSHA256":$target.desiredProjectionSHA256,
+      "liveBeforeSHA256":strenv(BEFORE),"liveAfterSHA256":strenv(AFTER),
+      "reviewedPolicyFragments":["policy.csv"],"objects":load(strenv(OBJECTS)),"status":"MATCH"},
+    "nonResourceReads":[{"method":"GET","path":"/version","status":"READY"}],
+    "kubernetesReads":load(strenv(READS)),
+    "assurance":{"argoAPIAuthorization":"RUNTIME_UNPROVEN","productionRecovery":"NOT_AUTHORIZED"},
+    "completeness":{"nonResourceReads":1,"plannedObjects":13,"snapshotCount":2,"expectedReads":26,
+      "executedReads":26,"extraReads":0,"SecretReads":0,"collectionReads":0,"ArgoAPICalls":0,"mutations":0},
+    "result":"PERSONAL_LOCAL_READY"} | sort_keys(..)') || return 1
+  printf '%s' "$projection" > "$output"
+}
+
+preflight_v2::_validate_evidence() {
+  local evidence=$1 target=$2 materialization_gate=$3 materialization_evidence=$4 final_gate=$5
+  local expected_objects actual_objects expected_reads actual_reads desired_sha issued started completed expires
+  preflight_v2::_assert_private_file "$evidence" true || return 1
+  preflight_v2::_document_is_canonical "$evidence" || return 1
+  preflight_v2::_assert_exact_keys "$evidence" "$evidence_schema" || return 1
+  preflight_v2::_assert_evidence_shape "$evidence" || return 1
+  preflight_v2::_assert_evidence_types "$evidence" || return 1
+  preflight_v2::_assert_evidence_has_no_sensitive_content "$evidence" || return 1
+  issued=$(yq -r '.issuedAt | to_unix' "$final_gate") || return 1
+  started=$(yq -r '.startedAt | to_unix' "$evidence") || return 1
+  completed=$(yq -r '.completedAt | to_unix' "$evidence") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$final_gate") || return 1
+  [[ $issued =~ ^[0-9]+$ && $started =~ ^[0-9]+$ && $completed =~ ^[0-9]+$ && $expires =~ ^[0-9]+$ ]] || return 1
+  ((issued < started && started < completed && completed < expires)) || return 1
+  desired_sha=$(yq -r '.desiredProjectionSHA256' "$target") || return 1
+  [[ $(yq -r '.schemaVersion' "$evidence") == 2 &&
+  $(yq -r '.contractID' "$evidence") == atlas.argocd.authorization-personal-local-preflight/v2 &&
+  $(yq -r '.rolloutProfile' "$evidence") == PERSONAL_LOCAL &&
+  $(yq -r '.profileID' "$evidence") == atlas.argocd.authorization-probe-profile/personal-local/v2 &&
+  $(yq -r '.contractGitCommit' "$evidence") == "$(yq -r '.contractGitCommit' "$target")" &&
+  $(yq -r '.authorityBaseline' "$evidence") == "$authority_baseline" &&
+  $(yq -r '.sessionID' "$evidence") == "$(yq -r '.sessionID' "$final_gate")" &&
+  $(yq -r '.targetMaterializationEvidenceSHA256' "$evidence") == "$(preflight_v2::_canonical_sha "$materialization_evidence")" &&
+  $(yq -r '.materializationOwnerGateSHA256' "$evidence") == "$(preflight_v2::_canonical_sha "$materialization_gate")" &&
+  $(yq -r '.finalOwnerGateSHA256' "$evidence") == "$(preflight_v2::_canonical_sha "$final_gate")" &&
+  $(yq -r '.approvedTargetDocumentSHA256' "$evidence") == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" &&
+  $(yq -r '.target.environmentName' "$evidence") == "$(yq -r '.environmentName' "$target")" &&
+  $(yq -r '.target.clusterName' "$evidence") == "$(yq -r '.clusterName' "$target")" &&
+  $(yq -r '.target.targetFingerprintSHA256' "$evidence") == "$(yq -r '.targetFingerprintSHA256' "$target")" &&
+  $(yq -r '.target.apiServerCASPKISHA256' "$evidence") == "$(yq -r '.apiServerCASPKISHA256' "$target")" &&
+  $(yq -r '.target.waiverDecisionSHA256' "$evidence") == "$waiver_sha" &&
+  $(yq -r '.target.targetMaterializationEvidenceSHA256' "$evidence") == "$(yq -r '.targetMaterializationEvidenceSHA256' "$target")" &&
+  $(yq -r '.target.ownerGateState' "$evidence") == APPROVED &&
+  $(yq -r '.target.ownerGateSHA256' "$evidence") == "$(yq -r '.ownerGateSHA256' "$target")" &&
+  $(yq -r '.target.ownerGateTargetProjectionSHA256' "$evidence") == "$(yq -r '.ownerGateTargetProjectionSHA256' "$target")" &&
+  $(yq -r '.target.approvedTargetDocumentSHA256' "$evidence") == "$(yq -r '.approvedTargetDocumentSHA256' "$target")" &&
+  $(yq -r '.target.desiredProjectionSHA256' "$evidence") == "$desired_sha" &&
+  $(yq -r '.liveProjection.desiredProjectionSHA256' "$evidence") == "$desired_sha" &&
+  $(yq -r '.liveProjection.liveBeforeSHA256' "$evidence") == "$desired_sha" &&
+  $(yq -r '.liveProjection.liveAfterSHA256' "$evidence") == "$desired_sha" &&
+  $(yq -o=json -I=0 '.liveProjection.reviewedPolicyFragments' "$evidence") == '["policy.csv"]' &&
+  $(yq -r '.liveProjection.status' "$evidence") == MATCH &&
+  $(yq -r '.waiver.baseArgoActions' "$evidence") == RUNTIME_UNPROVEN &&
+  $(yq -r '.waiver.fineGrainedApplicationActions' "$evidence") == STATICALLY_CLOSED_RUNTIME_UNPROVEN &&
+  $(yq -r '.waiver.builtInAdmin' "$evidence") == STATICALLY_CLOSED_RUNTIME_UNPROVEN &&
+  $(yq -r '.waiver.anonymousAccess' "$evidence") == STATICALLY_CLOSED_RUNTIME_UNPROVEN &&
+  $(yq -r '.waiver.identity' "$evidence") == NOT_PROVIDED &&
+  $(yq -r '.waiver.custody' "$evidence") == SINGLE_OWNER_HUMAN_GATE &&
+  $(yq -r '.assurance.argoAPIAuthorization' "$evidence") == RUNTIME_UNPROVEN &&
+  $(yq -r '.assurance.productionRecovery' "$evidence") == NOT_AUTHORIZED &&
+  $(yq -r '.completeness.nonResourceReads' "$evidence") -eq 1 &&
+  $(yq -r '.completeness.plannedObjects' "$evidence") -eq 13 &&
+  $(yq -r '.completeness.snapshotCount' "$evidence") -eq 2 &&
+  $(yq -r '.completeness.expectedReads' "$evidence") -eq 26 &&
+  $(yq -r '.completeness.executedReads' "$evidence") -eq 26 &&
+  $(yq -r '.completeness.extraReads' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.SecretReads' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.collectionReads' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.ArgoAPICalls' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.mutations' "$evidence") -eq 0 &&
+  $(yq -r '.result' "$evidence") == PERSONAL_LOCAL_READY ]] || return 1
+  expected_objects=$(yq -r '.desiredObjects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256,
+    .desiredProjectionSHA256,.desiredProjectionSHA256] | @tsv' "$target" | sort) || return 1
+  actual_objects=$(yq -r '.liveProjection.objects[] | [.apiVersion,.kind,.namespace,.name,.desiredProjectionSHA256,
+    .liveBeforeProjectionSHA256,.liveAfterProjectionSHA256] | @tsv' "$evidence" | sort) || return 1
+  [[ $actual_objects == "$expected_objects" ]] || return 1
+  expected_reads=$(
+    for phase in BEFORE AFTER; do
+      yq -r '.desiredObjects | sort_by(.apiVersion,.kind,.namespace,.name)[] |
+        [.apiVersion,.kind,.namespace,.name] | @tsv' "$target" |
+        awk -F '\t' -v phase="$phase" 'BEGIN{OFS="\t"}{print phase,$1,$2,$3,$4,"get","READY"}'
+    done | sort
+  ) || return 1
+  actual_reads=$(yq -r '.kubernetesReads[] | [.phase,.apiVersion,.kind,.namespace,.name,.verb,.status] | @tsv' "$evidence" | sort) || return 1
+  [[ $actual_reads == "$expected_reads" && $(yq -o=json -I=0 '.nonResourceReads' "$evidence") == '[{"method":"GET","path":"/version","status":"READY"}]' ]]
+}
+
+preflight_v2::_atomic_create() {
+  local source=$1 output=$2 staged
+  preflight_v2::_assert_output_destination "$output" || return 1
+  staged=$(mktemp "${output}.tmp.XXXXXX") || return 1
+  chmod 0600 "$staged" || return 1
+  cp "$source" "$staged" || return 1
+  [[ $(preflight_v2::_sha256_file "$staged") == "$(preflight_v2::_sha256_file "$source")" ]] || return 1
+  ln "$staged" "$output" || return 1
+  rm -f "$staged" || :
+  return 0
+}
+
+preflight_v2::_run() {
+  local target=$1 materialization_gate=$2 materialization_gate_sha=$3 materialization_evidence=$4 final_gate=$5 final_gate_sha=$6 expected_commit=$7 output=$8
+  local desired_dir=${preflight_v2_tmp}/desired before=${preflight_v2_tmp}/before.tsv after=${preflight_v2_tmp}/after.tsv
+  local local_identity version started completed staged now
+  preflight_v2::_assert_output_destination "$output" || return 1
+  preflight_v2::_validate_documents "$target" "$materialization_gate" "$materialization_gate_sha" \
+    "$materialization_evidence" "$final_gate" "$final_gate_sha" "$expected_commit" true || return 1
+  preflight_v2::_hydrate_desired "$target" "$desired_dir" || return 1
+  preflight_v2::_validate_local_authority "$target" "$materialization_evidence" local_identity || return 1
+  started=$(date -u +%Y-%m-%dT%H:%M:%SZ) || return 1
+  [[ $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$started" +%s 2> /dev/null || date -u -d "$started" +%s) -gt $(yq -r '.issuedAt | to_unix' "$final_gate") ]] || return 1
+  preflight_v2::_kubectl_raw "$target" "$final_gate" /version version || return 1
+  [[ $(yq -r '.gitVersion' <<< "$version" 2> /dev/null) == v1.36.1 ]] || return 1
+  preflight_v2::_snapshot BEFORE "$target" "$materialization_evidence" "$final_gate" "$desired_dir" "$before" || return 1
+  preflight_v2::_snapshot AFTER "$target" "$materialization_evidence" "$final_gate" "$desired_dir" "$after" || return 1
+  preflight_v2::_revalidate_local_authority "$target" "$materialization_evidence" "$local_identity" || return 1
+  now=$(date -u +%s) || return 1
+  while ((now <= $(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$started" +%s 2> /dev/null || date -u -d "$started" +%s))); do
+    sleep 1
+    now=$(date -u +%s) || return 1
+  done
+  ((now < $(yq -r '.expiresAt | to_unix' "$final_gate"))) || return 1
+  completed=$(date -u +%Y-%m-%dT%H:%M:%SZ) || return 1
+  staged=${preflight_v2_tmp}/evidence.json
+  preflight_v2::_build_evidence "$target" "$materialization_gate" "$materialization_evidence" "$final_gate" \
+    "$before" "$after" "$started" "$completed" "$staged" || return 1
+  preflight_v2::_validate_evidence "$staged" "$target" "$materialization_gate" "$materialization_evidence" "$final_gate" || return 1
+  preflight_v2::_atomic_create "$staged" "$output"
+}
+
+preflight_v2::_validate() {
+  local target=$1 materialization_gate=$2 materialization_gate_sha=$3 materialization_evidence=$4 final_gate=$5 final_gate_sha=$6 expected_commit=$7 evidence=$8
+  preflight_v2::_validate_documents "$target" "$materialization_gate" "$materialization_gate_sha" \
+    "$materialization_evidence" "$final_gate" "$final_gate_sha" "$expected_commit" false || return 1
+  preflight_v2::_validate_evidence "$evidence" "$target" "$materialization_gate" "$materialization_evidence" "$final_gate"
+}
+
+preflight_v2::_usage() {
+  printf '%s\n' \
+    'usage:' \
+    '  personal-local-read-only-preflight run --target FILE --materialization-owner-gate FILE --expected-materialization-owner-gate-sha SHA256 --materialization-evidence FILE --final-owner-gate FILE --expected-final-owner-gate-sha SHA256 --expected-commit COMMIT --output FILE' \
+    '  personal-local-read-only-preflight validate --target FILE --materialization-owner-gate FILE --expected-materialization-owner-gate-sha SHA256 --materialization-evidence FILE --final-owner-gate FILE --expected-final-owner-gate-sha SHA256 --expected-commit COMMIT --evidence FILE'
+}
+
+preflight_v2::_main() {
+  local command=${1:-} target='' materialization_gate='' materialization_gate_sha='' materialization_evidence=''
+  local final_gate='' final_gate_sha='' expected_commit='' output='' evidence=''
+  [[ -n $command ]] || {
+    preflight_v2::_usage >&2
+    exit 2
+  }
+  shift
+  case $command in run | validate) ;; *)
+    preflight_v2::_usage >&2
+    exit 2
+    ;;
+  esac
+  while (($#)); do
+    case $1 in
+      --target)
+        target=${2:-}
+        shift 2
+        ;;
+      --materialization-owner-gate)
+        materialization_gate=${2:-}
+        shift 2
+        ;;
+      --expected-materialization-owner-gate-sha)
+        materialization_gate_sha=${2:-}
+        shift 2
+        ;;
+      --materialization-evidence)
+        materialization_evidence=${2:-}
+        shift 2
+        ;;
+      --final-owner-gate)
+        final_gate=${2:-}
+        shift 2
+        ;;
+      --expected-final-owner-gate-sha)
+        final_gate_sha=${2:-}
+        shift 2
+        ;;
+      --expected-commit)
+        expected_commit=${2:-}
+        shift 2
+        ;;
+      --output)
+        output=${2:-}
+        shift 2
+        ;;
+      --evidence)
+        evidence=${2:-}
+        shift 2
+        ;;
+      *) preflight_v2::_blocked "unknown argument: $1" ;;
+    esac
+  done
+  [[ -n $target && -n $materialization_gate && -n $materialization_gate_sha && -n $materialization_evidence &&
+    -n $final_gate && -n $final_gate_sha && -n $expected_commit ]] || preflight_v2::_blocked 'incomplete v2 authority inputs'
+  preflight_v2::_assert_no_ambient_authority || preflight_v2::_blocked 'ambient Kubernetes or Argo authority is forbidden'
+  preflight_v2_tmp=$(mktemp -d "${TMPDIR:-/tmp}/atlas-personal-local-preflight-v2.XXXXXX") || preflight_v2::_blocked 'private temporary workspace is unavailable'
+  chmod 0700 "$preflight_v2_tmp" || preflight_v2::_blocked 'temporary workspace custody failed'
+  case $command in
+    run)
+      [[ -n $output && -z $evidence ]] || preflight_v2::_blocked 'run requires only a create-once Evidence output'
+      preflight_v2::_run "$target" "$materialization_gate" "$materialization_gate_sha" "$materialization_evidence" \
+        "$final_gate" "$final_gate_sha" "$expected_commit" "$output" || preflight_v2::_blocked 'v2 read-only preflight failed'
+      printf '%s\n' PERSONAL_LOCAL_READY || :
+      ;;
+    validate)
+      [[ -n $evidence && -z $output ]] || preflight_v2::_blocked 'validate requires only existing Evidence'
+      preflight_v2::_validate "$target" "$materialization_gate" "$materialization_gate_sha" "$materialization_evidence" \
+        "$final_gate" "$final_gate_sha" "$expected_commit" "$evidence" || preflight_v2::_blocked 'v2 Evidence validation failed'
+      printf '%s\n' PERSONAL_LOCAL_READY || :
+      ;;
+  esac
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  preflight_v2::_main "$@"
+fi

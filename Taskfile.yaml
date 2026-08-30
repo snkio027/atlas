@@ -67,6 +67,7 @@ tasks:
       - ./tests/gitops/argo-authorization-personal-local-preflight-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
       - ./tests/gitops/argo-authorization-personal-local-v2-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
       - ./tests/gitops/argo-authorization-personal-local-materialization-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
+      - ./tests/gitops/argo-authorization-personal-local-v2-preflight-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
       - ./tests/gitops/applicationset-recovery-contract.sh
       - ./tests/gitops/protection-foundation-reachability-contract.sh
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+if (($# == 2)) && [[ $1 == -u && $2 == +%s && -n ${ATLAS_FAKE_V2_DATE_LOG:-} ]]; then
+  request_count=$(grep -c '^RAW:' "$ATLAS_FAKE_V2_DATE_LOG" || :)
+  if ((request_count >= ${ATLAS_FAKE_V2_DATE_EXPIRE_AFTER_RAW:?expiry threshold is required})); then
+    printf '%s\n' "${ATLAS_FAKE_V2_DATE_EXPIRED_EPOCH:?expired epoch is required}"
+    exit 0
+  fi
+fi
+
+exec "${ATLAS_REAL_DATE:?real date is required}" "$@"
