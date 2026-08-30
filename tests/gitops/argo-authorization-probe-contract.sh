@@ -59,11 +59,20 @@ mapfile -t actual_contract_files < <(
 expected_contract_files=(
   README.md
   evidence.schema.json
-  personal-local-evidence.schema.json
-  personal-local-owner-gate.schema.json
+  personal-local-evidence-v1.schema.json
+  personal-local-evidence-v2.schema.json
+  personal-local-owner-gate-v1.schema.json
+  personal-local-owner-gate-v2.schema.json
   personal-local-preflight
-  personal-local-profile.json
-  personal-local-target.schema.json
+  personal-local-profile-v1.json
+  personal-local-profile-v2.json
+  personal-local-target-materialization-claim-v1.schema.json
+  personal-local-target-materialization-evidence-v1.schema.json
+  personal-local-target-materialization-owner-gate-v1.schema.json
+  personal-local-target-materialization-plan.json
+  personal-local-target-materialization-terminal-v1.schema.json
+  personal-local-target-v1.schema.json
+  personal-local-target-v2.schema.json
   probe-contract.json
   probe-matrix.json
   target.schema.json

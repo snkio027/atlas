@@ -59,60 +59,94 @@ Gate.
 
 ## Personal Local rollout profile
 
-`personal-local-profile.json` defines the separately selected ADR-0003
-`PERSONAL_LOCAL` rollout profile. It is not a fallback from this Production
-contract: the Production result remains `UNSUPPORTED`, and profile selection
-must be explicit.
+ADR-0005 makes Personal Local Profile selection explicitly versioned.
+`personal-local-profile-v1.json` preserves the historical canonical v1
+decision with SHA-256
+`34e42bc31933ecf63fa5d878b611c3119415c3503481c7863e5e1cb5a4eff949`.
+It is repository-only, is never live-eligible, and cannot produce a result
+beyond `PERSONAL_LOCAL_DEFINED`. Both `personal-local-preflight run` and
+`personal-local-preflight validate` therefore return `PERSONAL_LOCAL_BLOCKED`
+before they parse arguments or read a Target, kubeconfig, credential, tool, or
+API. Historical v1 static validation remains in the repository contract test.
+The explicitly named v1 Target, Gate, and Evidence schemas are historical
+artifacts only.
 
-The Personal Local profile replaces Argo API authorization execution with a
-Human-gated Kubernetes read-only preflight over the same thirteen exact desired
-objects. It permits only exact-object `get` operations and `/version`; Secret,
-collection, Argo API, `--core`, credential, and Mutation access remain
-forbidden. A Ready preflight must prove the complete Git-derived desired
-projection equals both live snapshots. Its assurance is still recorded as:
+`personal-local-profile-v2.json` is the only future live-eligible Personal
+Local authority. Its canonical document is a new waiver decision and cannot
+fall back to or authorize alongside v1. It defines two distinct gates,
+operations, and execution modes:
+
+```text
+v2 waiverDecisionSHA256
+  c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a
+```
+
+```text
+PERSONAL_LOCAL_TARGET_MATERIALIZATION
+  + LIVE_TARGET_MATERIALIZATION
+  -> TARGET_MATERIALIZED
+
+PERSONAL_LOCAL_READ_ONLY_PREFLIGHT
+  + LIVE_READ_ONLY_PREFLIGHT
+  -> PERSONAL_LOCAL_READY
+```
+
+The repository currently defines only this static authority surface. It does
+not contain a Materialization executor or a v2 live preflight implementation.
+No checked-in fixture, schema, or test is an approved Gate or live Evidence.
+
+The v2 Profile keeps the Personal Local assurance classification fixed:
 
 ```text
 Argo API authorization  RUNTIME_UNPROVEN
 Production recovery     NOT_AUTHORIZED
 ```
 
-`personal-local-target.schema.json` binds the exact Git commit, target
-fingerprint, canonical profile-decision hash, action-specific Owner Gate hash,
-locked kubectl, and thirteen desired object hashes.
-`personal-local-owner-gate.schema.json` defines the independently supplied
-Owner Gate document. Its canonical hash binds the operation, profile, commit,
-pre-authorization Target projection, thirteen-object read plan, two snapshots,
-and target fingerprint inputs. The Target cannot authorize itself: the
-preflight caller must separately provide the expected canonical Gate SHA.
+### Target Materialization contract
 
-`personal-local-preflight` is the authoritative `run` and `validate` entrypoint.
-`run` verifies the external Gate and exact Git hydration before using the
-approved kubeconfig for `/version` and two complete snapshots of the thirteen
-exact raw object paths. The selected context must use its embedded
-`certificate-authority-data`, must not enable insecure TLS, and the decoded CA
-SPKI must equal the Gate-approved target hash. External CA paths are rejected
-to keep the authority check and subsequent reads within one hash-bound
-kubeconfig boundary. Context, cluster, server, and TLS mode use individual
-non-raw JSONPath projections; the only raw projection is the exact CA-data
-field. No config-view command projects `.users` or another credential field.
-The preflight recursively projects live values through
-the desired field mask, verifies array shape, and writes
-`PERSONAL_LOCAL_READY` only when all 26 reads and both aggregate hashes equal
-the approved desired projection. `validate` independently repeats Target,
-Gate, hydration, complete nested Evidence shape and semantic validation,
-read-inventory, time ordering, and sensitive-content rejection. Both commands
-return `24` and
-`PERSONAL_LOCAL_BLOCKED` for uncertainty.
+`personal-local-target-materialization-plan.json` locks the canonical sixteen
+ordered operations and the only two Kubernetes requests: `GET /version` and
+`GET /api/v1/namespaces/kube-system`. It permits no collection or Secret read,
+Argo call, Kubernetes/GitOps/runtime mutation, or unexpected request.
 
-The checked-in fixtures have execution mode `REPOSITORY_ONLY_SYNTHETIC`, use a
-canonical `NOT_AUTHORIZED` Gate document, and can produce only
-`PERSONAL_LOCAL_DEFINED`. They are not live evidence. Required Quality runs the
-entrypoint only against a local fake kubectl whose executable SHA is bound into
-the Target and Gate; it does not access a Kubernetes API.
+```text
+materializationPlanSHA256
+  b9f2f0f2a171e410d20d15c5582408185fa8bc7b440442c965230301ccd379dc
+```
 
-Only a later, separately authorized `LIVE_READ_ONLY_PREFLIGHT` with an approved
-Owner Gate, independently supplied Gate SHA, and complete reads may produce
-`PERSONAL_LOCAL_READY`. Any mismatch becomes `PERSONAL_LOCAL_BLOCKED`.
-Admission observation, candidate wiring, post-squash revalidation, and the
-30-to-60-minute observation window remain outside this repository-only
-definition change.
+The Materialization Owner Gate schema binds the v2 Profile and waiver, exact
+Git and tool authority, plan and Evidence schema, selected context and paths,
+and one create-once session. It deliberately excludes the kubeconfig and
+kubectl hashes, API endpoint, CA SPKI, and Namespace UID that Materialization
+exists to discover. Its expected canonical SHA must eventually be supplied
+independently.
+
+The only eligible credential shape is a static kubeconfig user containing
+exactly `client-certificate-data` and `client-key-data`. The schema surface
+does not authorize projecting, extracting, persisting, or separately hashing
+either value. Claim and terminal receipt schemas lock one `CLAIMED` session to
+one terminal `MATERIALIZED` or `BLOCKED` result. Successful Evidence contains
+no host path or credential material and proves both exact requests completed.
+
+### Final v2 preflight contract
+
+The v2 Target adds `profileID` and
+`targetMaterializationEvidenceSHA256` without changing the historical v1
+schema. The v2 final Owner Gate binds that Evidence SHA, the complete Target
+pre-Gate projection, desired projection, exact thirteen-object read plan, two
+snapshots, local authority hashes, and time window. Its expected SHA remains an
+independent input.
+
+The final preflight validates Materialization Gate, claim, terminal, and
+Evidence provenance. A successful projection requires exactly one
+`/version` read plus 26 exact-object reads, zero skipped/collection/Secret/Argo
+or Mutation calls, and thirteen per-object hashes satisfying
+`desired == live-before == live-after`. The `kube-system` UID must be
+revalidated through the existing two Namespace snapshot reads, never a new
+request. The final Gate may be issued only zero to 900 seconds after successful
+Materialization Evidence completion.
+
+All files in this directory remain unreachable from every live Kustomization
+and Application. Runtime Materialization, kubeconfig or credential use,
+Kubernetes or Argo access, live preflight, Admission observation, Phase 1C,
+Signal, Receipt, and every runtime mutation require later explicit authority.

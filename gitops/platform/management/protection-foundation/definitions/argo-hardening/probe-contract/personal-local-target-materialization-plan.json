@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "planID": "atlas.argocd.authorization-personal-local-target-materialization-plan/v1",
+  "operation": "PERSONAL_LOCAL_TARGET_MATERIALIZATION",
+  "rolloutProfile": "PERSONAL_LOCAL",
+  "profileID": "atlas.argocd.authorization-probe-profile/personal-local/v2",
+  "executionMode": "LIVE_TARGET_MATERIALIZATION",
+  "canonicalEncoding": "UTF8_CANONICAL_JSON_RECURSIVE_KEY_SORT_PRESERVE_ARRAY_ORDER_NO_TRAILING_NEWLINE",
+  "orderedOperations": [
+    "VALIDATE_OWNER_GATE",
+    "ACQUIRE_SESSION_CLAIM",
+    "VALIDATE_KUBECONFIG_CUSTODY",
+    "HASH_KUBECONFIG",
+    "VALIDATE_KUBECTL_CUSTODY",
+    "HASH_KUBECTL",
+    "VALIDATE_KUBECTL_CLIENT_VERSION",
+    "PROJECT_CONTEXT_CLUSTER_AND_USER",
+    "PROJECT_CLUSTER_TLS_AUTHORITY",
+    "VALIDATE_SELECTED_USER_KEY_SHAPE",
+    "COMPUTE_CA_SPKI_SHA256",
+    "GET_VERSION",
+    "GET_KUBE_SYSTEM_NAMESPACE",
+    "REVALIDATE_FILE_CUSTODY_AND_HASHES",
+    "BUILD_AND_VALIDATE_EVIDENCE",
+    "COMMIT_TERMINAL_RECEIPT"
+  ],
+  "kubernetesRequests": [
+    {
+      "ordinal": 1,
+      "method": "GET",
+      "path": "/version",
+      "resourceScope": "NON_RESOURCE"
+    },
+    {
+      "ordinal": 2,
+      "method": "GET",
+      "path": "/api/v1/namespaces/kube-system",
+      "resourceScope": "EXACT_OBJECT"
+    }
+  ],
+  "completeness": {
+    "expectedRequests": 2,
+    "collectionReads": 0,
+    "secretReads": 0,
+    "argoAPICalls": 0,
+    "kubernetesMutations": 0,
+    "gitOpsMutations": 0,
+    "runtimeMutations": 0,
+    "unexpectedRequests": 0
+  },
+  "ownerLocalWrites": [
+    "CREATE_ONCE_SESSION_DIRECTORY",
+    "CREATE_CLAIM_JSON",
+    "CREATE_TERMINAL_JSON"
+  ]
+}

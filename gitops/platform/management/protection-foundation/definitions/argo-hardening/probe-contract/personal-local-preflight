@@ -5,10 +5,10 @@ IFS=$'\n\t'
 
 preflight_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 readonly preflight_dir
-readonly profile_file=${preflight_dir}/personal-local-profile.json
-readonly target_schema_file=${preflight_dir}/personal-local-target.schema.json
-readonly gate_schema_file=${preflight_dir}/personal-local-owner-gate.schema.json
-readonly evidence_schema_file=${preflight_dir}/personal-local-evidence.schema.json
+readonly profile_file=${preflight_dir}/personal-local-profile-v1.json
+readonly target_schema_file=${preflight_dir}/personal-local-target-v1.schema.json
+readonly gate_schema_file=${preflight_dir}/personal-local-owner-gate-v1.schema.json
+readonly evidence_schema_file=${preflight_dir}/personal-local-evidence-v1.schema.json
 readonly production_contract_file=${preflight_dir}/probe-contract.json
 readonly evidence_template=${preflight_dir}/../../../../../../../tests/gitops/fixtures/argo-authorization-probe/valid-personal-local-defined-evidence.json
 readonly blocked_exit=24
@@ -364,8 +364,8 @@ preflight::_validate_local_authority() {
   preflight::_kubeconfig_value "$target" true \
     '{.clusters[0].cluster.certificate-authority-data}' ca_data || return 1
   [[ $context_name == "$(yq -r '.kubeContext' "$target")" && -n $context_cluster &&
-    $context_cluster == "$cluster_name" && $server == "$(yq -r '.apiServerURL' "$target")" &&
-    (-z $insecure || $insecure == false) && -n $ca_data && -z $ca_file ]] || return 1
+  $context_cluster == "$cluster_name" && $server == "$(yq -r '.apiServerURL' "$target")" &&
+  (-z $insecure || $insecure == false) && -n $ca_data && -z $ca_file ]] || return 1
   ca_pem=${preflight_tmp}/api-server-ca.pem
   printf '%s' "$ca_data" | openssl base64 -d -A -out "$ca_pem" 2> /dev/null || return 1
   [[ -s $ca_pem ]] || return 1
@@ -601,6 +601,13 @@ preflight::_main() {
     exit 2
   }
   shift
+  case $command in
+    run | validate) preflight::_blocked 'PERSONAL_LOCAL profile v1 is never live-eligible' ;;
+    *)
+      preflight::_usage >&2
+      exit 2
+      ;;
+  esac
   while (($#)); do
     case $1 in
       --target)
