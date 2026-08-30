@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "profileID": "atlas.argocd.authorization-probe-profile/personal-local/v2",
+  "authorityBaseline": "165fb2a31068e3de2ac1064dbf8f95966ff8aad1",
+  "rolloutProfile": "PERSONAL_LOCAL",
+  "productionEligible": false,
+  "selection": {
+    "explicitProfileIDRequired": true,
+    "v1FallbackAllowed": false,
+    "dualAuthorizationAllowed": false,
+    "productionProfileStatus": "UNSUPPORTED"
+  },
+  "states": {
+    "repositoryDefinition": "PERSONAL_LOCAL_DEFINED",
+    "targetMaterialized": "TARGET_MATERIALIZED",
+    "liveReadOnlyPreflight": "PERSONAL_LOCAL_READY",
+    "admissionObserving": "PERSONAL_LOCAL_OBSERVING",
+    "observationComplete": "PERSONAL_LOCAL_OBSERVED",
+    "attemptFailure": "PERSONAL_LOCAL_BLOCKED"
+  },
+  "gates": {
+    "targetMaterialization": {
+      "operation": "PERSONAL_LOCAL_TARGET_MATERIALIZATION",
+      "gateID": "atlas.argocd.authorization-personal-local-target-materialization-owner-gate/v1",
+      "independentExpectedSHARequired": true
+    },
+    "readOnlyPreflight": {
+      "operation": "PERSONAL_LOCAL_READ_ONLY_PREFLIGHT",
+      "gateID": "atlas.argocd.authorization-personal-local-owner-gate/v2",
+      "independentExpectedSHARequired": true
+    },
+    "interchangeable": false
+  },
+  "executionModes": {
+    "targetMaterialization": "LIVE_TARGET_MATERIALIZATION",
+    "readOnlyPreflight": "LIVE_READ_ONLY_PREFLIGHT",
+    "states": false
+  },
+  "credential": {
+    "mode": "STATIC_IN_KUBECONFIG",
+    "authenticationShape": "X509_EMBEDDED_DATA",
+    "selectedUserExactKeys": [
+      "client-certificate-data",
+      "client-key-data"
+    ],
+    "credentialProjectionAllowed": false,
+    "credentialExtractionAllowed": false,
+    "credentialPersistenceAllowed": false,
+    "credentialSpecificHashingAllowed": false,
+    "dynamicAuthenticationAllowed": false
+  },
+  "materialization": {
+    "planID": "atlas.argocd.authorization-personal-local-target-materialization-plan/v1",
+    "gateSchemaID": "atlas.argocd.authorization-personal-local-target-materialization-owner-gate/v1",
+    "evidenceSchemaID": "atlas.argocd.authorization-personal-local-target-materialization-evidence/v1",
+    "claimSchemaID": "atlas.argocd.authorization-personal-local-target-materialization-claim/v1",
+    "terminalSchemaID": "atlas.argocd.authorization-personal-local-target-materialization-terminal/v1",
+    "successfulResult": "TARGET_MATERIALIZED",
+    "requiredKubernetesReads": 2,
+    "collectionReads": 0,
+    "secretReads": 0,
+    "argoAPICalls": 0,
+    "runtimeMutations": 0
+  },
+  "finalPreflight": {
+    "targetSchemaID": "atlas.argocd.authorization-personal-local-target/v2",
+    "gateSchemaID": "atlas.argocd.authorization-personal-local-owner-gate/v2",
+    "evidenceSchemaID": "atlas.argocd.authorization-personal-local-preflight/v2",
+    "requiredObjectCount": 13,
+    "requiredSnapshotCount": 2,
+    "requiredObjectReads": 26,
+    "requiredNonResourceReads": 1,
+    "requiredAggregateEquality": "DESIRED_EQUALS_LIVE_BEFORE_EQUALS_LIVE_AFTER",
+    "requiredPerObjectEquality": "DESIRED_EQUALS_LIVE_BEFORE_EQUALS_LIVE_AFTER",
+    "requiredProvenanceEqualities": [
+      "FINAL_EVIDENCE_MATERIALIZATION_EVIDENCE_EQUALS_FINAL_TARGET",
+      "FINAL_EVIDENCE_MATERIALIZATION_EVIDENCE_EQUALS_FINAL_GATE",
+      "FINAL_EVIDENCE_MATERIALIZATION_GATE_EQUALS_MATERIALIZATION_EVIDENCE",
+      "FINAL_EVIDENCE_FINAL_GATE_EQUALS_FINAL_TARGET",
+      "FINAL_EVIDENCE_APPROVED_TARGET_EQUALS_FINAL_TARGET"
+    ],
+    "kubeSystemUIDUsesSnapshotReads": true,
+    "freshnessMinimumSeconds": 0,
+    "freshnessMaximumSeconds": 900
+  },
+  "assurance": {
+    "argoAPIAuthorization": "RUNTIME_UNPROVEN",
+    "productionRecovery": "NOT_AUTHORIZED"
+  },
+  "prohibitions": {
+    "ambientKubeconfig": true,
+    "argoAuthToken": true,
+    "argoCore": true,
+    "argoAPI": true,
+    "secretRead": true,
+    "collectionRead": true,
+    "kubernetesMutation": true,
+    "gitOpsMutation": true,
+    "runtimeMutation": true,
+    "admissionActivation": true,
+    "recoveryRBAC": true,
+    "signal": true,
+    "adoptionReceipt": true
+  }
+}

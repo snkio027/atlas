@@ -8,10 +8,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/assert.sh"
 cd "$ATLAS_TEST_ROOT"
 
 readonly probe_root=gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract
-readonly profile=$probe_root/personal-local-profile.json
-readonly target_schema=$probe_root/personal-local-target.schema.json
-readonly gate_schema=$probe_root/personal-local-owner-gate.schema.json
-readonly evidence_schema=$probe_root/personal-local-evidence.schema.json
+readonly profile=$probe_root/personal-local-profile-v1.json
+readonly target_schema=$probe_root/personal-local-target-v1.schema.json
+readonly gate_schema=$probe_root/personal-local-owner-gate-v1.schema.json
+readonly evidence_schema=$probe_root/personal-local-evidence-v1.schema.json
 readonly preflight=$probe_root/personal-local-preflight
 readonly production_contract=$probe_root/probe-contract.json
 readonly authority_inventory=gitops/platform/management/protection-foundation/definitions/argo-hardening/argo-authority-inventory.json
@@ -47,6 +47,8 @@ done
 
 profile_sha=$(canonical_json_sha "$profile") ||
   test::fail "could not hash PERSONAL_LOCAL decision"
+[[ $profile_sha == 34e42bc31933ecf63fa5d878b611c3119415c3503481c7863e5e1cb5a4eff949 ]] ||
+  test::fail "historical PERSONAL_LOCAL v1 waiver hash drifted"
 [[ $profile_sha == "$(yq -r '.waiverDecisionSHA256' "$target_fixture")" &&
 $profile_sha == "$(yq -r '.waiverDecisionSHA256' "$gate_fixture")" &&
 $profile_sha == "$(yq -r '.target.waiverDecisionSHA256' "$evidence_fixture")" ]] ||

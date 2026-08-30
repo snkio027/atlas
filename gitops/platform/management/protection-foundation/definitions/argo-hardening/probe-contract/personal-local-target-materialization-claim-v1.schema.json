@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.invalid/schemas/argocd-authorization-personal-local-target-materialization-claim-v1.json",
+  "title": "Atlas PERSONAL_LOCAL target materialization session claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "state",
+    "sessionID",
+    "materializationOwnerGateSHA256",
+    "materializationPlanSHA256",
+    "contractGitCommit",
+    "waiverDecisionSHA256",
+    "claimedAt"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "state": {"const": "CLAIMED"},
+    "sessionID": {"type": "string", "pattern": "^personal-local-materialization-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{32}$"},
+    "materializationOwnerGateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "materializationPlanSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "contractGitCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "waiverDecisionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "claimedAt": {"type": "string", "format": "date-time"}
+  }
+}

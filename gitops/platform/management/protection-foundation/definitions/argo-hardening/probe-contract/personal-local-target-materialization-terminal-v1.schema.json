@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.invalid/schemas/argocd-authorization-personal-local-target-materialization-terminal-v1.json",
+  "title": "Atlas PERSONAL_LOCAL target materialization terminal receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "state",
+    "sessionID",
+    "materializationSessionClaimSHA256",
+    "completedAt"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "state": {"enum": ["MATERIALIZED", "BLOCKED"]},
+    "sessionID": {"type": "string", "pattern": "^personal-local-materialization-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{32}$"},
+    "materializationSessionClaimSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "materializationEvidenceSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "failureClassification": {"enum": ["AUTHORITY_DRIFTED", "CREDENTIAL_SHAPE_INVALID", "CUSTODY_DRIFTED", "GATE_INVALID", "INPUT_INVALID", "REQUEST_FAILED", "REPLAY_REJECTED", "RESULT_INVALID", "SESSION_INTERRUPTED", "TOOL_DRIFTED"]},
+    "completedAt": {"type": "string", "format": "date-time"}
+  },
+  "oneOf": [
+    {
+      "properties": {"state": {"const": "MATERIALIZED"}},
+      "required": ["materializationEvidenceSHA256"],
+      "not": {"required": ["failureClassification"]}
+    },
+    {
+      "properties": {"state": {"const": "BLOCKED"}},
+      "required": ["failureClassification"],
+      "not": {"required": ["materializationEvidenceSHA256"]}
+    }
+  ]
+}

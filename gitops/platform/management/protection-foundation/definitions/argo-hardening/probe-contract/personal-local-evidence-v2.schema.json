@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atlas.invalid/schemas/argocd-authorization-personal-local-evidence-v2.json",
+  "title": "Atlas PERSONAL_LOCAL v2 read-only preflight evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractID",
+    "rolloutProfile",
+    "profileID",
+    "contractGitCommit",
+    "authorityBaseline",
+    "sessionID",
+    "startedAt",
+    "completedAt",
+    "targetMaterializationEvidenceSHA256",
+    "materializationOwnerGateSHA256",
+    "finalOwnerGateSHA256",
+    "approvedTargetDocumentSHA256",
+    "target",
+    "waiver",
+    "liveProjection",
+    "nonResourceReads",
+    "kubernetesReads",
+    "assurance",
+    "completeness",
+    "result"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "contractID": {"const": "atlas.argocd.authorization-personal-local-preflight/v2"},
+    "rolloutProfile": {"const": "PERSONAL_LOCAL"},
+    "profileID": {"const": "atlas.argocd.authorization-probe-profile/personal-local/v2"},
+    "contractGitCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "authorityBaseline": {"const": "165fb2a31068e3de2ac1064dbf8f95966ff8aad1"},
+    "sessionID": {"type": "string", "pattern": "^personal-local-preflight-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{32}$"},
+    "startedAt": {"type": "string", "format": "date-time"},
+    "completedAt": {"type": "string", "format": "date-time"},
+    "targetMaterializationEvidenceSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "materializationOwnerGateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "finalOwnerGateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "approvedTargetDocumentSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environmentName", "clusterName", "targetFingerprintSHA256", "apiServerCASPKISHA256", "waiverDecisionSHA256", "targetMaterializationEvidenceSHA256", "ownerGateState", "ownerGateSHA256", "ownerGateTargetProjectionSHA256", "approvedTargetDocumentSHA256", "desiredProjectionSHA256"],
+      "properties": {
+        "environmentName": {"type": "string"},
+        "clusterName": {"type": "string"},
+        "targetFingerprintSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "apiServerCASPKISHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "waiverDecisionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "targetMaterializationEvidenceSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "ownerGateState": {"const": "APPROVED"},
+        "ownerGateSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "ownerGateTargetProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "approvedTargetDocumentSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "waiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseArgoActions", "fineGrainedApplicationActions", "builtInAdmin", "anonymousAccess", "identity", "custody"],
+      "properties": {
+        "baseArgoActions": {"const": "RUNTIME_UNPROVEN"},
+        "fineGrainedApplicationActions": {"const": "STATICALLY_CLOSED_RUNTIME_UNPROVEN"},
+        "builtInAdmin": {"const": "STATICALLY_CLOSED_RUNTIME_UNPROVEN"},
+        "anonymousAccess": {"const": "STATICALLY_CLOSED_RUNTIME_UNPROVEN"},
+        "identity": {"const": "NOT_PROVIDED"},
+        "custody": {"const": "SINGLE_OWNER_HUMAN_GATE"}
+      }
+    },
+    "liveProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desiredProjectionSHA256", "liveBeforeSHA256", "liveAfterSHA256", "reviewedPolicyFragments", "objects", "status"],
+      "properties": {
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveBeforeSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveAfterSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "reviewedPolicyFragments": {"const": ["policy.csv"]},
+        "objects": {"type": "array", "minItems": 13, "maxItems": 13, "items": {"$ref": "#/$defs/liveObjectProjection"}},
+        "status": {"const": "MATCH"}
+      }
+    },
+    "nonResourceReads": {"const": [{"method": "GET", "path": "/version", "status": "READY"}]},
+    "kubernetesReads": {"type": "array", "minItems": 26, "maxItems": 26, "items": {"$ref": "#/$defs/kubernetesRead"}},
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argoAPIAuthorization", "productionRecovery"],
+      "properties": {
+        "argoAPIAuthorization": {"const": "RUNTIME_UNPROVEN"},
+        "productionRecovery": {"const": "NOT_AUTHORIZED"}
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nonResourceReads", "plannedObjects", "snapshotCount", "expectedReads", "executedReads", "extraReads", "SecretReads", "collectionReads", "ArgoAPICalls", "mutations"],
+      "properties": {
+        "nonResourceReads": {"const": 1},
+        "plannedObjects": {"const": 13},
+        "snapshotCount": {"const": 2},
+        "expectedReads": {"const": 26},
+        "executedReads": {"const": 26},
+        "extraReads": {"const": 0},
+        "SecretReads": {"const": 0},
+        "collectionReads": {"const": 0},
+        "ArgoAPICalls": {"const": 0},
+        "mutations": {"const": 0}
+      }
+    },
+    "result": {"const": "PERSONAL_LOCAL_READY"}
+  },
+  "$defs": {
+    "liveObjectProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiVersion", "kind", "namespace", "name", "desiredProjectionSHA256", "liveBeforeProjectionSHA256", "liveAfterProjectionSHA256"],
+      "properties": {
+        "apiVersion": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string"},
+        "name": {"type": "string", "minLength": 1},
+        "desiredProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveBeforeProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "liveAfterProjectionSHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "kubernetesRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "apiVersion", "kind", "namespace", "name", "verb", "status"],
+      "properties": {
+        "phase": {"enum": ["BEFORE", "AFTER"]},
+        "apiVersion": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string"},
+        "name": {"type": "string", "minLength": 1},
+        "verb": {"const": "get"},
+        "status": {"const": "READY"}
+      }
+    }
+  }
+}
