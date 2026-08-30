@@ -29,6 +29,9 @@ materialization_orphan_sha=
 materialization_staged_output=
 materialization_staged_identity=
 materialization_staged_sha=
+materialization_staged_terminal=
+materialization_staged_terminal_identity=
+materialization_staged_terminal_sha=
 
 materialization::_sha256_text() {
   shasum -a 256 | awk '{print $1}'
@@ -333,6 +336,14 @@ materialization::_safe_remove_staged_output() {
   rm -f "$materialization_staged_output"
 }
 
+materialization::_safe_remove_staged_terminal() {
+  [[ -n $materialization_staged_terminal && -f $materialization_staged_terminal &&
+    ! -L $materialization_staged_terminal ]] || return 0
+  [[ $(materialization::_path_identity "$materialization_staged_terminal") == "$materialization_staged_terminal_identity" &&
+  $(materialization::_sha256_file "$materialization_staged_terminal") == "$materialization_staged_terminal_sha" ]] || return 1
+  rm -f "$materialization_staged_terminal"
+}
+
 materialization::_cleanup() {
   local status=$?
   trap - EXIT HUP INT TERM
@@ -340,6 +351,7 @@ materialization::_cleanup() {
     materialization::_commit_blocked_terminal || true
     materialization::_safe_remove_orphan_output || true
     materialization::_safe_remove_staged_output || true
+    materialization::_safe_remove_staged_terminal || true
   fi
   if [[ -n ${materialization_tmp:-} && -d $materialization_tmp ]]; then
     rm -rf "$materialization_tmp"
@@ -675,15 +687,40 @@ materialization::_commit_output() {
   materialization_staged_output=
 }
 
-materialization::_commit_materialized_terminal() {
-  local session_id=$1 evidence_sha=$2 completed projection terminal=${materialization_session_dir}/terminal.json
+materialization::_prepare_materialized_terminal() {
+  local session_id=$1 gate=$2 evidence=$3 evidence_sha=$4 completed projection
+  local staged=${materialization_session_dir}/terminal.materialized.json
   completed=$(materialization::_timestamp) || return 1
   projection=$(SESSION=$session_id CLAIM=$materialization_claim_sha EVIDENCE=$evidence_sha COMPLETED=$completed \
     yq -n -o=json -I=0 '{"schemaVersion":1,"state":"MATERIALIZED","sessionID":strenv(SESSION),
     "materializationSessionClaimSHA256":strenv(CLAIM),"materializationEvidenceSHA256":strenv(EVIDENCE),
     "completedAt":strenv(COMPLETED)} | sort_keys(..)') || return 1
-  materialization::_write_canonical "$terminal" "$projection" || return 1
+  materialization::_write_canonical "$staged" "$projection" || return 1
+  materialization_staged_terminal=$staged
+  materialization_staged_terminal_identity=$(materialization::_path_identity "$staged") || return 1
+  materialization_staged_terminal_sha=$(materialization::_sha256_file "$staged") || return 1
+  materialization::_validate_materialized_terminal "$staged" "$gate" \
+    "$materialization_claim_sha" "$evidence" "$evidence_sha"
+}
+
+materialization::_publish_materialized_terminal() {
+  local terminal=${materialization_session_dir}/terminal.json
+  [[ -n $materialization_staged_terminal && -f $materialization_staged_terminal &&
+    ! -L $materialization_staged_terminal && ! -e $terminal && ! -L $terminal ]] || return 1
+  [[ $(materialization::_path_identity "$materialization_staged_terminal") == "$materialization_staged_terminal_identity" &&
+  $(materialization::_sha256_file "$materialization_staged_terminal") == "$materialization_staged_terminal_sha" ]] || return 1
+
+  # MATERIALIZED publication is the final semantic commit. Ordinary termination
+  # signals remain deferred until the process exits successfully immediately
+  # after this same-filesystem rename.
+  trap '' HUP INT TERM
+  if ! mv "$materialization_staged_terminal" "$terminal"; then
+    trap materialization::_interrupted HUP INT TERM
+    return 1
+  fi
+  materialization_staged_terminal=
   materialization_terminal_committed=true
+  materialization_claim_active=false
 }
 
 materialization::_validate_materialized_terminal() {
@@ -830,14 +867,12 @@ materialization::_run() {
     materialization::_blocked RESULT_INVALID 'Materialization Evidence hashing failed'
   materialization::_commit_output "$staged" "$output" "$output_parent_identity" "$evidence_sha" ||
     materialization::_blocked RESULT_INVALID 'Materialization Evidence commit failed'
-  materialization::_commit_materialized_terminal "$(yq -r '.sessionID' "$gate")" "$evidence_sha" ||
-    materialization::_blocked RESULT_INVALID 'Materialization terminal commit failed'
-  materialization::_validate_materialized_terminal "${materialization_session_dir}/terminal.json" "$gate" \
-    "$materialization_claim_sha" "$output" "$evidence_sha" ||
-    materialization::_blocked RESULT_INVALID 'Materialization terminal validation failed'
-  materialization_claim_active=false
+  materialization::_prepare_materialized_terminal "$(yq -r '.sessionID' "$gate")" "$gate" "$output" "$evidence_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization terminal preparation failed'
+  materialization::_publish_materialized_terminal ||
+    materialization::_blocked RESULT_INVALID 'Materialization terminal publication failed'
   materialization_orphan_output=
-  printf '%s\n' TARGET_MATERIALIZED
+  printf '%s\n' TARGET_MATERIALIZED || :
 }
 
 materialization::_validate() {

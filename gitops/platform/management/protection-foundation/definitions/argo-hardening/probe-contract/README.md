@@ -129,6 +129,11 @@ does not authorize projecting, extracting, persisting, or separately hashing
 either value. Claim and terminal receipt schemas lock one `CLAIMED` session to
 one terminal `MATERIALIZED` or `BLOCKED` result. Successful Evidence contains
 no host path or credential material and proves both exact requests completed.
+`claimedAt` starts the action-specific Materialization session;
+`Evidence.startedAt` starts only its approved live Target-read phase. A
+`MATERIALIZED` terminal is fully validated before its atomic publication and
+is the final semantic success commit; terminal preparation or publication
+failure removes committed Evidence and leaves the consumed session `BLOCKED`.
 
 The executor remains unreachable from every live GitOps graph. Its `run`
 operation requires a separately approved, target-bound, time-bounded Human

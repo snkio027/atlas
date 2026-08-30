@@ -20,6 +20,10 @@ fi
 readonly real_yq
 real_shasum=$(command -v shasum)
 readonly real_shasum
+real_ln=$(command -v ln)
+readonly real_ln
+real_mv=$(command -v mv)
+readonly real_mv
 readonly certificate_sentinel=SYNTHETIC_CLIENT_CERTIFICATE_SENTINEL_B2
 readonly private_key_sentinel=SYNTHETIC_CLIENT_PRIVATE_KEY_SENTINEL_B2
 readonly expected_waiver_sha=c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a
@@ -118,6 +122,35 @@ write_tool_wrapper() {
   chmod 0700 "$destination"
 }
 
+write_filesystem_wrapper() {
+  local destination=$1
+  # shellcheck disable=SC2016 # The generated wrapper expands only synthetic fault controls.
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -Eeuo pipefail' \
+    'case $(basename "$0") in' \
+    '  ln)' \
+    '    "$ATLAS_REAL_LN" "$@"' \
+    '    if [[ ${ATLAS_FAKE_MATERIALIZATION_WAIT_FOR_GATE_EXPIRY:-false} == true ]]; then' \
+    '      : > "$ATLAS_FAKE_MATERIALIZATION_TERMINAL_FAULT_MARKER"' \
+    '      while [[ $(date -u +%s) -lt $ATLAS_FAKE_MATERIALIZATION_GATE_EXPIRES_EPOCH ]]; do sleep 0.1; done' \
+    '    fi' \
+    '    ;;' \
+    '  mv)' \
+    '    source_path=${1:-}' \
+    '    destination_path=${!#}' \
+    '    if [[ ${ATLAS_FAKE_MATERIALIZATION_FAIL_TERMINAL_PUBLISH:-false} == true &&' \
+    '      $source_path == */terminal.materialized.json && $destination_path == */terminal.json &&' \
+    '      ! -e $ATLAS_FAKE_MATERIALIZATION_TERMINAL_FAULT_MARKER ]]; then' \
+    '      : > "$ATLAS_FAKE_MATERIALIZATION_TERMINAL_FAULT_MARKER"' \
+    '      exit 73' \
+    '    fi' \
+    '    exec "$ATLAS_REAL_MV" "$@"' \
+    '    ;;' \
+    'esac' > "$destination"
+  chmod 0700 "$destination"
+}
+
 make_case() {
   local name=$1 issued expires suffix gate_projection
   case_root=${test_workspace}/${name}
@@ -154,6 +187,8 @@ make_case() {
   chmod 0700 "$case_kubectl"
   write_tool_wrapper "$case_bin/yq" "$real_yq"
   write_tool_wrapper "$case_bin/shasum" "$real_shasum"
+  write_filesystem_wrapper "$case_bin/ln"
+  write_filesystem_wrapper "$case_bin/mv"
 
   issued=$(timestamp_offset -60)
   expires=$(timestamp_offset 900)
@@ -186,6 +221,8 @@ make_case() {
     "LC_ALL=C"
     "ATLAS_REAL_YQ=${real_yq}"
     "ATLAS_REAL_SHASUM=${real_shasum}"
+    "ATLAS_REAL_LN=${real_ln}"
+    "ATLAS_REAL_MV=${real_mv}"
     "ATLAS_SYNTHETIC_KUBECONFIG=${case_kubeconfig}"
     "ATLAS_KUBECONFIG_READ_LOG=${case_access_log}"
     "ATLAS_TOOL_WRAPPER_TMP=${case_tmp}"
@@ -289,6 +326,21 @@ assert_blocked_terminal() {
     test::fail "claimed failure did not produce the expected BLOCKED terminal: ${classification}"
   fi
   assert_no_credential_escape
+}
+
+assert_finalization_failure_closed() {
+  local marker=$1 terminal_sha files
+  assert_blocked_terminal RESULT_INVALID
+  files=$(find "$case_session_dir" -maxdepth 1 -type f -exec basename {} \; | sort)
+  [[ -e $marker && ! -e $case_output && $files == $'claim.json\nterminal.json' ]] ||
+    test::fail "terminal finalization failure left a published or staged artifact"
+  terminal_sha=$(canonical_sha "${case_session_dir}/terminal.json")
+  : > "$case_log"
+  : > "$case_access_log"
+  expect_run_blocked finalization-replay "$case_gate_sha"
+  [[ ! -s $case_log && ! -s $case_access_log && ! -e $case_output &&
+    $(canonical_sha "${case_session_dir}/terminal.json") == "$terminal_sha" ]] ||
+    test::fail "terminal finalization failure did not permanently consume the session"
 }
 
 assert_preclaim_blocked() {
@@ -557,6 +609,25 @@ make_case kubectl-toctou
 expect_run_blocked kubectl-toctou "$case_gate_sha" ATLAS_FAKE_MATERIALIZATION_DRIFT_KUBECTL=true
 assert_blocked_terminal TOOL_DRIFTED
 [[ $(< "$case_log") == $'VERSION\nGET_VERSION\nGET_KUBE_SYSTEM' ]] || test::fail "kubectl TOCTOU changed request count"
+
+# MATERIALIZED is validated before publication and is the final semantic commit.
+make_case gate-expiry-before-terminal
+EXPIRY=$(timestamp_offset 15) rewrite_json "$case_gate" '.expiresAt = strenv(EXPIRY)'
+case_gate_sha=$(canonical_sha "$case_gate")
+terminal_fault_marker=${case_root}/evidence-output-committed
+gate_expires_epoch=$(yq -r '.expiresAt | to_unix' "$case_gate")
+expect_run_blocked gate-expiry-before-terminal "$case_gate_sha" \
+  ATLAS_FAKE_MATERIALIZATION_WAIT_FOR_GATE_EXPIRY=true \
+  "ATLAS_FAKE_MATERIALIZATION_GATE_EXPIRES_EPOCH=${gate_expires_epoch}" \
+  "ATLAS_FAKE_MATERIALIZATION_TERMINAL_FAULT_MARKER=${terminal_fault_marker}"
+assert_finalization_failure_closed "$terminal_fault_marker"
+
+make_case terminal-publication-failure
+terminal_fault_marker=${case_root}/terminal-publication-failed
+expect_run_blocked terminal-publication-failure "$case_gate_sha" \
+  ATLAS_FAKE_MATERIALIZATION_FAIL_TERMINAL_PUBLISH=true \
+  "ATLAS_FAKE_MATERIALIZATION_TERMINAL_FAULT_MARKER=${terminal_fault_marker}"
+assert_finalization_failure_closed "$terminal_fault_marker"
 
 # An interrupted claimed session is terminal and cannot be retried.
 make_case interrupted-session
