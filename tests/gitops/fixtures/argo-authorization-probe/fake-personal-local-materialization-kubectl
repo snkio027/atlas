@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly log_file=${ATLAS_FAKE_MATERIALIZATION_LOG:?fake invocation log is required}
+readonly expected_kubeconfig=${ATLAS_FAKE_MATERIALIZATION_KUBECONFIG:?expected kubeconfig is required}
+readonly expected_context=${ATLAS_FAKE_MATERIALIZATION_CONTEXT:?expected context is required}
+
+fake::log() {
+  printf '%s\n' "$1" >> "$log_file"
+}
+
+fake::fail_if_requested() {
+  local operation=$1
+  if [[ ${ATLAS_FAKE_MATERIALIZATION_STDERR:-} == "$operation" ]]; then
+    printf '%s\n' 'synthetic kubectl diagnostic' >&2
+  fi
+  if [[ ${ATLAS_FAKE_MATERIALIZATION_NONZERO:-} == "$operation" ]]; then
+    exit 42
+  fi
+}
+
+if (($# == 4)) && [[ $1 == version && $2 == --client && $3 == -o && $4 == json ]]; then
+  fake::log VERSION
+  fake::fail_if_requested VERSION
+  if [[ ${ATLAS_FAKE_MATERIALIZATION_MALFORMED:-} == VERSION ]]; then
+    printf '%s\n' '{'
+    exit 0
+  fi
+  version=${ATLAS_FAKE_MATERIALIZATION_CLIENT_VERSION:-v1.36.3}
+  printf '{"clientVersion":{"gitVersion":"%s"}}\n' "$version"
+  exit 0
+fi
+
+if (($# != 8)) || [[ $1 != --kubeconfig || $2 != "$expected_kubeconfig" ||
+  $3 != --context || $4 != "$expected_context" || $5 != --request-timeout=10s ||
+  $6 != get || $7 != --raw ]]; then
+  fake::log "UNEXPECTED:$*"
+  exit 97
+fi
+
+readonly request_path=$8
+case $request_path in
+  /version)
+    fake::log GET_VERSION
+    fake::fail_if_requested GET_VERSION
+    if [[ -n ${ATLAS_FAKE_MATERIALIZATION_HOLD_MARKER:-} ]]; then
+      : > "$ATLAS_FAKE_MATERIALIZATION_HOLD_MARKER"
+      while [[ ! -e ${ATLAS_FAKE_MATERIALIZATION_HOLD_MARKER}.release ]]; do
+        sleep 0.1
+      done
+    fi
+    if [[ ${ATLAS_FAKE_MATERIALIZATION_MALFORMED:-} == GET_VERSION ]]; then
+      printf '%s\n' '{'
+    else
+      version=${ATLAS_FAKE_MATERIALIZATION_SERVER_VERSION:-v1.36.1}
+      printf '{"gitVersion":"%s"}\n' "$version"
+    fi
+    ;;
+  /api/v1/namespaces/kube-system)
+    fake::log GET_KUBE_SYSTEM
+    fake::fail_if_requested GET_KUBE_SYSTEM
+    if [[ ${ATLAS_FAKE_MATERIALIZATION_MALFORMED:-} == GET_KUBE_SYSTEM ]]; then
+      printf '%s\n' '{'
+    else
+      api_version=${ATLAS_FAKE_MATERIALIZATION_NAMESPACE_API_VERSION:-v1}
+      kind=${ATLAS_FAKE_MATERIALIZATION_NAMESPACE_KIND:-Namespace}
+      name=${ATLAS_FAKE_MATERIALIZATION_NAMESPACE_NAME:-kube-system}
+      uid=${ATLAS_FAKE_MATERIALIZATION_NAMESPACE_UID:-12345678-1234-1234-1234-123456789abc}
+      if [[ ${ATLAS_FAKE_MATERIALIZATION_NAMESPACE_UID_MISSING:-false} == true ]]; then
+        printf '{"apiVersion":"%s","kind":"%s","metadata":{"name":"%s"}}\n' \
+          "$api_version" "$kind" "$name"
+      else
+        printf '{"apiVersion":"%s","kind":"%s","metadata":{"name":"%s","uid":"%s"}}\n' \
+          "$api_version" "$kind" "$name" "$uid"
+      fi
+    fi
+    ;;
+  *)
+    fake::log "UNEXPECTED:$*"
+    exit 97
+    ;;
+esac
+
+if [[ ${ATLAS_FAKE_MATERIALIZATION_DRIFT_KUBECONFIG:-false} == true ]]; then
+  printf '\n' >> "$expected_kubeconfig"
+fi
+if [[ ${ATLAS_FAKE_MATERIALIZATION_DRIFT_KUBECTL:-false} == true ]]; then
+  chmod g+w "$0"
+fi

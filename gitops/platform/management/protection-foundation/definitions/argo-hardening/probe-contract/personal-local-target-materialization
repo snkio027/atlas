@@ -1,0 +1,942 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+
+materialization_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+readonly materialization_dir
+readonly profile_file=${materialization_dir}/personal-local-profile-v2.json
+readonly plan_file=${materialization_dir}/personal-local-target-materialization-plan.json
+readonly gate_schema_file=${materialization_dir}/personal-local-target-materialization-owner-gate-v1.schema.json
+readonly evidence_schema_file=${materialization_dir}/personal-local-target-materialization-evidence-v1.schema.json
+readonly claim_schema_file=${materialization_dir}/personal-local-target-materialization-claim-v1.schema.json
+readonly blocked_exit=24
+readonly waiver_sha=c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a
+readonly plan_sha=b9f2f0f2a171e410d20d15c5582408185fa8bc7b440442c965230301ccd379dc
+readonly authority_baseline=165fb2a31068e3de2ac1064dbf8f95966ff8aad1
+readonly repository_url=https://github.com/snkio027/atlas.git
+
+materialization_tmp=
+materialization_session_dir=
+materialization_claim_sha=
+materialization_failure=RESULT_INVALID
+materialization_claim_active=false
+materialization_terminal_committed=false
+materialization_orphan_output=
+materialization_orphan_identity=
+materialization_orphan_sha=
+materialization_staged_output=
+materialization_staged_identity=
+materialization_staged_sha=
+
+materialization::_sha256_text() {
+  shasum -a 256 | awk '{print $1}'
+}
+
+materialization::_sha256_file() {
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+materialization::_canonical_json() {
+  yq -o=json -I=0 'sort_keys(..)' "$1" 2> /dev/null
+}
+
+materialization::_canonical_sha() {
+  local projection
+  projection=$(materialization::_canonical_json "$1") || return 1
+  printf '%s' "$projection" | materialization::_sha256_text
+}
+
+materialization::_document_is_canonical() {
+  local document=$1 projection
+  projection=$(materialization::_canonical_json "$document") || return 1
+  cmp -s "$document" <(printf '%s' "$projection")
+}
+
+materialization::_document_keys() {
+  yq -r 'keys | .[]' "$1" | sort
+}
+
+materialization::_schema_keys() {
+  yq -r '.required[]' "$1" | sort
+}
+
+materialization::_assert_exact_keys() {
+  [[ $(materialization::_document_keys "$1") == "$(materialization::_schema_keys "$2")" ]]
+}
+
+materialization::_keys_at() {
+  yq -o=json -I=0 "$2 | keys | sort" "$1"
+}
+
+materialization::_has_tag() {
+  local document=$1 expression=$2 expected_tag=$3
+  yq -e "(${expression} | tag) == \"${expected_tag}\"" "$document" > /dev/null 2>&1
+}
+
+materialization::_assert_string_fields() {
+  local document=$1 expression
+  shift
+  for expression in "$@"; do
+    materialization::_has_tag "$document" "$expression" '!!str' || return 1
+  done
+}
+
+materialization::_path_uid() {
+  local value
+  if value=$(stat -f '%u' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%u' "$1"
+  fi
+}
+
+materialization::_path_mode() {
+  local value
+  if value=$(stat -f '%Lp' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%a' "$1"
+  fi
+}
+
+materialization::_path_identity() {
+  local value
+  if value=$(stat -f '%d:%i:%u:%Lp:%z' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%d:%i:%u:%a:%s' "$1"
+  fi
+}
+
+materialization::_directory_identity() {
+  local value
+  if value=$(stat -f '%d:%i:%u:%Lp' "$1" 2> /dev/null); then
+    printf '%s\n' "$value"
+  else
+    stat -c '%d:%i:%u:%a' "$1"
+  fi
+}
+
+materialization::_canonical_directory() {
+  (cd "$1" 2> /dev/null && pwd -P)
+}
+
+materialization::_assert_owner_directory() {
+  local path=$1 expected_mode=$2 canonical mode
+  [[ $path == /* && -d $path && ! -L $path ]] || return 1
+  canonical=$(materialization::_canonical_directory "$path") || return 1
+  [[ $canonical == "$path" && $(materialization::_path_uid "$path") == "$(id -u)" ]] || return 1
+  mode=$(materialization::_path_mode "$path") || return 1
+  [[ $mode == "$expected_mode" ]]
+}
+
+materialization::_assert_private_file() {
+  local path=$1 require_owner=$2 mode mode_value parent canonical_parent
+  [[ $path == /* && -f $path && ! -L $path ]] || return 1
+  parent=$(dirname "$path")
+  canonical_parent=$(materialization::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$path")" == "$path" ]] || return 1
+  if [[ $require_owner == true ]]; then
+    [[ $(materialization::_path_uid "$path") == "$(id -u)" ]] || return 1
+  fi
+  mode=$(materialization::_path_mode "$path") || return 1
+  [[ $mode =~ ^[0-7]{3,4}$ ]] || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0077) == 0))
+}
+
+materialization::_assert_executable_file() {
+  local path=$1 mode mode_value parent canonical_parent
+  [[ $path == /* && -f $path && ! -L $path && -x $path ]] || return 1
+  parent=$(dirname "$path")
+  canonical_parent=$(materialization::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$path")" == "$path" ]] || return 1
+  mode=$(materialization::_path_mode "$path") || return 1
+  [[ $mode =~ ^[0-7]{3,4}$ ]] || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0022) == 0))
+}
+
+materialization::_assert_output_destination() {
+  local output=$1 parent canonical_parent
+  [[ $output == /* && ! -e $output && ! -L $output ]] || return 1
+  parent=$(dirname "$output")
+  materialization::_assert_owner_directory "$parent" 700 || return 1
+  canonical_parent=$(materialization::_canonical_directory "$parent") || return 1
+  [[ "${canonical_parent}/$(basename "$output")" == "$output" ]]
+}
+
+materialization::_git() {
+  env -i PATH="$PATH" LC_ALL=C git --no-replace-objects \
+    -c core.fsmonitor=false -c core.ignoreStat=false "$@"
+}
+
+materialization::_repository_root() {
+  local root expected_dir
+  root=$(materialization::_git -C "$materialization_dir" rev-parse --show-toplevel) || return 1
+  expected_dir=${root}/gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract
+  [[ $materialization_dir == "$expected_dir" ]] || return 1
+  printf '%s\n' "$root"
+}
+
+materialization::_validate_repository_authority() {
+  local expected_commit=$1 root relative expected_blob actual_blob
+  local -a authority_files=(
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-profile-v2.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization-plan.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization-owner-gate-v1.schema.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization-evidence-v1.schema.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization-claim-v1.schema.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization-terminal-v1.schema.json
+    gitops/platform/management/protection-foundation/definitions/argo-hardening/probe-contract/personal-local-target-materialization
+  )
+  [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || return 1
+  root=$(materialization::_repository_root) || return 1
+  materialization::_git -C "$root" cat-file -e "${expected_commit}^{commit}" || return 1
+  [[ $(materialization::_git -C "$root" rev-parse --verify 'HEAD^{commit}') == "$expected_commit" ]] || return 1
+  for relative in "${authority_files[@]}"; do
+    [[ -f ${root}/${relative} && ! -L ${root}/${relative} ]] || return 1
+    expected_blob=$(materialization::_git -C "$root" rev-parse "${expected_commit}:${relative}") || return 1
+    actual_blob=$(materialization::_git -C "$root" hash-object --no-filters "${root}/${relative}") || return 1
+    [[ $actual_blob == "$expected_blob" ]] || return 1
+  done
+}
+
+materialization::_assert_no_ambient_authority() {
+  local variable
+  [[ -z ${KUBECONFIG+x} ]] || return 1
+  while IFS= read -r variable; do
+    [[ $variable != ARGOCD_* ]] || return 1
+  done < <(compgen -A variable)
+}
+
+materialization::_capture() {
+  local output_name=$1
+  shift
+  local stderr_file=${materialization_tmp}/command.stderr captured status
+  : > "$stderr_file" || return 1
+  if captured=$("$@" 2> "$stderr_file"); then
+    status=0
+  else
+    status=$?
+  fi
+  ((status == 0)) || return 1
+  [[ ! -s $stderr_file ]] || return 1
+  printf -v "$output_name" '%s' "$captured"
+}
+
+materialization::_timestamp() {
+  date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+materialization::_timestamp_epoch() {
+  yq -r 'to_unix' <<< "$1"
+}
+
+materialization::_gate_time_order_valid() {
+  local gate=$1 issued expires
+  issued=$(yq -r '.issuedAt | to_unix' "$gate") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$gate") || return 1
+  [[ $issued =~ ^[0-9]+$ && $expires =~ ^[0-9]+$ && $issued -lt $expires ]]
+}
+
+materialization::_validate_gate() {
+  local gate=$1 expected_gate_sha=$2 expected_commit=$3 require_current=$4 gate_sha profile_actual plan_actual now issued expires
+  [[ $expected_gate_sha =~ ^[0-9a-f]{64}$ ]] || return 1
+  materialization::_assert_private_file "$gate" true || return 1
+  yq -e '.' "$gate" > /dev/null 2>&1 || return 1
+  materialization::_document_is_canonical "$gate" || return 1
+  materialization::_assert_exact_keys "$gate" "$gate_schema_file" || return 1
+  materialization::_has_tag "$gate" '.schemaVersion' '!!int' || return 1
+  materialization::_assert_string_fields "$gate" \
+    '.gateID' '.operation' '.decision' '.rolloutProfile' '.profileID' '.contractGitCommit' \
+    '.authorityBaseline' '.repositoryURL' '.waiverDecisionSHA256' '.materializationPlanID' \
+    '.materializationPlanSHA256' '.materializationEvidenceSchemaID' '.environmentName' \
+    '.clusterName' '.kubeContext' '.kubeconfigPath' '.kubectlPath' '.kubectlVersion' \
+    '.kubernetesVersion' '.sessionReceiptRoot' '.sessionID' '.issuedAt' '.expiresAt' || return 1
+  gate_sha=$(materialization::_canonical_sha "$gate") || return 1
+  profile_actual=$(materialization::_canonical_sha "$profile_file") || return 1
+  plan_actual=$(materialization::_canonical_sha "$plan_file") || return 1
+  [[ $gate_sha == "$expected_gate_sha" &&
+    $profile_actual == "$waiver_sha" &&
+    $plan_actual == "$plan_sha" &&
+    $(yq -r '.schemaVersion' "$gate") == 1 &&
+    $(yq -r '.gateID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-owner-gate/v1 &&
+    $(yq -r '.operation' "$gate") == PERSONAL_LOCAL_TARGET_MATERIALIZATION &&
+    $(yq -r '.decision' "$gate") == APPROVED &&
+    $(yq -r '.rolloutProfile' "$gate") == PERSONAL_LOCAL &&
+    $(yq -r '.profileID' "$gate") == atlas.argocd.authorization-probe-profile/personal-local/v2 &&
+    $(yq -r '.contractGitCommit' "$gate") == "$expected_commit" &&
+    $(yq -r '.authorityBaseline' "$gate") == "$authority_baseline" &&
+    $(yq -r '.repositoryURL' "$gate") == "$repository_url" &&
+    $(yq -r '.waiverDecisionSHA256' "$gate") == "$waiver_sha" &&
+    $(yq -r '.materializationPlanID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-plan/v1 &&
+    $(yq -r '.materializationPlanSHA256' "$gate") == "$plan_sha" &&
+    $(yq -r '.materializationEvidenceSchemaID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-evidence/v1 &&
+    $(yq -r '.environmentName' "$gate") =~ ^[a-z][a-z0-9-]{0,31}$ &&
+    $(yq -r '.clusterName' "$gate") =~ ^[a-z0-9][a-z0-9.-]{0,62}$ &&
+    $(yq -r '.kubeContext' "$gate") =~ ^[A-Za-z0-9][A-Za-z0-9_.@-]{0,252}$ &&
+    $(yq -r '.kubeconfigPath' "$gate") == /* &&
+    $(yq -r '.kubectlPath' "$gate") == /* &&
+    $(yq -r '.kubectlVersion' "$gate") == 1.36.3 &&
+    $(yq -r '.kubernetesVersion' "$gate") == 1.36.1 &&
+    $(yq -r '.sessionReceiptRoot' "$gate") == /* &&
+    $(yq -r '.sessionID' "$gate") =~ ^personal-local-materialization-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{32}$ ]] || return 1
+  materialization::_gate_time_order_valid "$gate" || return 1
+  if [[ $require_current == true ]]; then
+    now=$(date -u +%s) || return 1
+    issued=$(yq -r '.issuedAt | to_unix' "$gate") || return 1
+    expires=$(yq -r '.expiresAt | to_unix' "$gate") || return 1
+    ((issued < now && now < expires)) || return 1
+  fi
+}
+
+materialization::_write_canonical() {
+  local destination=$1 projection=$2 temporary
+  temporary=${destination}.tmp
+  [[ ! -e $destination && ! -L $destination && ! -e $temporary && ! -L $temporary ]] || return 1
+  printf '%s' "$projection" > "$temporary" || return 1
+  chmod 0600 "$temporary" || return 1
+  mv "$temporary" "$destination"
+}
+
+materialization::_commit_blocked_terminal() {
+  local completed projection terminal=${materialization_session_dir}/terminal.json
+  [[ $materialization_claim_active == true && -n $materialization_claim_sha &&
+    ! -e $terminal && ! -L $terminal ]] || return 1
+  completed=$(materialization::_timestamp) || return 1
+  projection=$(SESSION=$(basename "$materialization_session_dir") CLAIM=$materialization_claim_sha \
+  CLASSIFICATION=$materialization_failure COMPLETED=$completed yq -n -o=json -I=0 \
+    '{"schemaVersion":1,"state":"BLOCKED","sessionID":strenv(SESSION),
+    "materializationSessionClaimSHA256":strenv(CLAIM),
+    "failureClassification":strenv(CLASSIFICATION),"completedAt":strenv(COMPLETED)} |
+    sort_keys(..)') || return 1
+  materialization::_write_canonical "$terminal" "$projection" || return 1
+  materialization_terminal_committed=true
+}
+
+materialization::_safe_remove_orphan_output() {
+  [[ -n $materialization_orphan_output && -f $materialization_orphan_output &&
+    ! -L $materialization_orphan_output ]] || return 0
+  [[ $(materialization::_path_identity "$materialization_orphan_output") == "$materialization_orphan_identity" &&
+  $(materialization::_sha256_file "$materialization_orphan_output") == "$materialization_orphan_sha" ]] || return 1
+  rm -f "$materialization_orphan_output"
+}
+
+materialization::_safe_remove_staged_output() {
+  [[ -n $materialization_staged_output && -f $materialization_staged_output &&
+    ! -L $materialization_staged_output ]] || return 0
+  [[ $(materialization::_path_identity "$materialization_staged_output") == "$materialization_staged_identity" &&
+  $(materialization::_sha256_file "$materialization_staged_output") == "$materialization_staged_sha" ]] || return 1
+  rm -f "$materialization_staged_output"
+}
+
+materialization::_cleanup() {
+  local status=$?
+  trap - EXIT HUP INT TERM
+  if ((status != 0)) && [[ $materialization_claim_active == true && $materialization_terminal_committed == false ]]; then
+    materialization::_commit_blocked_terminal || true
+    materialization::_safe_remove_orphan_output || true
+    materialization::_safe_remove_staged_output || true
+  fi
+  if [[ -n ${materialization_tmp:-} && -d $materialization_tmp ]]; then
+    rm -rf "$materialization_tmp"
+  fi
+  exit "$status"
+}
+
+materialization::_interrupted() {
+  materialization_failure=SESSION_INTERRUPTED
+  exit "$blocked_exit"
+}
+
+trap materialization::_cleanup EXIT
+trap materialization::_interrupted HUP INT TERM
+
+materialization::_blocked() {
+  materialization_failure=$1
+  shift
+  printf '%s\n' "PERSONAL_LOCAL_BLOCKED: $*" >&2
+  exit "$blocked_exit"
+}
+
+materialization::_acquire_claim() {
+  local gate=$1 gate_sha=$2 expected_commit=$3 root session_id claimed projection claim
+  root=$(yq -r '.sessionReceiptRoot' "$gate") || return 1
+  materialization::_assert_owner_directory "$root" 700 || return 1
+  session_id=$(yq -r '.sessionID' "$gate") || return 1
+  materialization_session_dir=${root}/${session_id}
+  if ! mkdir -m 0700 "$materialization_session_dir" 2> /dev/null; then
+    [[ -e $materialization_session_dir || -L $materialization_session_dir ]] && return 2
+    return 1
+  fi
+  materialization_claim_active=true
+  claimed=$(materialization::_timestamp) || return 1
+  projection=$(SESSION=$session_id GATE_SHA=$gate_sha PLAN_SHA=$plan_sha COMMIT=$expected_commit \
+    WAIVER=$waiver_sha CLAIMED=$claimed yq -n -o=json -I=0 \
+    '{"schemaVersion":1,"state":"CLAIMED","sessionID":strenv(SESSION),
+    "materializationOwnerGateSHA256":strenv(GATE_SHA),
+    "materializationPlanSHA256":strenv(PLAN_SHA),"contractGitCommit":strenv(COMMIT),
+    "waiverDecisionSHA256":strenv(WAIVER),"claimedAt":strenv(CLAIMED)} | sort_keys(..)') || return 1
+  claim=${materialization_session_dir}/claim.json
+  materialization::_write_canonical "$claim" "$projection" || return 1
+  materialization_claim_sha=$(materialization::_canonical_sha "$claim") || return 1
+}
+
+materialization::_validate_claim() {
+  local claim=$1 gate=$2 gate_sha=$3 expected_commit=$4 expected_claim_sha=${5:-} claim_sha issued claimed expires
+  materialization::_assert_private_file "$claim" true || return 1
+  materialization::_document_is_canonical "$claim" || return 1
+  materialization::_assert_exact_keys "$claim" "$claim_schema_file" || return 1
+  materialization::_has_tag "$claim" '.schemaVersion' '!!int' || return 1
+  materialization::_assert_string_fields "$claim" '.state' '.sessionID' \
+    '.materializationOwnerGateSHA256' '.materializationPlanSHA256' '.contractGitCommit' \
+    '.waiverDecisionSHA256' '.claimedAt' || return 1
+  claim_sha=$(materialization::_canonical_sha "$claim") || return 1
+  [[ -z $expected_claim_sha || $claim_sha == "$expected_claim_sha" ]] || return 1
+  [[ $(yq -r '.schemaVersion' "$claim") == 1 &&
+  $(yq -r '.state' "$claim") == CLAIMED &&
+  $(yq -r '.sessionID' "$claim") == "$(yq -r '.sessionID' "$gate")" &&
+  $(yq -r '.materializationOwnerGateSHA256' "$claim") == "$gate_sha" &&
+  $(yq -r '.materializationPlanSHA256' "$claim") == "$plan_sha" &&
+  $(yq -r '.contractGitCommit' "$claim") == "$expected_commit" &&
+  $(yq -r '.waiverDecisionSHA256' "$claim") == "$waiver_sha" ]] || return 1
+  issued=$(yq -r '.issuedAt | to_unix' "$gate") || return 1
+  claimed=$(yq -r '.claimedAt | to_unix' "$claim") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$gate") || return 1
+  [[ $claimed =~ ^[0-9]+$ && $issued -lt $claimed && $claimed -lt $expires ]]
+}
+
+materialization::_validate_kubeconfig_custody() {
+  local path=$1 output_name=$2 identity mode mode_value
+  materialization::_assert_private_file "$path" true || return 1
+  [[ -r $path ]] || return 1
+  mode=$(materialization::_path_mode "$path") || return 1
+  mode_value=$((8#$mode))
+  (((mode_value & 0400) != 0)) || return 1
+  identity=$(materialization::_path_identity "$path") || return 1
+  printf -v "$output_name" '%s' "$identity"
+}
+
+materialization::_validate_kubectl_custody() {
+  local path=$1 output_name=$2 identity
+  materialization::_assert_executable_file "$path" || return 1
+  identity=$(materialization::_path_identity "$path") || return 1
+  printf -v "$output_name" '%s' "$identity"
+}
+
+materialization::_project_kubeconfig() {
+  local kubeconfig=$1 approved_context=$2 context_count cluster_name user_name cluster_count user_count
+  local context_keys user_keys cluster_keys server insecure insecure_present ca_data
+  context_count=$(CONTEXT=$approved_context yq '[.contexts[] | select(.name == strenv(CONTEXT))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $context_count -eq 1 ]] || return 1
+  context_keys=$(CONTEXT=$approved_context yq -o=json -I=0 \
+    '.contexts[] | select(.name == strenv(CONTEXT)) | .context | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $context_keys == '["cluster","user"]' ]] || return 1
+  cluster_name=$(CONTEXT=$approved_context yq -r \
+    '.contexts[] | select(.name == strenv(CONTEXT)) | .context.cluster' "$kubeconfig" 2> /dev/null) || return 1
+  user_name=$(CONTEXT=$approved_context yq -r \
+    '.contexts[] | select(.name == strenv(CONTEXT)) | .context.user' "$kubeconfig" 2> /dev/null) || return 1
+  CONTEXT=$approved_context yq -e \
+    '(.contexts[] | select(.name == strenv(CONTEXT)) | .name | tag) == "!!str" and
+    (.contexts[] | select(.name == strenv(CONTEXT)) | .context.cluster | tag) == "!!str" and
+    (.contexts[] | select(.name == strenv(CONTEXT)) | .context.user | tag) == "!!str"' \
+    "$kubeconfig" > /dev/null 2>&1 || return 1
+  [[ -n $cluster_name && $cluster_name != null && -n $user_name && $user_name != null ]] || return 1
+  cluster_count=$(CLUSTER=$cluster_name yq '[.clusters[] | select(.name == strenv(CLUSTER))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  user_count=$(USER_NAME=$user_name yq '[.users[] | select(.name == strenv(USER_NAME))] | length' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $cluster_count -eq 1 && $user_count -eq 1 ]] || return 1
+  CLUSTER=$cluster_name USER_NAME=$user_name yq -e \
+    '(.clusters[] | select(.name == strenv(CLUSTER)) | .name | tag) == "!!str" and
+    (.users[] | select(.name == strenv(USER_NAME)) | .name | tag) == "!!str"' \
+    "$kubeconfig" > /dev/null 2>&1 || return 1
+  user_keys=$(USER_NAME=$user_name yq -o=json -I=0 \
+    '.users[] | select(.name == strenv(USER_NAME)) | .user | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $user_keys == '["client-certificate-data","client-key-data"]' ]] || return 1
+  cluster_keys=$(CLUSTER=$cluster_name yq -o=json -I=0 \
+    '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster | keys | sort' "$kubeconfig" 2> /dev/null) || return 1
+  [[ $cluster_keys == '["certificate-authority-data","server"]' ||
+    $cluster_keys == '["certificate-authority-data","insecure-skip-tls-verify","server"]' ]] || return 1
+  server=$(CLUSTER=$cluster_name yq -r \
+    '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster.server' "$kubeconfig" 2> /dev/null) || return 1
+  insecure=$(CLUSTER=$cluster_name yq -r \
+    '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."insecure-skip-tls-verify" // false' "$kubeconfig" 2> /dev/null) || return 1
+  insecure_present=$(CLUSTER=$cluster_name yq -r \
+    '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster | has("insecure-skip-tls-verify")' "$kubeconfig" 2> /dev/null) || return 1
+  ca_data=$(CLUSTER=$cluster_name yq -r \
+    '.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."certificate-authority-data"' "$kubeconfig" 2> /dev/null) || return 1
+  CLUSTER=$cluster_name yq -e \
+    '(.clusters[] | select(.name == strenv(CLUSTER)) | .cluster.server | tag) == "!!str" and
+    (.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."certificate-authority-data" | tag) == "!!str"' \
+    "$kubeconfig" > /dev/null 2>&1 || return 1
+  if [[ $insecure_present == true ]]; then
+    CLUSTER=$cluster_name yq -e \
+      '(.clusters[] | select(.name == strenv(CLUSTER)) | .cluster."insecure-skip-tls-verify" | tag) == "!!bool"' \
+      "$kubeconfig" > /dev/null 2>&1 || return 1
+  fi
+  [[ $server =~ ^https://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$ &&
+    $insecure == false && -n $ca_data && $ca_data != null ]] || return 1
+  printf '%s\n%s\n' "$server" "$ca_data"
+}
+
+materialization::_ca_spki_sha() {
+  local ca_data=$1 output_name=$2 ca_pem=${materialization_tmp}/api-server-ca.pem certificates sha
+  printf '%s' "$ca_data" | openssl base64 -d -A -out "$ca_pem" 2> /dev/null || return 1
+  chmod 0600 "$ca_pem" || return 1
+  [[ -s $ca_pem ]] || return 1
+  certificates=$(grep -c -- '-----BEGIN CERTIFICATE-----' "$ca_pem") || return 1
+  [[ $certificates -eq 1 ]] || return 1
+  sha=$(
+    openssl x509 -in "$ca_pem" -pubkey -noout 2> /dev/null |
+      openssl pkey -pubin -outform DER 2> /dev/null |
+      materialization::_sha256_text
+  ) || return 1
+  [[ $sha =~ ^[0-9a-f]{64}$ ]] || return 1
+  printf -v "$output_name" '%s' "$sha"
+}
+
+materialization::_kubectl() {
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u NO_PROXY \
+    -u http_proxy -u https_proxy -u all_proxy -u no_proxy "$@"
+}
+
+materialization::_validate_kubectl_version() {
+  local kubectl=$1 output
+  materialization::_capture output materialization::_kubectl "$kubectl" version --client -o json || return 1
+  yq -e '.' <<< "$output" > /dev/null 2>&1 || return 1
+  [[ $(yq -r '.clientVersion.gitVersion' <<< "$output" 2> /dev/null) == v1.36.3 ]]
+}
+
+materialization::_raw_get() {
+  local kubectl=$1 kubeconfig=$2 context=$3 path=$4 output_name=$5 output
+  materialization::_capture output materialization::_kubectl "$kubectl" \
+    --kubeconfig "$kubeconfig" --context "$context" --request-timeout=10s \
+    get --raw "$path" || return 1
+  [[ -n $output ]] || return 1
+  printf -v "$output_name" '%s' "$output"
+}
+
+materialization::_assert_evidence_has_no_sensitive_content() {
+  local evidence=$1 key value normalized colon=:
+  while IFS= read -r key; do
+    normalized=${key,,}
+    case $normalized in
+      authtoken | authorization | clientcertificatedata | clientkeydata | cookie | kubeconfigpath | kubectlpath | password | privatekey | sessionreceiptroot | setcookie | token) return 1 ;;
+    esac
+  done < <(yq -r '.. | select(tag == "!!map") | keys | .[]' "$evidence")
+  while IFS= read -r value; do
+    if [[ $value == /* && $value != /version && $value != /api/v1/namespaces/kube-system ]]; then
+      return 1
+    fi
+    normalized=${value,,}
+    [[ $normalized != *'bearer '* && $normalized != *'cookie='* &&
+      $normalized != *'cookie:'* && $normalized != *'kubeconfig='* &&
+      $normalized != *'kubeconfig:'* && $normalized != *'password='* &&
+      $normalized != *"password${colon}"* && $normalized != *'token='* &&
+      $normalized != *"token${colon}"* && $normalized != *"set-cookie${colon}"* &&
+      $normalized != *"authorization${colon}"* ]] || return 1
+  done < <(yq -r '.. | select(tag == "!!str")' "$evidence")
+}
+
+materialization::_validate_evidence() {
+  local evidence=$1 gate=$2 gate_sha=$3 claim=$4 claim_sha=$5 expected_commit=$6 require_canonical=$7
+  local issued claimed started completed expires expected_operations expected_reads
+  [[ $evidence == /* && -f $evidence && ! -L $evidence ]] || return 1
+  yq -e '.' "$evidence" > /dev/null 2>&1 || return 1
+  [[ $require_canonical != true ]] || materialization::_document_is_canonical "$evidence" || return 1
+  materialization::_assert_exact_keys "$evidence" "$evidence_schema_file" || return 1
+  materialization::_has_tag "$evidence" '.schemaVersion' '!!int' || return 1
+  materialization::_assert_string_fields "$evidence" \
+    '.evidenceID' '.rolloutProfile' '.profileID' '.waiverDecisionSHA256' '.contractGitCommit' \
+    '.authorityBaseline' '.repositoryURL' '.materializationPlanID' '.materializationPlanSHA256' \
+    '.materializationOwnerGateSHA256' '.materializationSessionClaimSHA256' '.sessionID' \
+    '.startedAt' '.completedAt' '.environmentName' '.clusterName' '.kubeContext' '.credentialMode' \
+    '.authenticationShape' '.selectedUserShapeStatus' '.kubeconfigSHA256' '.kubectlSHA256' \
+    '.kubectlVersion' '.kubernetesVersion' '.apiServerURL' '.apiServerCASPKISHA256' \
+    '.kubeSystemNamespaceUID' '.assurance.argoAPIAuthorization' '.assurance.productionRecovery' \
+    '.result' || return 1
+  materialization::_has_tag "$evidence" '.localAuthorityOperations' '!!seq' || return 1
+  materialization::_has_tag "$evidence" '.kubernetesReads' '!!seq' || return 1
+  materialization::_has_tag "$evidence" '.completeness' '!!map' || return 1
+  materialization::_has_tag "$evidence" '.assurance' '!!map' || return 1
+  local completeness_field
+  for completeness_field in expectedRequests executedRequests skippedRequests collectionReads \
+    secretReads argoAPICalls kubernetesMutations gitOpsMutations runtimeMutations unexpectedRequests; do
+    materialization::_has_tag "$evidence" ".completeness.${completeness_field}" '!!int' || return 1
+  done
+  [[ $(materialization::_keys_at "$evidence" '.completeness') == '["argoAPICalls","collectionReads","executedRequests","expectedRequests","gitOpsMutations","kubernetesMutations","runtimeMutations","secretReads","skippedRequests","unexpectedRequests"]' &&
+  $(materialization::_keys_at "$evidence" '.assurance') == '["argoAPIAuthorization","productionRecovery"]' ]] || return 1
+  materialization::_assert_evidence_has_no_sensitive_content "$evidence" || return 1
+  [[ $(yq -r '.schemaVersion' "$evidence") == 1 &&
+  $(yq -r '.evidenceID' "$evidence") == atlas.argocd.authorization-personal-local-target-materialization-evidence/v1 &&
+  $(yq -r '.rolloutProfile' "$evidence") == PERSONAL_LOCAL &&
+  $(yq -r '.profileID' "$evidence") == atlas.argocd.authorization-probe-profile/personal-local/v2 &&
+  $(yq -r '.waiverDecisionSHA256' "$evidence") == "$waiver_sha" &&
+  $(yq -r '.contractGitCommit' "$evidence") == "$expected_commit" &&
+  $(yq -r '.authorityBaseline' "$evidence") == "$authority_baseline" &&
+  $(yq -r '.repositoryURL' "$evidence") == "$repository_url" &&
+  $(yq -r '.materializationPlanID' "$evidence") == atlas.argocd.authorization-personal-local-target-materialization-plan/v1 &&
+  $(yq -r '.materializationPlanSHA256' "$evidence") == "$plan_sha" &&
+  $(yq -r '.materializationOwnerGateSHA256' "$evidence") == "$gate_sha" &&
+  $(yq -r '.materializationSessionClaimSHA256' "$evidence") == "$claim_sha" &&
+  $(yq -r '.sessionID' "$evidence") == "$(yq -r '.sessionID' "$gate")" &&
+  $(yq -r '.environmentName' "$evidence") == "$(yq -r '.environmentName' "$gate")" &&
+  $(yq -r '.clusterName' "$evidence") == "$(yq -r '.clusterName' "$gate")" &&
+  $(yq -r '.kubeContext' "$evidence") == "$(yq -r '.kubeContext' "$gate")" &&
+  $(yq -r '.credentialMode' "$evidence") == STATIC_IN_KUBECONFIG &&
+  $(yq -r '.authenticationShape' "$evidence") == X509_EMBEDDED_DATA &&
+  $(yq -r '.selectedUserShapeStatus' "$evidence") == EXACT_X509_EMBEDDED_DATA &&
+  $(yq -r '.kubeconfigSHA256' "$evidence") =~ ^[0-9a-f]{64}$ &&
+  $(yq -r '.kubectlSHA256' "$evidence") =~ ^[0-9a-f]{64}$ &&
+  $(yq -r '.kubectlVersion' "$evidence") == 1.36.3 &&
+  $(yq -r '.kubernetesVersion' "$evidence") == 1.36.1 &&
+  $(yq -r '.apiServerURL' "$evidence") =~ ^https://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$ &&
+  $(yq -r '.apiServerCASPKISHA256' "$evidence") =~ ^[0-9a-f]{64}$ &&
+  $(yq -r '.kubeSystemNamespaceUID' "$evidence") =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ &&
+  $(yq -r '.result' "$evidence") == TARGET_MATERIALIZED &&
+  $(yq -r '.assurance.argoAPIAuthorization' "$evidence") == RUNTIME_UNPROVEN &&
+  $(yq -r '.assurance.productionRecovery' "$evidence") == NOT_AUTHORIZED ]] || return 1
+  [[ $(yq -r '.completeness.expectedRequests' "$evidence") -eq 2 &&
+  $(yq -r '.completeness.executedRequests' "$evidence") -eq 2 &&
+  $(yq -r '.completeness.skippedRequests' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.collectionReads' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.secretReads' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.argoAPICalls' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.kubernetesMutations' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.gitOpsMutations' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.runtimeMutations' "$evidence") -eq 0 &&
+  $(yq -r '.completeness.unexpectedRequests' "$evidence") -eq 0 ]] || return 1
+  expected_operations=$(yq -o=json -I=0 '.orderedOperations' "$plan_file") || return 1
+  expected_reads=$(yq -o=json -I=0 '.kubernetesRequests | map({"ordinal":.ordinal,"method":.method,"path":.path}) | sort_keys(..)' "$plan_file") || return 1
+  [[ $(yq -o=json -I=0 '.localAuthorityOperations' "$evidence") == "$expected_operations" &&
+  $(yq -o=json -I=0 '.kubernetesReads' "$evidence") == "$expected_reads" ]] || return 1
+  materialization::_validate_claim "$claim" "$gate" "$gate_sha" "$expected_commit" "$claim_sha" || return 1
+  issued=$(yq -r '.issuedAt | to_unix' "$gate") || return 1
+  claimed=$(yq -r '.claimedAt | to_unix' "$claim") || return 1
+  started=$(yq -r '.startedAt | to_unix' "$evidence") || return 1
+  completed=$(yq -r '.completedAt | to_unix' "$evidence") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$gate") || return 1
+  [[ $issued =~ ^[0-9]+$ && $claimed =~ ^[0-9]+$ && $started =~ ^[0-9]+$ &&
+    $completed =~ ^[0-9]+$ && $expires =~ ^[0-9]+$ &&
+    $issued -lt $claimed && $claimed -le $started && $started -lt $completed && $completed -lt $expires ]]
+}
+
+materialization::_build_evidence() {
+  local gate=$1 gate_sha=$2 claim_sha=$3 expected_commit=$4 started=$5 completed=$6
+  local kubeconfig_sha=$7 kubectl_sha=$8 api_server=$9 ca_spki=${10} namespace_uid=${11} output=${12}
+  local projection
+  # shellcheck disable=SC2016 # yq expression variables are populated through strenv/load.
+  projection=$(GATE=$gate PLAN=$plan_file GATE_SHA=$gate_sha CLAIM_SHA=$claim_sha COMMIT=$expected_commit \
+    STARTED=$started COMPLETED=$completed KUBECONFIG_SHA=$kubeconfig_sha KUBECTL_SHA=$kubectl_sha \
+    API_SERVER=$api_server CA_SPKI=$ca_spki NAMESPACE_UID=$namespace_uid yq -n -o=json -I=0 \
+    'load(strenv(GATE)) as $gate | load(strenv(PLAN)) as $plan |
+    {"schemaVersion":1,
+     "evidenceID":"atlas.argocd.authorization-personal-local-target-materialization-evidence/v1",
+     "rolloutProfile":"PERSONAL_LOCAL",
+     "profileID":"atlas.argocd.authorization-probe-profile/personal-local/v2",
+     "waiverDecisionSHA256":"c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a",
+     "contractGitCommit":strenv(COMMIT),
+     "authorityBaseline":"165fb2a31068e3de2ac1064dbf8f95966ff8aad1",
+     "repositoryURL":"https://github.com/snkio027/atlas.git",
+     "materializationPlanID":"atlas.argocd.authorization-personal-local-target-materialization-plan/v1",
+     "materializationPlanSHA256":"b9f2f0f2a171e410d20d15c5582408185fa8bc7b440442c965230301ccd379dc",
+     "materializationOwnerGateSHA256":strenv(GATE_SHA),
+     "materializationSessionClaimSHA256":strenv(CLAIM_SHA),
+     "sessionID":$gate.sessionID,"startedAt":strenv(STARTED),"completedAt":strenv(COMPLETED),
+     "environmentName":$gate.environmentName,"clusterName":$gate.clusterName,
+     "kubeContext":$gate.kubeContext,"credentialMode":"STATIC_IN_KUBECONFIG",
+     "authenticationShape":"X509_EMBEDDED_DATA","selectedUserShapeStatus":"EXACT_X509_EMBEDDED_DATA",
+     "kubeconfigSHA256":strenv(KUBECONFIG_SHA),"kubectlSHA256":strenv(KUBECTL_SHA),
+     "kubectlVersion":"1.36.3","kubernetesVersion":"1.36.1",
+     "apiServerURL":strenv(API_SERVER),"apiServerCASPKISHA256":strenv(CA_SPKI),
+     "kubeSystemNamespaceUID":strenv(NAMESPACE_UID),
+     "localAuthorityOperations":$plan.orderedOperations,
+     "kubernetesReads":($plan.kubernetesRequests | map({"ordinal":.ordinal,"method":.method,"path":.path})),
+     "completeness":{"expectedRequests":2,"executedRequests":2,"skippedRequests":0,
+       "collectionReads":0,"secretReads":0,"argoAPICalls":0,"kubernetesMutations":0,
+       "gitOpsMutations":0,"runtimeMutations":0,"unexpectedRequests":0},
+     "assurance":{"argoAPIAuthorization":"RUNTIME_UNPROVEN","productionRecovery":"NOT_AUTHORIZED"},
+     "result":"TARGET_MATERIALIZED"} | sort_keys(..)') || return 1
+  printf '%s' "$projection" > "$output"
+}
+
+materialization::_commit_output() {
+  local staged=$1 output=$2 parent_identity=$3 sha=$4
+  materialization::_assert_output_destination "$output" || return 1
+  [[ $(materialization::_directory_identity "$(dirname "$output")") == "$parent_identity" ]] || return 1
+  chmod 0600 "$staged" || return 1
+  ln "$staged" "$output" || return 1
+  materialization_orphan_output=$output
+  materialization_orphan_identity=$(materialization::_path_identity "$output") || return 1
+  materialization_orphan_sha=$sha
+  rm -f "$staged" || return 1
+  materialization_staged_output=
+}
+
+materialization::_commit_materialized_terminal() {
+  local session_id=$1 evidence_sha=$2 completed projection terminal=${materialization_session_dir}/terminal.json
+  completed=$(materialization::_timestamp) || return 1
+  projection=$(SESSION=$session_id CLAIM=$materialization_claim_sha EVIDENCE=$evidence_sha COMPLETED=$completed \
+    yq -n -o=json -I=0 '{"schemaVersion":1,"state":"MATERIALIZED","sessionID":strenv(SESSION),
+    "materializationSessionClaimSHA256":strenv(CLAIM),"materializationEvidenceSHA256":strenv(EVIDENCE),
+    "completedAt":strenv(COMPLETED)} | sort_keys(..)') || return 1
+  materialization::_write_canonical "$terminal" "$projection" || return 1
+  materialization_terminal_committed=true
+}
+
+materialization::_validate_materialized_terminal() {
+  local terminal=$1 gate=$2 claim_sha=$3 evidence=$4 evidence_sha=$5 completed terminal_completed expires
+  materialization::_assert_private_file "$terminal" true || return 1
+  materialization::_document_is_canonical "$terminal" || return 1
+  [[ $(materialization::_document_keys "$terminal") == $'completedAt\nmaterializationEvidenceSHA256\nmaterializationSessionClaimSHA256\nschemaVersion\nsessionID\nstate' ]] || return 1
+  materialization::_has_tag "$terminal" '.schemaVersion' '!!int' || return 1
+  materialization::_assert_string_fields "$terminal" '.state' '.sessionID' \
+    '.materializationSessionClaimSHA256' '.materializationEvidenceSHA256' '.completedAt' || return 1
+  [[ $(yq -r '.schemaVersion' "$terminal") == 1 &&
+  $(yq -r '.state' "$terminal") == MATERIALIZED &&
+  $(yq -r '.sessionID' "$terminal") == "$(yq -r '.sessionID' "$gate")" &&
+  $(yq -r '.materializationSessionClaimSHA256' "$terminal") == "$claim_sha" &&
+  $(yq -r '.materializationEvidenceSHA256' "$terminal") == "$evidence_sha" ]] || return 1
+  completed=$(yq -r '.completedAt | to_unix' "$evidence") || return 1
+  terminal_completed=$(yq -r '.completedAt | to_unix' "$terminal") || return 1
+  expires=$(yq -r '.expiresAt | to_unix' "$gate") || return 1
+  [[ $completed =~ ^[0-9]+$ && $terminal_completed =~ ^[0-9]+$ &&
+    $terminal_completed -ge $completed && $terminal_completed -lt $expires ]]
+}
+
+materialization::_next_timestamp_after() {
+  local earlier=$1 output_name=$2 earlier_epoch now now_epoch _
+  earlier_epoch=$(materialization::_timestamp_epoch "$earlier") || return 1
+  for _ in 1 2 3; do
+    now=$(materialization::_timestamp) || return 1
+    now_epoch=$(materialization::_timestamp_epoch "$now") || return 1
+    if ((now_epoch > earlier_epoch)); then
+      printf -v "$output_name" '%s' "$now"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+materialization::_run() {
+  local gate=$1 expected_gate_sha=$2 expected_commit=$3 output=$4 gate_sha claim receipt_status
+  local kubeconfig kubectl context initial_kubeconfig initial_kubectl final_kubeconfig final_kubectl
+  local kubeconfig_sha kubectl_sha final_kubeconfig_sha final_kubectl_sha projection api_server ca_data ca_spki
+  local client_version namespace_response namespace_uid started completed output_parent_identity staged evidence_sha
+  materialization_failure=AUTHORITY_DRIFTED
+  materialization::_validate_repository_authority "$expected_commit" ||
+    materialization::_blocked AUTHORITY_DRIFTED 'repository authority validation failed'
+  materialization::_assert_no_ambient_authority ||
+    materialization::_blocked INPUT_INVALID 'ambient Kubernetes or Argo authority is forbidden'
+  materialization_failure=GATE_INVALID
+  materialization::_validate_gate "$gate" "$expected_gate_sha" "$expected_commit" true ||
+    materialization::_blocked GATE_INVALID 'Materialization Owner Gate validation failed'
+  gate_sha=$(materialization::_canonical_sha "$gate") ||
+    materialization::_blocked GATE_INVALID 'Materialization Owner Gate hashing failed'
+  materialization::_assert_output_destination "$output" ||
+    materialization::_blocked INPUT_INVALID 'Evidence output boundary is invalid'
+  output_parent_identity=$(materialization::_directory_identity "$(dirname "$output")") ||
+    materialization::_blocked INPUT_INVALID 'Evidence output custody is unavailable'
+  if materialization::_acquire_claim "$gate" "$gate_sha" "$expected_commit"; then
+    receipt_status=0
+  else
+    receipt_status=$?
+    if ((receipt_status == 2)); then
+      materialization::_blocked REPLAY_REJECTED 'Materialization session is already consumed'
+    fi
+    materialization::_blocked INPUT_INVALID 'Materialization session claim failed'
+  fi
+  claim=${materialization_session_dir}/claim.json
+  materialization::_validate_claim "$claim" "$gate" "$gate_sha" "$expected_commit" "$materialization_claim_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization claim validation failed'
+  materialization_tmp=$(mktemp -d "${TMPDIR:-/tmp}/atlas-personal-local-materialization.XXXXXX") ||
+    materialization::_blocked INPUT_INVALID 'private temporary workspace is unavailable'
+  chmod 0700 "$materialization_tmp" || materialization::_blocked INPUT_INVALID 'temporary workspace custody failed'
+  materialization::_assert_owner_directory "$materialization_tmp" 700 ||
+    materialization::_blocked INPUT_INVALID 'temporary workspace custody failed'
+  kubeconfig=$(yq -r '.kubeconfigPath' "$gate") || materialization::_blocked GATE_INVALID 'kubeconfig path unavailable'
+  kubectl=$(yq -r '.kubectlPath' "$gate") || materialization::_blocked GATE_INVALID 'kubectl path unavailable'
+  context=$(yq -r '.kubeContext' "$gate") || materialization::_blocked GATE_INVALID 'context unavailable'
+  materialization_failure=CUSTODY_DRIFTED
+  materialization::_validate_kubeconfig_custody "$kubeconfig" initial_kubeconfig ||
+    materialization::_blocked CUSTODY_DRIFTED 'kubeconfig custody validation failed'
+  kubeconfig_sha=$(materialization::_sha256_file "$kubeconfig") ||
+    materialization::_blocked CUSTODY_DRIFTED 'kubeconfig hashing failed'
+  materialization::_validate_kubectl_custody "$kubectl" initial_kubectl ||
+    materialization::_blocked TOOL_DRIFTED 'kubectl custody validation failed'
+  kubectl_sha=$(materialization::_sha256_file "$kubectl") ||
+    materialization::_blocked TOOL_DRIFTED 'kubectl hashing failed'
+  materialization::_validate_kubectl_version "$kubectl" ||
+    materialization::_blocked TOOL_DRIFTED 'kubectl version validation failed'
+  materialization_failure=CREDENTIAL_SHAPE_INVALID
+  projection=$(materialization::_project_kubeconfig "$kubeconfig" "$context") ||
+    materialization::_blocked CREDENTIAL_SHAPE_INVALID 'kubeconfig structure or transport authority is invalid'
+  api_server=${projection%%$'\n'*}
+  ca_data=${projection#*$'\n'}
+  materialization::_ca_spki_sha "$ca_data" ca_spki ||
+    materialization::_blocked CREDENTIAL_SHAPE_INVALID 'embedded API CA is invalid'
+  started=$(materialization::_timestamp) || materialization::_blocked RESULT_INVALID 'execution clock unavailable'
+  materialization_failure=REQUEST_FAILED
+  materialization::_raw_get "$kubectl" "$kubeconfig" "$context" /version client_version ||
+    materialization::_blocked REQUEST_FAILED 'Kubernetes version request failed'
+  yq -e '.' <<< "$client_version" > /dev/null 2>&1 ||
+    materialization::_blocked REQUEST_FAILED 'Kubernetes version response is malformed'
+  [[ $(yq -r '.gitVersion' <<< "$client_version" 2> /dev/null) == v1.36.1 ]] ||
+    materialization::_blocked REQUEST_FAILED 'Kubernetes version response drifted'
+  materialization::_raw_get "$kubectl" "$kubeconfig" "$context" \
+    /api/v1/namespaces/kube-system namespace_response ||
+    materialization::_blocked REQUEST_FAILED 'kube-system identity request failed'
+  yq -e '.' <<< "$namespace_response" > /dev/null 2>&1 ||
+    materialization::_blocked REQUEST_FAILED 'kube-system identity response is malformed'
+  namespace_uid=$(yq -r '.metadata.uid' <<< "$namespace_response" 2> /dev/null) ||
+    materialization::_blocked REQUEST_FAILED 'kube-system UID is unavailable'
+  [[ $(yq -r '.apiVersion' <<< "$namespace_response" 2> /dev/null) == v1 &&
+  $(yq -r '.kind' <<< "$namespace_response" 2> /dev/null) == Namespace &&
+  $(yq -r '.metadata.name' <<< "$namespace_response" 2> /dev/null) == kube-system &&
+  $namespace_uid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+    materialization::_blocked REQUEST_FAILED 'kube-system identity response drifted'
+  materialization_failure=CUSTODY_DRIFTED
+  materialization::_validate_kubeconfig_custody "$kubeconfig" final_kubeconfig ||
+    materialization::_blocked CUSTODY_DRIFTED 'final kubeconfig custody validation failed'
+  final_kubeconfig_sha=$(materialization::_sha256_file "$kubeconfig") ||
+    materialization::_blocked CUSTODY_DRIFTED 'final kubeconfig hashing failed'
+  materialization::_validate_kubectl_custody "$kubectl" final_kubectl ||
+    materialization::_blocked TOOL_DRIFTED 'final kubectl custody validation failed'
+  final_kubectl_sha=$(materialization::_sha256_file "$kubectl") ||
+    materialization::_blocked TOOL_DRIFTED 'final kubectl hashing failed'
+  [[ $final_kubeconfig == "$initial_kubeconfig" && $final_kubeconfig_sha == "$kubeconfig_sha" ]] ||
+    materialization::_blocked CUSTODY_DRIFTED 'kubeconfig changed during Materialization'
+  [[ $final_kubectl == "$initial_kubectl" && $final_kubectl_sha == "$kubectl_sha" ]] ||
+    materialization::_blocked TOOL_DRIFTED 'kubectl changed during Materialization'
+  materialization_failure=RESULT_INVALID
+  materialization::_next_timestamp_after "$started" completed ||
+    materialization::_blocked RESULT_INVALID 'strict completion timestamp unavailable'
+  staged=$(mktemp "${output}.tmp.XXXXXX") || materialization::_blocked INPUT_INVALID 'Evidence staging failed'
+  materialization::_build_evidence "$gate" "$gate_sha" "$materialization_claim_sha" "$expected_commit" \
+    "$started" "$completed" "$kubeconfig_sha" "$kubectl_sha" "$api_server" "$ca_spki" "$namespace_uid" "$staged" ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence construction failed'
+  chmod 0600 "$staged" || materialization::_blocked RESULT_INVALID 'Materialization Evidence custody failed'
+  materialization_staged_output=$staged
+  materialization_staged_identity=$(materialization::_path_identity "$staged") ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence staging identity failed'
+  materialization_staged_sha=$(materialization::_sha256_file "$staged") ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence staging hash failed'
+  materialization::_validate_evidence "$staged" "$gate" "$gate_sha" "$claim" "$materialization_claim_sha" "$expected_commit" true ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence validation failed'
+  evidence_sha=$(materialization::_canonical_sha "$staged") ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence hashing failed'
+  materialization::_commit_output "$staged" "$output" "$output_parent_identity" "$evidence_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence commit failed'
+  materialization::_commit_materialized_terminal "$(yq -r '.sessionID' "$gate")" "$evidence_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization terminal commit failed'
+  materialization::_validate_materialized_terminal "${materialization_session_dir}/terminal.json" "$gate" \
+    "$materialization_claim_sha" "$output" "$evidence_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization terminal validation failed'
+  materialization_claim_active=false
+  materialization_orphan_output=
+  printf '%s\n' TARGET_MATERIALIZED
+}
+
+materialization::_validate() {
+  local gate=$1 expected_gate_sha=$2 expected_commit=$3 evidence=$4 gate_sha root session_id session_dir claim terminal claim_sha evidence_sha
+  materialization::_validate_repository_authority "$expected_commit" ||
+    materialization::_blocked AUTHORITY_DRIFTED 'repository authority validation failed'
+  materialization::_assert_no_ambient_authority ||
+    materialization::_blocked INPUT_INVALID 'ambient Kubernetes or Argo authority is forbidden'
+  materialization::_validate_gate "$gate" "$expected_gate_sha" "$expected_commit" false ||
+    materialization::_blocked GATE_INVALID 'historical Materialization Owner Gate validation failed'
+  gate_sha=$(materialization::_canonical_sha "$gate") ||
+    materialization::_blocked GATE_INVALID 'Materialization Owner Gate hashing failed'
+  root=$(yq -r '.sessionReceiptRoot' "$gate") || materialization::_blocked GATE_INVALID 'session receipt root unavailable'
+  materialization::_assert_owner_directory "$root" 700 ||
+    materialization::_blocked INPUT_INVALID 'session receipt root custody failed'
+  session_id=$(yq -r '.sessionID' "$gate") || materialization::_blocked GATE_INVALID 'session ID unavailable'
+  session_dir=${root}/${session_id}
+  materialization::_assert_owner_directory "$session_dir" 700 ||
+    materialization::_blocked REPLAY_REJECTED 'materialization session receipt is unavailable'
+  claim=${session_dir}/claim.json
+  terminal=${session_dir}/terminal.json
+  claim_sha=$(materialization::_canonical_sha "$claim") ||
+    materialization::_blocked RESULT_INVALID 'Materialization claim hashing failed'
+  materialization::_validate_claim "$claim" "$gate" "$gate_sha" "$expected_commit" "$claim_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization claim validation failed'
+  materialization::_assert_private_file "$evidence" true ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence custody failed'
+  materialization::_validate_evidence "$evidence" "$gate" "$gate_sha" "$claim" "$claim_sha" "$expected_commit" true ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence validation failed'
+  evidence_sha=$(materialization::_canonical_sha "$evidence") ||
+    materialization::_blocked RESULT_INVALID 'Materialization Evidence hashing failed'
+  materialization::_validate_materialized_terminal "$terminal" "$gate" "$claim_sha" "$evidence" "$evidence_sha" ||
+    materialization::_blocked RESULT_INVALID 'Materialization terminal validation failed'
+  printf '%s\n' TARGET_MATERIALIZED
+}
+
+materialization::_usage() {
+  printf '%s\n' \
+    'usage:' \
+    '  personal-local-target-materialization run --owner-gate FILE --expected-owner-gate-sha SHA256 --expected-commit COMMIT --output FILE' \
+    '  personal-local-target-materialization validate --owner-gate FILE --expected-owner-gate-sha SHA256 --expected-commit COMMIT --evidence FILE'
+}
+
+materialization::_main() {
+  local command=${1:-} gate='' expected_gate_sha='' expected_commit='' output='' evidence=''
+  [[ -n $command ]] || {
+    materialization::_usage >&2
+    exit 2
+  }
+  shift
+  case $command in
+    run | validate) ;;
+    *)
+      materialization::_usage >&2
+      exit 2
+      ;;
+  esac
+  while (($#)); do
+    case $1 in
+      --owner-gate)
+        (($# >= 2)) || materialization::_blocked INPUT_INVALID 'missing Owner Gate path'
+        gate=$2
+        shift 2
+        ;;
+      --expected-owner-gate-sha)
+        (($# >= 2)) || materialization::_blocked INPUT_INVALID 'missing expected Owner Gate SHA'
+        expected_gate_sha=$2
+        shift 2
+        ;;
+      --expected-commit)
+        (($# >= 2)) || materialization::_blocked INPUT_INVALID 'missing expected commit'
+        expected_commit=$2
+        shift 2
+        ;;
+      --output)
+        (($# >= 2)) || materialization::_blocked INPUT_INVALID 'missing Evidence output path'
+        output=$2
+        shift 2
+        ;;
+      --evidence)
+        (($# >= 2)) || materialization::_blocked INPUT_INVALID 'missing Evidence path'
+        evidence=$2
+        shift 2
+        ;;
+      *) materialization::_blocked INPUT_INVALID 'unknown argument' ;;
+    esac
+  done
+  [[ -n $gate && -n $expected_gate_sha && -n $expected_commit ]] ||
+    materialization::_blocked INPUT_INVALID 'incomplete authority inputs'
+  case $command in
+    run)
+      [[ -n $output && -z $evidence ]] || materialization::_blocked INPUT_INVALID 'invalid run arguments'
+      materialization::_run "$gate" "$expected_gate_sha" "$expected_commit" "$output"
+      ;;
+    validate)
+      [[ -n $evidence && -z $output ]] || materialization::_blocked INPUT_INVALID 'invalid validator arguments'
+      materialization::_validate "$gate" "$expected_gate_sha" "$expected_commit" "$evidence"
+      ;;
+  esac
+}
+
+materialization::_main "$@"

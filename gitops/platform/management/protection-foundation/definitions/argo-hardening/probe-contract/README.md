@@ -91,9 +91,11 @@ PERSONAL_LOCAL_READ_ONLY_PREFLIGHT
   -> PERSONAL_LOCAL_READY
 ```
 
-The repository currently defines only this static authority surface. It does
-not contain a Materialization executor or a v2 live preflight implementation.
-No checked-in fixture, schema, or test is an approved Gate or live Evidence.
+The repository contains the dedicated
+`personal-local-target-materialization` executor and offline provenance
+validator. Repository tests exercise it only with synthetic credentials and a
+fake kubectl backend. No checked-in fixture, schema, test, or merge authorizes
+real Target Materialization, and no v2 final live preflight is implemented.
 
 The v2 Profile keeps the Personal Local assurance classification fixed:
 
@@ -127,6 +129,13 @@ does not authorize projecting, extracting, persisting, or separately hashing
 either value. Claim and terminal receipt schemas lock one `CLAIMED` session to
 one terminal `MATERIALIZED` or `BLOCKED` result. Successful Evidence contains
 no host path or credential material and proves both exact requests completed.
+
+The executor remains unreachable from every live GitOps graph. Its `run`
+operation requires a separately approved, target-bound, time-bounded Human
+Owner Gate before any real kubeconfig, credential, kubectl, or Kubernetes API
+use. Its `validate` operation is offline: it verifies repository authority,
+the exact Gate, claim, Evidence, and terminal receipt without reading the
+kubeconfig or kubectl paths recorded by the Gate.
 
 ### Final v2 preflight contract
 
