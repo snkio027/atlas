@@ -217,6 +217,52 @@ validate_case() {
   fi
 }
 
+assert_synthetic_gate_fixture() {
+  local gate=$1 expected_sha=$2 expected_runtime_commit=$3 canonical actual_sha issued expires now
+  local gate_schema=${probe_root}/personal-local-target-materialization-owner-gate-v1.schema.json
+
+  [[ $gate == /* && -f $gate && ! -L $gate && -O $gate ]] ||
+    test::fail "synthetic Gate fixture custody drifted"
+  canonical=$(yq -o=json -I=0 'sort_keys(..)' "$gate") ||
+    test::fail "synthetic Gate fixture is not parseable"
+  cmp -s "$gate" <(printf '%s' "$canonical") ||
+    test::fail "synthetic Gate fixture is not canonical"
+  [[ $(yq -r 'keys | .[]' "$gate" | sort) == "$(yq -r '.required[]' "$gate_schema" | sort)" ]] ||
+    test::fail "synthetic Gate fixture key projection drifted"
+  yq -e '(.schemaVersion | tag) == "!!int" and
+    ([.gateID,.operation,.decision,.rolloutProfile,.profileID,.contractGitCommit,
+      .authorityBaseline,.repositoryURL,.waiverDecisionSHA256,.materializationPlanID,
+      .materializationPlanSHA256,.materializationEvidenceSchemaID,.environmentName,
+      .clusterName,.kubeContext,.kubeconfigPath,.kubectlPath,.kubectlVersion,
+      .kubernetesVersion,.sessionReceiptRoot,.sessionID,.issuedAt,.expiresAt] |
+      all_c(.[]; tag == "!!str"))' "$gate" > /dev/null ||
+    test::fail "synthetic Gate fixture field types drifted"
+  actual_sha=$(canonical_sha "$gate")
+  [[ $actual_sha == "$expected_sha" ]] || test::fail "synthetic Gate fixture SHA drifted"
+  [[ $(canonical_sha "${probe_root}/personal-local-profile-v2.json") == "$expected_waiver_sha" &&
+  $(canonical_sha "${probe_root}/personal-local-target-materialization-plan.json") == "$expected_plan_sha" ]] ||
+    test::fail "synthetic Gate authority document SHA drifted"
+  [[ $(yq -r '.contractGitCommit' "$gate") == "$expected_runtime_commit" &&
+  $(yq -r '.authorityBaseline' "$gate") == 165fb2a31068e3de2ac1064dbf8f95966ff8aad1 &&
+  $(yq -r '.waiverDecisionSHA256' "$gate") == "$expected_waiver_sha" &&
+  $(yq -r '.materializationPlanSHA256' "$gate") == "$expected_plan_sha" ]] ||
+    test::fail "synthetic Gate Git or decision authority drifted"
+  [[ $(yq -r '.gateID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-owner-gate/v1 &&
+  $(yq -r '.operation' "$gate") == PERSONAL_LOCAL_TARGET_MATERIALIZATION &&
+  $(yq -r '.decision' "$gate") == APPROVED &&
+  $(yq -r '.rolloutProfile' "$gate") == PERSONAL_LOCAL &&
+  $(yq -r '.profileID' "$gate") == atlas.argocd.authorization-probe-profile/personal-local/v2 &&
+  $(yq -r '.repositoryURL' "$gate") == https://github.com/snkio027/atlas.git &&
+  $(yq -r '.materializationPlanID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-plan/v1 &&
+  $(yq -r '.materializationEvidenceSchemaID' "$gate") == atlas.argocd.authorization-personal-local-target-materialization-evidence/v1 ]] ||
+    test::fail "synthetic Gate fixed semantics drifted"
+  issued=$(yq -r '.issuedAt | to_unix' "$gate")
+  expires=$(yq -r '.expiresAt | to_unix' "$gate")
+  now=$(date -u +%s)
+  [[ $issued =~ ^[0-9]+$ && $expires =~ ^[0-9]+$ && $issued -lt $now && $now -lt $expires ]] ||
+    test::fail "synthetic Gate validity window drifted"
+}
+
 assert_no_credential_escape() {
   local file
   while IFS= read -r file; do
@@ -259,6 +305,7 @@ expect_run_blocked() {
 
 # One complete synthetic ceremony and offline validation.
 make_case success
+assert_synthetic_gate_fixture "$case_gate" "$case_gate_sha" "$expected_commit"
 if ! run_case; then
   printf 'synthetic stdout:\n%s\nsynthetic stderr:\n%s\n' "$(< "$case_stdout")" "$(< "$case_stderr")" >&2
   test::fail "synthetic Materialization ceremony failed"
