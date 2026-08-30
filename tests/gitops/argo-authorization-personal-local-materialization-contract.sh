@@ -12,7 +12,11 @@ readonly probe_root=gitops/platform/management/protection-foundation/definitions
 readonly executor=$ATLAS_TEST_ROOT/$probe_root/personal-local-target-materialization
 readonly fake_source=$ATLAS_TEST_ROOT/tests/gitops/fixtures/argo-authorization-probe/fake-personal-local-materialization-kubectl
 readonly expected_commit=${1:-}
-real_yq=$(command -v yq)
+if command -v aqua > /dev/null 2>&1; then
+  real_yq=$(aqua which yq)
+else
+  real_yq=$(command -v yq)
+fi
 readonly real_yq
 real_shasum=$(command -v shasum)
 readonly real_shasum
@@ -23,6 +27,9 @@ readonly expected_plan_sha=b9f2f0f2a171e410d20d15c5582408185fa8bc7b440442c965230
 
 [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || test::fail "expected contract commit must be supplied"
 [[ -x $executor && -x $fake_source ]] || test::fail "B2 executor or fake kubectl is not executable"
+[[ $real_yq == /* && -x $real_yq ]] || test::fail "locked yq executable could not be resolved"
+env -i PATH="$PATH" LC_ALL=C "$real_yq" --version > /dev/null 2>&1 ||
+  test::fail "locked yq executable is unavailable in a sanitized environment"
 
 test_workspace=$(mktemp -d "${TMPDIR:-/tmp}/atlas-personal-local-materialization-contract.XXXXXX")
 chmod 0700 "$test_workspace"
