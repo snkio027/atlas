@@ -5,6 +5,7 @@
 - Deciders: repository owner and required CODEOWNERS
 - Clarifies: ADR-0002 evidence protection and recovery authority
 - Amended by: [ADR-0004](0004-length-bounded-recovery-principal-identities.md) principal identity contract
+- Proposed amendment: [ADR-0005](0005-personal-local-target-materialization.md) PERSONAL_LOCAL target-materialization contract
 - Supersedes: none
 - Superseded by: none
 
@@ -1484,6 +1485,13 @@ and health reads are non-mutating and do not need a per-operation gate. They
 still require audit logging and must fail closed on uncertainty.
 
 ### Rollout profiles
+
+[ADR-0005](0005-personal-local-target-materialization.md) proposes the
+pre-authorization target-materialization contract required before this profile
+can perform a live read-only preflight. Until that amendment is accepted and
+implemented, the version 1 repository contract remains repository-only, its
+maximum result is `PERSONAL_LOCAL_DEFINED`, and it does not authorize cluster
+or credential access.
 
 ADR-0003 has two explicit rollout profiles. `PRODUCTION` remains the default
 and retains every authority, identity, custody, dynamic authorization, audit,
