@@ -66,6 +66,7 @@ expected_contract_files=(
   personal-local-preflight
   personal-local-profile-v1.json
   personal-local-profile-v2.json
+  personal-local-target-materialization
   personal-local-target-materialization-claim-v1.schema.json
   personal-local-target-materialization-evidence-v1.schema.json
   personal-local-target-materialization-owner-gate-v1.schema.json

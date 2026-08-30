@@ -295,8 +295,7 @@ done
   ! -e $probe_root/personal-local-evidence.schema.json ]] ||
   test::fail "ambiguous unversioned PERSONAL_LOCAL authority remains"
 
-if rg -n 'target-materialization-(executor|run)|LIVE_TARGET_MATERIALIZATION.*(execute|run)' "$probe_root" --glob '!*.json' --glob '!README.md'; then
-  test::fail "Change B1 introduced a Materialization executor"
-fi
+[[ -x $probe_root/personal-local-target-materialization ]] ||
+  test::fail "the dedicated B2 Materialization executor is unavailable"
 
 test::pass "ADR-0005 PERSONAL_LOCAL v2 repository-only contract surface"
