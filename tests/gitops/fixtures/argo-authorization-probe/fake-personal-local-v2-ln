@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly state_file=${ATLAS_FAKE_V2_LN_STATE:?fake ln state is required}
+readonly fail_at=${ATLAS_FAKE_V2_LN_FAIL_AT:?fake ln failure index is required}
+count=0
+[[ ! -f $state_file ]] || count=$(< "$state_file")
+count=$((count + 1))
+printf '%s' "$count" > "$state_file"
+if ((count == fail_at)); then
+  exit 42
+fi
+exec /bin/ln "$@"

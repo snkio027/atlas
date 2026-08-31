@@ -66,6 +66,7 @@ expected_contract_files=(
   personal-local-preflight
   personal-local-profile-v1.json
   personal-local-profile-v2.json
+  personal-local-read-only-preflight
   personal-local-target-materialization
   personal-local-target-materialization-claim-v1.schema.json
   personal-local-target-materialization-evidence-v1.schema.json
@@ -73,6 +74,7 @@ expected_contract_files=(
   personal-local-target-materialization-plan.json
   personal-local-target-materialization-terminal-v1.schema.json
   personal-local-target-v1.schema.json
+  personal-local-target-v2
   personal-local-target-v2.schema.json
   probe-contract.json
   probe-matrix.json

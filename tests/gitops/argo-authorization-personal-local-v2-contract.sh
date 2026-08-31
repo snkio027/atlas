@@ -297,5 +297,8 @@ done
 
 [[ -x $probe_root/personal-local-target-materialization ]] ||
   test::fail "the dedicated B2 Materialization executor is unavailable"
+[[ -x $probe_root/personal-local-target-v2 &&
+  -x $probe_root/personal-local-read-only-preflight ]] ||
+  test::fail "the dedicated B3 Target or preflight executable is unavailable"
 
 test::pass "ADR-0005 PERSONAL_LOCAL v2 repository-only contract surface"
