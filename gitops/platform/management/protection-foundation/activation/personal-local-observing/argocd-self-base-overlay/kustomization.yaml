@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../definitions/argo-hardening/argocd-self-base-overlay
+  - ../../../definitions/admission/overlays/observing
+
+patches:
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+      name: atlas-bootstrap-evidence-protection
+    path: patches/evidence-protection.json
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+      name: atlas-bootstrap-recovery-binding-shape-authorization
+    path: patches/recovery-binding-shape-authorization.json
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+      name: atlas-bootstrap-recovery-fence-authorization
+    path: patches/recovery-fence-authorization.json
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+      name: atlas-bootstrap-recovery-guard-authorization
+    path: patches/recovery-guard-authorization.json
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+      name: atlas-bootstrap-recovery-permission-authorization
+    path: patches/recovery-permission-authorization.json
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicy
+    patch: |-
+      - op: replace
+        path: /metadata/labels/atlas.io~1definition-state
+        value: observing
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicyBinding
+    patch: |-
+      - op: replace
+        path: /metadata/labels/atlas.io~1definition-state
+        value: observing

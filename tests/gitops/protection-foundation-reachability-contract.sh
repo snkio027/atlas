@@ -12,14 +12,31 @@ cd "$ATLAS_TEST_ROOT"
 readonly definition_path=gitops/platform/management/protection-foundation/definitions
 readonly hardening_path=$definition_path/argo-hardening
 
-expected_reachable_definitions=$(printf '%s\n' \
+hardening_reachable=$(printf '%s\n' \
   "$hardening_path/application-overlay" \
   "$hardening_path/application-overlay/kustomization.yaml" \
   "$hardening_path/argocd-self-base-overlay" \
   "$hardening_path/argocd-self-base-overlay/kustomization.yaml" \
   "$hardening_path/argocd-values-hardening.yaml" | sort)
 
+local_observation_reachable=$(printf '%s\n' \
+  "$definition_path/admission/base" \
+  "$definition_path/admission/base/evidence-protection.yaml" \
+  "$definition_path/admission/base/kustomization.yaml" \
+  "$definition_path/admission/base/recovery-binding-shape-authorization.yaml" \
+  "$definition_path/admission/base/recovery-fence-authorization.yaml" \
+  "$definition_path/admission/base/recovery-guard-authorization.yaml" \
+  "$definition_path/admission/base/recovery-permission-authorization.yaml" \
+  "$definition_path/admission/overlays/observing" \
+  "$definition_path/admission/overlays/observing/kustomization.yaml" | sort)
+
 for environment in local-orbstack prod; do
+  if [[ $environment == local-orbstack ]]; then
+    expected_reachable_definitions=$(printf '%s\n%s\n' \
+      "$hardening_reachable" "$local_observation_reachable" | sort -u)
+  else
+    expected_reachable_definitions=$hardening_reachable
+  fi
   graph=$(gitops_reachability::collect_paths "gitops/root/overlays/${environment}") ||
     test::fail "${environment} Root control graph could not be traversed"
   reachable_definitions=$(
@@ -35,13 +52,18 @@ for environment in local-orbstack prod; do
     test::fail "${environment} Root reaches an unapproved Protection projection"
   }
 
-  for forbidden_projection in \
-    "$definition_path/admission" \
-    "$definition_path/rbac/escape" \
-    "$definition_path/rbac/session" \
-    "$definition_path/signal" \
-    "$hardening_path/probe-contract" \
-    "$definition_path/applicationset-recovery-contract.json"; do
+  forbidden_projections=(
+    "$definition_path/admission/overlays/enforced"
+    "$definition_path/rbac/escape"
+    "$definition_path/rbac/session"
+    "$definition_path/signal"
+    "$hardening_path/probe-contract"
+    "$definition_path/applicationset-recovery-contract.json"
+  )
+  if [[ $environment == prod ]]; then
+    forbidden_projections+=("$definition_path/admission")
+  fi
+  for forbidden_projection in "${forbidden_projections[@]}"; do
     gitops_reachability::assert_definition_unreachable \
       "gitops/root/overlays/${environment}" "$forbidden_projection" ||
       test::fail "${environment} Root reaches inactive projection: ${forbidden_projection}"
@@ -103,4 +125,4 @@ if gitops_reachability::assert_definition_unreachable \
   test::fail "reachability detector accepted a graph wired to Phase 1A definitions"
 fi
 
-test::pass "only Phase 1B Change 1 Argo hardening is reachable across both control graphs"
+test::pass "only Argo hardening and the local Audit-only observation candidate are reachable"

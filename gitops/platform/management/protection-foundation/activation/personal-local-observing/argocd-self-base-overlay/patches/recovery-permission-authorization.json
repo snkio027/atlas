@@ -1,0 +1,7 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/validations/2/expression",
+    "value": "request.userInfo.username == params.data.authorizerPrincipal && params.data.authorizerPrincipal ==\n\n  'atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\nparams.data.recoveryPrincipal ==\n\n  'atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\nvariables.binding.metadata.labels['atlas.io/recovery-session'] ==\n\n  params.data.sessionID &&\nvariables.binding.metadata.annotations['atlas.io/recovery-plan-sha256'] ==\n\n  params.data.planSHA256 &&\nvariables.binding.metadata.annotations['atlas.io/recovery-target-sha256'] ==\n\n  params.data.clusterFingerprintSHA256 &&\nvariables.binding.metadata.annotations['atlas.io/recovery-revision'] ==\n\n  params.data.knownGoodRevision &&\nvariables.binding.metadata.annotations['atlas.io/recovery-fence-uid'] ==\n\n  params.metadata.uid"
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/matchConditions/0/expression",
+    "value": "request.userInfo.username ==\n\n  'atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' ||\n(request.operation != 'CREATE' &&\n\n  (oldObject.metadata.name.startsWith('atlas-bg-') ||\n    (has(oldObject.metadata.labels) &&\n      'atlas.io/recovery-session' in oldObject.metadata.labels))) ||\n(request.operation != 'DELETE' &&\n\n  (object.metadata.name.startsWith('atlas-bg-') ||\n    (has(object.metadata.labels) &&\n      'atlas.io/recovery-session' in object.metadata.labels)))"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/0/expression",
+    "value": "request.userInfo.username ==\n\n  'atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\nrequest.operation != 'UPDATE' && variables.scopeName in ['cluster', 'argocd', 'kube-system']"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/3/expression",
+    "value": "variables.binding.roleRef.apiGroup == 'rbac.authorization.k8s.io' && ((variables.scopeName == 'cluster' &&\n\n  variables.binding.roleRef.kind == 'ClusterRole' &&\n  variables.binding.roleRef.name == 'atlas-bootstrap-recovery-cluster') ||\n(variables.scopeName in ['argocd', 'kube-system'] &&\n\n  variables.binding.roleRef.kind == 'Role' &&\n  variables.binding.roleRef.name == 'atlas-bootstrap-recovery')) &&\nvariables.binding.subjects.size() == 1 && variables.binding.subjects[0].apiGroup == 'rbac.authorization.k8s.io' && variables.binding.subjects[0].kind == 'User' && variables.binding.subjects[0].name ==\n\n  'atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1'"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/matchConditions/0/expression",
+    "value": "request.namespace == 'argocd' && ((request.userInfo.username ==\n\n  'atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\n  ((request.operation != 'CREATE' &&\n    oldObject.metadata.name == 'argocd-rbac-cm') ||\n  (request.operation != 'DELETE' &&\n    object.metadata.name == 'argocd-rbac-cm'))) ||\n(request.operation != 'CREATE' &&\n\n  oldObject.metadata.name == 'argocd-rbac-cm' &&\n  has(oldObject.data) &&\n  'policy.atlas-recovery-freeze.csv' in oldObject.data) ||\n(request.operation != 'DELETE' &&\n\n  object.metadata.name == 'argocd-rbac-cm' &&\n  has(object.data) &&\n  'policy.atlas-recovery-freeze.csv' in object.data))"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/0/expression",
+    "value": "request.userInfo.username ==\n\n  'atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\nvariables.guard.metadata.name == 'argocd-rbac-cm'"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/2/expression",
+    "value": "request.operation != 'CREATE' || (has(object.metadata.labels) &&\n\n  object.metadata.labels['app.kubernetes.io/name'] == 'argocd-rbac-cm' &&\n  object.metadata.labels['app.kubernetes.io/part-of'] == 'argocd' &&\n  !has(object.binaryData) && !has(object.immutable) &&\n  has(object.data) &&\n  object.data['policy.atlas-recovery-freeze.csv'] ==\n    '')"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/4/expression",
+    "value": "(request.operation == 'CREATE' &&\n\n  'policy.atlas-recovery-freeze.csv' in object.data &&\n  object.data['policy.atlas-recovery-freeze.csv'] ==\n    '') ||\n(request.operation == 'UPDATE' &&\n\n  ('policy.atlas-recovery-freeze.csv' in oldObject.data) !=\n    ('policy.atlas-recovery-freeze.csv' in object.data) &&\n  (!('policy.atlas-recovery-freeze.csv' in object.data) ||\n    object.data['policy.atlas-recovery-freeze.csv'] ==\n      ''))"
+  }
+]

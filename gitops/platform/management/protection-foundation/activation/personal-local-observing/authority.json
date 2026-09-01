@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "activationStage": "ADR_0003_PHASE_1B_ADMISSION_OBSERVATION_CANDIDATE",
+  "rolloutProfile": "PERSONAL_LOCAL",
+  "environmentName": "personal-local",
+  "clusterName": "atlas-test",
+  "preflightMainCommit": "5d10bb3965efc7128c3b930308465b3c38b1530b",
+  "candidateBaseCommit": "5d10bb3965efc7128c3b930308465b3c38b1530b",
+  "profileV2SHA256": "c70520051531935249298bb5b0fe714a987b1ae1de3ceaee8e939c4d7153be6a",
+  "finalOwnerGateSHA256": "34e0681ddc76804cc5c484878d5769ec43ab8b51b80c51e4d494fd5b35ccfb54",
+  "sealedTargetSHA256": "1e6e19d3e49bf917977ee6705dd6bb96b786a4186f25a18246d0ebceae1eca92",
+  "finalPreflightEvidenceSHA256": "c5697ea794b015b8b7c31c0257b5ea4eff071de2a06e6193573e2d8f1968acd4",
+  "kubeSystemNamespaceUID": "6c172134-40de-4a43-b5d2-63529fc3feb0",
+  "principalGenerations": {
+    "bootstrap": 1,
+    "recovery": 1,
+    "sessionAuthorizer": 1
+  },
+  "principals": {
+    "bootstrap": "atlas:bootstrap:6c172134-40de-4a43-b5d2-63529fc3feb0:g1",
+    "recovery": "atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1",
+    "sessionAuthorizer": "atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1",
+    "argocdController": "system:serviceaccount:argocd:atlas-argocd-application-controller"
+  },
+  "argoRecoveryGuard": {
+    "authorityInventoryPath": "gitops/platform/management/protection-foundation/definitions/argo-hardening/argo-authority-inventory.json",
+    "requiredRoles": [],
+    "canonicalDenyFragment": ""
+  },
+  "validationActions": [
+    "Audit"
+  ],
+  "runtimeAuthorization": "NOT_AUTHORIZED"
+}

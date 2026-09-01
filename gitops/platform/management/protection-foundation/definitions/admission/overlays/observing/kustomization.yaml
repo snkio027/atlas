@@ -5,3 +5,16 @@ kind: Kustomization
 # This path remains unreachable until a separately approved activation PR.
 resources:
   - ../../base
+
+patches:
+  # Audit-only observation must never reject a request merely because the
+  # recovery Fence parameter is absent. The enforced overlay retains Deny.
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionPolicyBinding
+      name: atlas-bootstrap-recovery-permission-authorization
+    patch: |-
+      - op: replace
+        path: /spec/paramRef/parameterNotFoundAction
+        value: Allow

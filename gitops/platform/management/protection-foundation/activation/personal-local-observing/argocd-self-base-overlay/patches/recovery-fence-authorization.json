@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/matchConditions/0/expression",
+    "value": "request.userInfo.username ==\n\n  'atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' ||\n(request.namespace == 'kube-system' &&\n\n  (request.operation == 'DELETE'\n    ? oldObject.metadata.name == 'atlas-bootstrap-operation-fence'\n    : object.metadata.name == 'atlas-bootstrap-operation-fence'))"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/validations/2/expression",
+    "value": "(variables.fence.data.mode == 'normal-apply' &&\n\n  variables.fence.data.size() == 6 &&\n  request.userInfo.username ==\n    'atlas:bootstrap:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\n  variables.fence.data.holderUsername == request.userInfo.username) ||\n(variables.fence.data.mode == 'recovery' &&\n\n  variables.fence.data.size() == 11 &&\n  request.userInfo.username ==\n    'atlas:session-authz:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\n  variables.fence.data.holderUsername == request.userInfo.username &&\n  variables.fence.data.authorizerPrincipal == request.userInfo.username &&\n  variables.fence.data.recoveryPrincipal ==\n    'atlas:break-glass:6c172134-40de-4a43-b5d2-63529fc3feb0:g1' &&\n  variables.fence.data.sessionID.matches('^[0-9a-f]{32}$') &&\n  variables.fence.data.planSHA256.matches('^[0-9a-f]{64}$') &&\n  variables.fence.data.knownGoodRevision.matches('^[0-9a-f]{40}$'))"
+  }
+]

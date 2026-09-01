@@ -18,7 +18,7 @@ jobs:
   quality:
     name: quality
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,3 +42,8 @@ jobs:
         env:
           ATLAS_CI_PHASE1A_VAP: "1"
         run: ./tests/gitops/protection-foundation-server-contract.sh
+
+      - name: Verify Phase-1B observation is non-blocking on locked Kubernetes
+        env:
+          ATLAS_CI_PHASE1B_OBSERVING: "1"
+        run: ./tests/gitops/protection-foundation-observation-server-contract.sh

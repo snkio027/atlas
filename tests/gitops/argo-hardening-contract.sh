@@ -29,8 +29,20 @@ $(yq ea -r 'select(.) | .kind' <<< "$render") == Application ]] ||
 
 for environment in local-orbstack prod; do
   environment_render=$(kubectl kustomize "gitops/platform/applications/overlays/${environment}")
-  [[ $environment_render == "$render" ]] ||
-    test::fail "${environment} does not render the reviewed Argo hardening projection"
+  if [[ $environment == local-orbstack ]]; then
+    normalized_environment_render=$(yq '
+      (select(.kind == "Application" and .metadata.name == "argocd-self") |
+        .spec.sources[1].path) =
+          "gitops/platform/management/protection-foundation/definitions/argo-hardening/argocd-self-base-overlay"
+    ' <<< "$environment_render")
+    normalized_environment_json=$(yq -o=json -I=0 'sort_keys(..)' <<< "$normalized_environment_render")
+    reviewed_hardening_json=$(yq -o=json -I=0 'sort_keys(..)' <<< "$render")
+    [[ $normalized_environment_json == "$reviewed_hardening_json" ]] ||
+      test::fail "local-orbstack changes Argo hardening outside the approved observation owner path"
+  else
+    [[ $environment_render == "$render" ]] ||
+      test::fail "${environment} does not render the reviewed Argo hardening projection"
+  fi
 done
 [[ $(yq '.configs.cm.create == false' "$hardening_values") == true ]] ||
   test::fail "Argo hardening values attempt to duplicate the Kustomize-owned argocd-cm"

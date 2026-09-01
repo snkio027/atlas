@@ -131,9 +131,13 @@ permission_policy=$(NAME=atlas-bootstrap-recovery-permission-authorization yq ea
   'select(.kind == "ValidatingAdmissionPolicy" and .metadata.name == strenv(NAME))' "$observing_a")
 permission_binding=$(NAME=atlas-bootstrap-recovery-permission-authorization yq ea -o=json -I=0 \
   'select(.kind == "ValidatingAdmissionPolicyBinding" and .metadata.name == strenv(NAME))' "$observing_a")
+enforced_permission_binding=$(NAME=atlas-bootstrap-recovery-permission-authorization yq ea -o=json -I=0 \
+  'select(.kind == "ValidatingAdmissionPolicyBinding" and .metadata.name == strenv(NAME))' "$enforced")
 [[ $(yq -o=json -I=0 '.spec.paramKind' <<< "$permission_policy") == '{"apiVersion":"v1","kind":"ConfigMap"}' &&
-$(yq -o=json -I=0 '.spec.paramRef' <<< "$permission_binding") == '{"name":"atlas-bootstrap-operation-fence","namespace":"kube-system","parameterNotFoundAction":"Deny"}' ]] ||
-  test::fail "Permission authorization does not fail closed on the canonical missing Fence"
+$(yq -o=json -I=0 '.spec.paramRef' <<< "$permission_binding") == '{"name":"atlas-bootstrap-operation-fence","namespace":"kube-system","parameterNotFoundAction":"Allow"}' ]] ||
+  test::fail "observing Permission authorization is not non-blocking on the missing Fence"
+[[ $(yq -o=json -I=0 '.spec.paramRef' <<< "$enforced_permission_binding") == '{"name":"atlas-bootstrap-operation-fence","namespace":"kube-system","parameterNotFoundAction":"Deny"}' ]] ||
+  test::fail "enforced Permission authorization does not fail closed on the missing Fence"
 [[ $(yq -r '.spec.validations[0].expression' <<< "$permission_policy") == 'params != null' ]] ||
   test::fail "Permission authorization does not explicitly reject a missing parameter"
 
