@@ -301,4 +301,6 @@ done
   -x $probe_root/personal-local-read-only-preflight ]] ||
   test::fail "the dedicated B3 Target or preflight executable is unavailable"
 
+"$ATLAS_TEST_ROOT/tests/gitops/contract-primitives-contract.sh" "$expected_commit"
+
 test::pass "ADR-0005 PERSONAL_LOCAL v2 repository-only contract surface"
