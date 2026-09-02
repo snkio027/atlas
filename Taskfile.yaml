@@ -21,55 +21,80 @@ tasks:
     cmds:
       - ./bootstrap/atlas status
 
-  quality:
-    desc: Run every mandatory local quality gate
+  check:
+    desc: Run the fast repository edit loop
     cmds:
-      - task: lint
-      - task: test
-      - task: conformance
+      - ./tests/ci/run-quality-suite.sh check
+
+  quality:
+    desc: Backward-compatible exhaustive repository-only quality gate
+    cmds:
+      - task: quality:full
+
+  quality:full:
+    desc: Run every mandatory repository-only quality command exactly once
+    cmds:
+      - ./tests/ci/run-quality-suite.sh repository-all
+
+  quality:bootstrap:
+    desc: Run Shell, configuration, Bootstrap, and render contracts
+    cmds:
+      - ./tests/ci/run-quality-suite.sh bootstrap
+
+  quality:recovery-drill:
+    desc: Run repository-only Recovery and Drill contracts
+    cmds:
+      - ./tests/ci/run-quality-suite.sh recovery-drill
+
+  quality:gitops-core:
+    desc: Run GitOps render, ownership, and reachability contracts
+    cmds:
+      - ./tests/ci/run-quality-suite.sh gitops-core
+
+  quality:authorization-probe:
+    desc: Run the repository-only Argo authorization Probe contract
+    cmds:
+      - ./tests/ci/run-quality-suite.sh authorization-probe
+
+  quality:personal-local-static:
+    desc: Run repository-only PERSONAL_LOCAL static contracts
+    cmds:
+      - ./tests/ci/run-quality-suite.sh personal-local-static
+
+  quality:target-materialization:
+    desc: Run the synthetic Target Materialization contract
+    cmds:
+      - ./tests/ci/run-quality-suite.sh target-materialization
+
+  quality:final-v2-preflight:
+    desc: Run the synthetic final v2 Preflight contract
+    cmds:
+      - ./tests/ci/run-quality-suite.sh final-v2-preflight
+
+  quality:server-phase0:
+    desc: Run the Phase-0 disposable Kubernetes server contract in GitHub Actions
+    cmds:
+      - ./tests/ci/run-quality-suite.sh server-phase0
+
+  quality:server-phase1a:
+    desc: Run the Phase-1A disposable Kubernetes server contract in GitHub Actions
+    cmds:
+      - ./tests/ci/run-quality-suite.sh server-phase1a
 
   lint:
     desc: Check Shell syntax, ShellCheck, and shfmt
     cmds:
-      - ./tests/shell/lint.sh
+      - ./tests/ci/run-quality-suite.sh legacy-lint
 
   test:
     desc: Run Bootstrap safety and configuration tests
     cmds:
-      - ./tests/shell/config.sh
-      - ./tests/bootstrap/docker-authority-contract.sh
-      - ./tests/bootstrap/cluster-contract.sh
-      - ./tests/bootstrap/kind-topology-contract.sh
-      - ./tests/bootstrap/mutation-lock-contract.sh
-      - ./tests/bootstrap/registry-node-contract.sh
-      - ./tests/bootstrap/safety-contract.sh
-      - ./tests/bootstrap/state-lock-contract.sh
-      - ./tests/bootstrap/status-contract.sh
-      - ./tests/bootstrap/status-exit-contract.sh
-      - ./tests/recovery/audit-config-contract.sh
-      - ./tests/recovery/principal-identity-contract.sh
-      - ./tests/recovery/repository-authority-contract.sh
-      - ./tests/recovery/admission-canary-contract.sh
-      - ./tests/recovery/session-authorization-canary-contract.sh
-      - ./tests/recovery/vap-server-kind-inventory-contract.sh
-      - ./tests/recovery/canary-ceremony-contract.sh
-      - ./tests/drill/kind-create-contract.sh
+      - ./tests/ci/run-quality-suite.sh legacy-test
 
   conformance:
     desc: Run render, architecture, and supply-chain contracts
     cmds:
-      - ./tests/bootstrap/render-contract.sh
-      - ./tests/gitops/conformance.sh
-      - ./tests/gitops/protection-foundation-contract.sh
-      - ./tests/gitops/argo-hardening-contract.sh
-      - ./tests/gitops/argo-authorization-probe-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/argo-authorization-personal-local-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/argo-authorization-personal-local-preflight-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/argo-authorization-personal-local-v2-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/argo-authorization-personal-local-materialization-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/argo-authorization-personal-local-v2-preflight-contract.sh "$(env -i PATH="$PATH" LC_ALL=C git --no-replace-objects -c core.fsmonitor=false -c core.ignoreStat=false rev-parse --verify 'HEAD^{commit}')"
-      - ./tests/gitops/applicationset-recovery-contract.sh
-      - ./tests/gitops/protection-foundation-reachability-contract.sh
+      - ./tests/ci/run-quality-suite.sh legacy-conformance
 
   integration:
     desc: Run the explicit mutating Kind Bootstrap test

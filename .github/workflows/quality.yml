@@ -15,30 +15,190 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: quality
+  bootstrap:
+    name: bootstrap
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 8
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
       - name: Install locked quality tools
         uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
         with:
           aqua_version: v2.62.3
+      - name: Run Bootstrap contracts
+        run: task quality:bootstrap
 
-      - name: Run repository quality gate
-        run: task quality
+  recovery-drill:
+    name: recovery-drill
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run Recovery and Drill contracts
+        run: task quality:recovery-drill
 
+  gitops-core:
+    name: gitops-core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run GitOps core contracts
+        run: task quality:gitops-core
+
+  authorization-probe:
+    name: authorization-probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run authorization Probe contract
+        run: task quality:authorization-probe
+
+  personal-local-static:
+    name: personal-local-static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run PERSONAL_LOCAL static contracts
+        run: task quality:personal-local-static
+
+  target-materialization:
+    name: target-materialization
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run Target Materialization contract
+        run: task quality:target-materialization
+
+  final-v2-preflight:
+    name: final-v2-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
+      - name: Run final v2 Preflight contract
+        run: task quality:final-v2-preflight
+
+  server-phase0:
+    name: server-phase0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
       - name: Compile Phase-0 VAP CEL on locked Kubernetes
-        env:
-          ATLAS_CI_KIND_VAP: "1"
-        run: ./tests/recovery/vap-server-compile-contract.sh
+        run: task quality:server-phase0
 
+  server-phase1a:
+    name: server-phase1a
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install locked quality tools
+        uses: aquaproj/aqua-installer@96a9bc20066c5bf5e275b41019cfc165b25f4e2e # v4.0.5
+        with:
+          aqua_version: v2.62.3
       - name: Compile Phase-1A protection VAP CEL on locked Kubernetes
-        env:
-          ATLAS_CI_PHASE1A_VAP: "1"
-        run: ./tests/gitops/protection-foundation-server-contract.sh
+        run: task quality:server-phase1a
+
+  quality:
+    name: quality
+    if: always()
+    needs:
+      - bootstrap
+      - recovery-drill
+      - gitops-core
+      - authorization-probe
+      - personal-local-static
+      - target-materialization
+      - final-v2-preflight
+      - server-phase0
+      - server-phase1a
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    env:
+      BOOTSTRAP_RESULT: ${{ needs.bootstrap.result }}
+      RECOVERY_DRILL_RESULT: ${{ needs['recovery-drill'].result }}
+      GITOPS_CORE_RESULT: ${{ needs['gitops-core'].result }}
+      AUTHORIZATION_PROBE_RESULT: ${{ needs['authorization-probe'].result }}
+      PERSONAL_LOCAL_STATIC_RESULT: ${{ needs['personal-local-static'].result }}
+      TARGET_MATERIALIZATION_RESULT: ${{ needs['target-materialization'].result }}
+      FINAL_V2_PREFLIGHT_RESULT: ${{ needs['final-v2-preflight'].result }}
+      SERVER_PHASE0_RESULT: ${{ needs['server-phase0'].result }}
+      SERVER_PHASE1A_RESULT: ${{ needs['server-phase1a'].result }}
+    steps:
+      - name: Require every mandatory shard
+        run: |
+          for result in \
+            "$BOOTSTRAP_RESULT" \
+            "$RECOVERY_DRILL_RESULT" \
+            "$GITOPS_CORE_RESULT" \
+            "$AUTHORIZATION_PROBE_RESULT" \
+            "$PERSONAL_LOCAL_STATIC_RESULT" \
+            "$TARGET_MATERIALIZATION_RESULT" \
+            "$FINAL_V2_PREFLIGHT_RESULT" \
+            "$SERVER_PHASE0_RESULT" \
+            "$SERVER_PHASE1A_RESULT"; do
+            if [[ "$result" != "success" ]]; then
+              echo "A mandatory quality shard did not succeed: $result" >&2
+              exit 1
+            fi
+          done

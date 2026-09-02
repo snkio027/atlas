@@ -45,7 +45,10 @@ deleting clusters, rotating credentials, or performing break-glass recovery.
    implementation-language changes in one patch.
 5. Check correctness, idempotency, failure recovery, offline artifacts,
    permissions, tests, and documentation.
-6. Run `task quality` before proposing or pushing a change.
+6. Run `task check` and the affected focused suite before proposing or pushing
+   a change. Run `task quality:full` for shared test infrastructure, Recovery or
+   ceremony implementation, contract/schema authority, supply-chain, release,
+   or unclassifiable cross-cutting changes.
 
 An ADR is required before changing control ownership, trust boundaries,
 Application nesting, canonical AppProject names, implementation language,
@@ -65,10 +68,17 @@ configuration format, offline artifact flow, or recovery authority.
 ## Local verification
 
 ```bash
-task quality
+task check
+task quality:gitops-core # example affected suite
 ./bootstrap/atlas doctor --env test
 ./bootstrap/atlas status --env test
 ```
+
+`task quality:full` is the exhaustive repository-only gate; `task quality` is
+its backward-compatible alias. The required GitHub `quality` check always runs
+all repository-only and disposable Kubernetes server contracts in independent
+parallel shards, then fails unless every shard succeeds. Server suites are CI-
+only and must not be used as a local edit loop.
 
 `apply` is intentionally absent from the routine verification commands because
 it mutates the substrate and crosses the Tier-0 boundary.
