@@ -28,10 +28,25 @@ profile_sha=$(printf '%s' "$canonical_profile" | shasum -a 256 | awk '{print $1}
   $(yq -r '.profileID' "$profile") == atlas.argocd.authorization-probe-profile/personal-local/v1 ]] ||
   test::fail "historical PERSONAL_LOCAL v1 authority drifted"
 
+mapfile -t executable_functions < <(
+  sed -nE 's/^([[:alnum:]_:]+)\(\) \{$/\1/p' "$preflight" | sort
+)
+expected_functions=(preflight::_main preflight::_usage)
+[[ ${executable_functions[*]} == "${expected_functions[*]}" ]] ||
+  test::fail "historical PERSONAL_LOCAL v1 tombstone public surface drifted"
+
+if sed '1d' "$preflight" | grep -Eq \
+  '(^|[^[:alnum:]_])(argocd|awk|chmod|date|dirname|env|git|helm|kubectl|mkdir|mktemp|mv|openssl|rm|shasum|sort|tail|tar|yq)([^[:alnum:]_]|$)|ARGOCD_|KUBECONFIG|/api/|/apis/'; then
+  test::fail "historical PERSONAL_LOCAL v1 tombstone regained an authority dependency"
+fi
+if grep -Eq 'PERSONAL_LOCAL_READY|TARGET_MATERIALIZED|PERSONAL_LOCAL_OBSERVING|PERSONAL_LOCAL_OBSERVED' "$preflight"; then
+  test::fail "historical PERSONAL_LOCAL v1 tombstone regained a live-capable result"
+fi
+
 sentinel_bin=$test_workspace/bin
 sentinel_log=$test_workspace/client-invocations.log
 mkdir -p "$sentinel_bin"
-for executable in kubectl openssl helm git; do
+for executable in argocd awk chmod date dirname env git helm kubectl mkdir mktemp mv openssl rm shasum sort tail tar yq; do
   helper=$sentinel_bin/$executable
   apply_name=$executable
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" %q >> %q\nexit 97\n' "$apply_name" "$sentinel_log" > "$helper"
