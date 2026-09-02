@@ -67,9 +67,10 @@ It is repository-only, is never live-eligible, and cannot produce a result
 beyond `PERSONAL_LOCAL_DEFINED`. Both `personal-local-preflight run` and
 `personal-local-preflight validate` therefore return `PERSONAL_LOCAL_BLOCKED`
 before they parse arguments or read a Target, kubeconfig, credential, tool, or
-API. Historical v1 static validation remains in the repository contract test.
-The explicitly named v1 Target, Gate, and Evidence schemas are historical
-artifacts only.
+API. The executable is a permanent live-forbidden tombstone; historical v1
+static validation remains in the repository contract test. The explicitly
+named v1 Target, Gate, and Evidence schemas remain available for repository
+interpretation only.
 
 `personal-local-profile-v2.json` is the only future live-eligible Personal
 Local authority. Its canonical document is a new waiver decision and cannot
