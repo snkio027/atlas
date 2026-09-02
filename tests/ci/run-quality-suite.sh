@@ -71,12 +71,12 @@ ci_quality::_validate_workflow_topology() {
 ci_quality::_validate_inventory() {
   local inventory=$1
   local line_number=0 total=0 repository_total=0 server_total=0
-  local seen_commands='' suite legacy_group fast mode command extra
+  local seen_commands='' suite legacy_group fast mode required_tools command extra
 
   [[ -f "$inventory" && ! -L "$inventory" ]] ||
     ci_quality::_fail "quality inventory must be a regular non-symlink file"
 
-  while IFS='|' read -r suite legacy_group fast mode command extra; do
+  while IFS='|' read -r suite legacy_group fast mode required_tools command extra; do
     line_number=$((line_number + 1))
     [[ -z "$suite" || "$suite" == \#* ]] && continue
 
@@ -95,6 +95,10 @@ ci_quality::_validate_inventory() {
     case "$mode" in
       direct | git-head | server-phase0 | server-phase1a) ;;
       *) ci_quality::_fail "unknown execution mode at inventory line $line_number: $mode" ;;
+    esac
+    case "$required_tools" in
+      lazy | yq | renderers) ;;
+      *) ci_quality::_fail "unknown tool prerequisite at inventory line $line_number: $required_tools" ;;
     esac
     [[ "$command" == tests/* && "$command" != *'..'* && "$command" != *[[:space:]]* ]] ||
       ci_quality::_fail "unsafe command path at inventory line $line_number"
@@ -151,8 +155,27 @@ ci_quality::_git_head() {
     rev-parse --verify 'HEAD^{commit}'
 }
 
+ci_quality::_prepare_tools() {
+  local -a prefix=()
+
+  if command -v aqua > /dev/null 2>&1; then
+    prefix=(aqua exec --)
+  fi
+  case "$1" in
+    lazy) ;;
+    yq)
+      "${prefix[@]}" yq --version > /dev/null
+      ;;
+    renderers)
+      "${prefix[@]}" yq --version > /dev/null
+      "${prefix[@]}" helm version --short > /dev/null
+      "${prefix[@]}" kubectl version --client > /dev/null
+      ;;
+  esac
+}
+
 ci_quality::_run_command() {
-  local mode=$1 command=$2
+  local mode=$1 required_tools=$2 command=$3
 
   case "$mode" in
     server-phase0 | server-phase1a)
@@ -160,6 +183,7 @@ ci_quality::_run_command() {
         ci_quality::_fail "Kubernetes server contracts are restricted to GitHub Actions"
       ;;
   esac
+  ci_quality::_prepare_tools "$required_tools" || return 1
   printf 'RUN %s\n' "$command"
   case "$mode" in
     direct)
@@ -183,7 +207,7 @@ ci_quality::_run_command() {
 ci_quality::main() {
   local selector=${1:-}
   local repository_root inventory workflow
-  local suite legacy_group fast mode command extra
+  local suite legacy_group fast mode required_tools command extra
   local selected_count=0
 
   [[ "$#" == "1" ]] || ci_quality::_fail "usage: run-quality-suite.sh <selector>"
@@ -203,10 +227,10 @@ ci_quality::main() {
     git diff --cached --check || return 1
   fi
 
-  while IFS='|' read -r suite legacy_group fast mode command extra; do
+  while IFS='|' read -r suite legacy_group fast mode required_tools command extra; do
     [[ -z "$suite" || "$suite" == \#* ]] && continue
     if ci_quality::_selected "$selector" "$suite" "$legacy_group" "$fast"; then
-      ci_quality::_run_command "$mode" "$command" || return 1
+      ci_quality::_run_command "$mode" "$required_tools" "$command" || return 1
       selected_count=$((selected_count + 1))
     fi
   done < "$inventory"
