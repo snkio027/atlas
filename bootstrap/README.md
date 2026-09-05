@@ -1,8 +1,12 @@
 # Atlas Bootstrap
 
 Bootstrap establishes only the minimum control plane needed for Argo CD to
-adopt the Git-defined desired state. It does not install platform components,
-business workloads, Gateway resources, Operators, or application secrets.
+adopt the Git-defined desired state. It does not instantiate ordinary platform
+capabilities, business workloads, Gateway resources, Operators, or application
+secrets. ADR-0006 narrowly permits finite instantiation of the exact Git-defined
+primary CNI as a bootstrap-critical substrate capability when it is required
+before Argo CD can exist. That architecture is authorized but Cilium Seed
+support is **not yet implemented**.
 
 ## Commands
 

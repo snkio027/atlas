@@ -1,7 +1,7 @@
 # Atlas GitOps Control Plane Design
 
-**Version:** v1.0.3
-**Status:** Frozen Production Baseline (Two-Level DAG Architecture Freeze Point)
+**Version:** v1.0.4
+**Status:** Frozen Production Baseline (Bootstrap-Critical CNI Adoption Amendment)
 **Domain:** GitOps Control Plane / Platform Engineering
 
 ---
@@ -10,7 +10,7 @@
 
 本文档是：
 
-> **Atlas Architecture Design v1.0.2**
+> **Atlas Architecture Design v1.0.3**
 
 在 GitOps / Argo CD 领域中的规范性执行设计。
 
@@ -74,13 +74,21 @@ Git 是 Desired State Definition Authority。
 
 Bootstrap 负责：
 
-1. 安装最小 Argo CD Seed；
-2. 创建 `atlas-bootstrap`；
-3. 注入与 Full Desired State 相同的 Application Health Capability；
-4. 根据环境上下文渲染 Root Anchor；
-5. 将 External Root Anchor 注入 Kubernetes。
+1. 建立 Kubernetes API substrate；
+2. 根据 ADR-0006，在需要时有限实例化精确 Git-defined primary CNI；
+3. 等待 Kubernetes Nodes Ready；
+4. 安装最小 Argo CD Seed；
+5. 创建 `atlas-bootstrap`；
+6. 注入与 Full Desired State 相同的 Application Health Capability；
+7. 根据环境上下文渲染 Root Anchor；
+8. 将 External Root Anchor 注入 Kubernetes。
 
 Bootstrap 完成后退出。
+
+Primary CNI 是 Atlas v1 唯一允许的 bootstrap-critical substrate
+capability。Bootstrap 对它的 mutation authority 仅限同一 invocation 新建的
+cluster，并在 Seed 成功后永久终止。稳态 Cilium 仍由
+`platform-project` 中的单一 Leaf Application 管理。
 
 ---
 
@@ -221,6 +229,13 @@ Atlas 的完整无环 Bootstrap Chain 为：
 ```text
                  Bootstrap
                      │
+         Kubernetes API substrate
+                     │
+          bootstrap-critical CNI
+             Seed, if required
+                     │
+                Nodes Ready
+                     │
           ┌──────────┴──────────┐
           ▼                     ▼
      Argo CD Seed       atlas-bootstrap
@@ -321,7 +336,7 @@ Git Template
 
 ## 6. Two-Level Reconciliation DAG
 
-Atlas v1.0.3 正式放弃：
+Atlas v1.0.4 正式放弃：
 
 > Flat Global Root Component DAG
 
@@ -481,6 +496,12 @@ Platform Control Synchronization Scope 内采用：
 - ResourceQuotas；
 - LimitRanges；
 - 其他 Kubernetes 原生逻辑边界。
+
+Bootstrap-critical primary CNI 的稳态 Application 也使用 Foundation
+dependency role，同时其领域目录仍为 `platform/networking/`。它必须属于
+`platform-project`，不得成为新的 Root child 或 Tier-0 Application。该
+Application 在接管 Bootstrap Seed 后成为唯一稳态 Desired-State
+Reconciler。
 
 环境强绑定资源必须通过 Environment Hydration 进入。
 
@@ -1174,6 +1195,22 @@ Break-Glass Seed 的目标是：
 
 不是重新建立另一套独立控制平面。
 
+### 18.3 Bootstrap-critical CNI adoption
+
+ADR-0006 允许 Bootstrap 在 Argo CD 尚不能运行时，仅为同一 invocation
+新建的 cluster 实例化精确 Git-defined primary CNI。Seed 成功后 Bootstrap
+不得再次写入该 cluster 的 Cilium 对象。
+
+初始 Seed 与稳态 Cilium Application 必须绑定相同的 Git revision、vendored
+Chart/tree authority、Atlas values、release name、namespace 与 rendered
+object identity set。`CILIUM_ADOPTED` 至少要求单一 `platform-project`
+Application、精确 source authority、`Synced`、`Healthy`、精确对象
+ownership/inventory，以及不存在并发 Bootstrap writer。Health 单独不构成
+接管证明。
+
+现有 cluster 上缺失、不完整、未知或漂移的 Cilium 状态必须失败关闭；普通
+Bootstrap 不得重新安装、修复或迁移。
+
 ---
 
 ## 19. Dual Deletion Protection
@@ -1376,7 +1413,7 @@ External Root normal reconciliation
 
 ## 22. ApplicationSet Boundary
 
-ApplicationSet 是 Atlas Phase 2B Tenant Platform 的核心候选机制，但不作为 v1.0.3 平台 Bootstrap Correctness 的必要基础。
+ApplicationSet 是 Atlas Phase 2B Tenant Platform 的核心候选机制，但不作为 v1.0.4 平台 Bootstrap Correctness 的必要基础。
 
 当前 Frozen Baseline 的平台启动正确性依赖：
 
@@ -1494,7 +1531,7 @@ Agent 自治权不得跨越 Tier-0 Human Judgment Boundary。
 
 ## 25. GitOps Control Plane Invariants
 
-Atlas GitOps Control Plane v1.0.3 冻结以下领域不变量。
+Atlas GitOps Control Plane v1.0.4 冻结以下领域不变量。
 
 ### GITOPS-01
 
@@ -1558,11 +1595,18 @@ Tier-0 / Tier-1 control graph deletion MUST NOT implicitly destroy descendant ru
 
 Destructive data mutation MUST NOT be triggered merely by automatic Wave progression.
 
+### GITOPS-15
+
+The primary CNI MAY be finitely instantiated before Argo CD only under the
+creation-scoped ADR-0006 contract and MUST be adopted by exactly one
+`platform-project` Leaf Application. Bootstrap MUST NOT remain or later become
+a steady-state Cilium reconciler.
+
 ---
 
 ## 26. Final Frozen Control Graph
 
-Atlas v1.0.3 的最终规范拓扑为：
+Atlas v1.0.4 的最终规范拓扑为：
 
 ```text
                          Bootstrap
@@ -1609,7 +1653,7 @@ platform-project   workload-project   Platform DAG       Workload Orchestration
                                                      Workloads Enabled
 ```
 
-这张图是 Atlas GitOps Control Plane v1.0.3 的架构冻结点。
+这张图是 Atlas GitOps Control Plane v1.0.4 的架构冻结点。
 
 未来：
 
@@ -1645,7 +1689,7 @@ gitops/root/
 
 ## 27. Architecture Freeze Statement
 
-Atlas GitOps v1.0.3 正式冻结以下模式：
+Atlas GitOps v1.0.4 正式冻结以下模式：
 
 > **External Root Anchor
 >
