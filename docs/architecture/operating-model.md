@@ -1,7 +1,7 @@
 # Atlas Architecture Design
 
-**Version:** v1.0.2
-**Status:** Frozen Production Baseline (Topology Conformance Amendment)
+**Version:** v1.0.3
+**Status:** Frozen Production Baseline (Bootstrap-Critical Substrate Amendment)
 **Owner:** snkio027
 **Scope:** Kubernetes Runtime, Argo CD GitOps Control Plane, Developer Platform Foundation, Streaming/Lakehouse Infrastructure
 
@@ -13,10 +13,10 @@ Atlas 采用分层架构文档体系。不同层级的设计文档分别拥有�
 
 ### 0.1 Normative Architecture References
 
-1. **Atlas Architecture Design v1.0.2（本文档）**
+1. **Atlas Architecture Design v1.0.3（本文档）**
    定义 Atlas 的平台级架构原则、信任边界、控制权模型、系统不变量、容灾边界与领域分层。
 
-2. **Atlas GitOps Control Plane Design v1.0.3**
+2. **Atlas GitOps Control Plane Design v1.0.4**
    定义 GitOps 控制域内的具体执行语义，包括 External Root Anchor、AppProject 自举链、Two-Level Reconciliation DAG、Sync Wave、Application Health Gate、删除保护与 Break-Glass Recovery。
 
 3. **AI-Native Platform Control Plane Standard v1.4**
@@ -99,6 +99,14 @@ Bootstrap 是一次性、命令式、可退出的控制面建立过程。
 - Tier-0 Bootstrap AppProject 建立；
 - External Root Anchor 实例化。
 
+Bootstrap MUST NOT instantiate ordinary platform capabilities. Under ADR-0006,
+it MAY finitely instantiate the exact Git-defined primary CNI as a
+bootstrap-critical substrate capability when that capability is required
+before Argo CD can become operational. This exception is creation-scoped to a
+cluster created by the same locked Bootstrap invocation and does not permit
+steady-state Bootstrap reconciliation or later reacquisition of CNI mutation
+authority.
+
 Bootstrap MUST NOT 长期参与平台稳态资源管理。
 
 完成 GitOps 控制权移交后：
@@ -168,7 +176,9 @@ Bootstrap 拥有初始实例化权。
 它负责：
 
 - 读取环境上下文；
-- 建立最小 Kubernetes / Argo Seed；
+- 建立最小 Kubernetes substrate，并在需要时有限实例化
+  bootstrap-critical primary CNI；
+- 建立最小 Argo Seed；
 - 建立 Tier-0 Bootstrap Capability；
 - 实例化 External Root Anchor。
 
@@ -243,7 +253,7 @@ Atlas 正式采用：
 
 作为 GitOps 拓扑的架构基线。
 
-这是 Atlas v1.0.2 的核心拓扑不变量。
+这是 Atlas v1.0.3 的核心拓扑不变量。
 
 ---
 
@@ -832,7 +842,7 @@ Sync Wave 不构成全平台共享的“绝对时间轴”。
 
 其具体编号和 Health Gate 语义由：
 
-> Atlas GitOps Control Plane Design v1.0.3
+> Atlas GitOps Control Plane Design v1.0.4
 
 规范。
 
@@ -1244,7 +1254,7 @@ External Root Resume
 
 ## 9. Architecture Invariants
 
-Atlas v1.0.2 正式冻结以下平台级不变量。
+Atlas v1.0.3 正式冻结以下平台级不变量。
 
 ### INV-01 — Definition Authority
 
@@ -1345,7 +1355,7 @@ SHOULD
 
 ## 11. Architecture Freeze Statement
 
-Atlas Architecture Design v1.0.2 正式冻结以下核心架构：
+Atlas Architecture Design v1.0.3 正式冻结以下核心架构：
 
 > **External Root Anchor + Two-Level Reconciliation DAG**
 
