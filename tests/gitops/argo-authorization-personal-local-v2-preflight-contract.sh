@@ -221,6 +221,7 @@ validate_final_gate_direct() {
     bash -c '
       set -Eeuo pipefail
       source "$1"
+      target_v2::_load_contract_primitives "$7"
       target_v2_tmp=$(mktemp -d "${TMPDIR}/atlas-target-v2-gate-test.XXXXXX")
       chmod 0700 "$target_v2_tmp"
       target_v2::_validate_final_gate "$2" "$3" "$4" "$5" "$6" "$7" "$8"
@@ -235,10 +236,11 @@ assert_kubeconfig_projection_rejected() {
     bash -c '
       set -Eeuo pipefail
       source "$1"
+      preflight_v2::_load_contract_primitives "$3"
       preflight_v2_tmp=$(mktemp -d "${TMPDIR}/atlas-preflight-v2-kubeconfig-test.XXXXXX")
       chmod 0700 "$preflight_v2_tmp"
       preflight_v2::_project_kubeconfig "$2" kind-atlas-synthetic
-    ' _ "$preflight" "$candidate" > "$stdout" 2> "$stderr"; then
+    ' _ "$preflight" "$candidate" "$expected_commit" > "$stdout" 2> "$stderr"; then
     test::fail "unsafe kubeconfig projection was accepted: ${name}"
   fi
 }

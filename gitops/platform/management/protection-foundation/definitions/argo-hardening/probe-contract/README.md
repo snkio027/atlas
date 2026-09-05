@@ -99,6 +99,16 @@ synthetic credentials and a fake kubectl backend. No checked-in fixture,
 schema, test, or merge authorizes real Target Materialization or a real v2
 live preflight.
 
+The three live-capable executables share only deterministic, authority-neutral
+Shell primitives from `lib/contract-primitives.sh`. Each executable locates
+that library by its exact repository-relative path, requires a regular
+non-symlink file owned by the current UID with mode `0644`, and verifies its
+blob against the independently supplied approved Git commit before sourcing
+it. Missing, replaced, tampered, symlinked, or mode-drifted library content is
+`PERSONAL_LOCAL_BLOCKED`. Gate semantics, state transitions, Kubernetes
+requests, Evidence construction, renderer TCB handling, and profile constants
+remain local to their owning executable.
+
 The v2 Profile keeps the Personal Local assurance classification fixed:
 
 ```text
