@@ -12,6 +12,7 @@ Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)�
 2. [接入自己的 Go Web/API 应用](docs/application-delivery.md)：工作区模板、离线镜像、
    可读计划、部署、更新、状态、访问与日志。
 3. [应用排障与支持边界](docs/application-delivery.md#状态访问与排障)。
+4. [常驻 HTTPS 管理入口候选](docs/management-access.md)：Grafana、Argo CD、Prometheus、Alertmanager、S3；部署前需审查。
 
 普通业务入口：
 

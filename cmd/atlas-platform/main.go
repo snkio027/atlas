@@ -17,6 +17,13 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "management-access" {
+		if err := runManagementAccess(os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "app" {
 		if e := runApp(os.Args[2:]); e != nil {
 			fmt.Fprintln(os.Stderr, e)
