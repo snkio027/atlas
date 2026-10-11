@@ -515,7 +515,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-grafana-http",
         "namespace": "atlas-monitoring"
@@ -562,7 +563,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-grafana-https",
         "namespace": "atlas-monitoring"
@@ -655,7 +657,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-argocd-http",
         "namespace": "argocd"
@@ -702,7 +705,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-argocd-https",
         "namespace": "argocd"
@@ -795,7 +799,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-prometheus-http",
         "namespace": "atlas-monitoring"
@@ -850,7 +855,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-prometheus-https",
         "namespace": "atlas-monitoring"
@@ -951,7 +957,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-alertmanager-http",
         "namespace": "atlas-monitoring"
@@ -1006,7 +1013,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-alertmanager-https",
         "namespace": "atlas-monitoring"
@@ -1107,7 +1115,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-s3-http",
         "namespace": "atlas-storage"
@@ -1154,7 +1163,8 @@
       "kind": "HTTPRoute",
       "metadata": {
         "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
         },
         "name": "management-s3-https",
         "namespace": "atlas-storage"
