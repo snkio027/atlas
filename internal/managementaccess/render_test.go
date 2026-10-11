@@ -201,6 +201,44 @@ func TestManagementRoutesTLSMethodsNetworkAndPorts(t *testing.T) {
 	}
 }
 
+// Regression: Argo waits for earlier-wave health. A route referencing a new
+// listener becomes NoMatchingParent if applied before the wave-2 Gateway,
+// which prevents Argo from ever reaching that Gateway update.
+func TestManagementRoutesWaitForGatewayListeners(t *testing.T) {
+	base, model := fixture(t)
+	result, err := Render(base, model, 18443)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edge := decode(t, result.Routes[workload.EdgePath])
+	gateway := mustGet(t, edge, "Gateway", "atlas-gateway", "development")
+	if at(gateway, "metadata", "annotations", "argocd.argoproj.io/sync-wave") != "2" {
+		t.Fatal("Gateway wave changed")
+	}
+	count := 0
+	for _, o := range edge {
+		name, _ := at(o, "metadata", "name").(string)
+		if o["kind"] == "HTTPRoute" && strings.HasPrefix(name, "management-") {
+			count++
+			if at(o, "metadata", "annotations", "argocd.argoproj.io/sync-wave") != "3" {
+				t.Fatal("route health can block its Gateway prerequisite", name)
+			}
+		}
+	}
+	if count != 10 {
+		t.Fatal("missing management route", count)
+	}
+	for _, wave := range []any{nil, "0", "3", "invalid"} {
+		xs := decode(t, base[workload.EdgePath])
+		gw := mustGet(t, xs, "Gateway", "atlas-gateway", "development")
+		obj(at(gw, "metadata", "annotations"))["argocd.argoproj.io/sync-wave"] = wave
+		drifted := overlay(base, Files{workload.EdgePath: list(xs)})
+		if _, err := Render(drifted, model, 18443); err == nil {
+			t.Fatal("accepted unreviewed Gateway wave", wave)
+		}
+	}
+}
+
 func TestManagementRejectsUnsafeOrIncompatibleBase(t *testing.T) {
 	for _, name := range []string{"missing-service", "wrong-selector", "wrong-port", "wrong-pod-port", "argo-tls", "duplicate-identity", "permission", "schema", "existing-listener"} {
 		t.Run(name, func(t *testing.T) {

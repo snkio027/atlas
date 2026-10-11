@@ -1,4 +1,4 @@
-# 本机管理入口（候选，尚未部署）
+# 本机管理入口（r3 已发布，验收 STOP，排序修复待审）
 
 本轮为现有平台准备五个常驻入口，复用 Envoy Gateway，无需 port-forward。
 架构与限制见 [ADR-0019](adr/0019-local-management-https.md)。
@@ -42,10 +42,16 @@ go run ./cmd/atlas-platform management-access \
 - `02-routes/`：edge 路由、listeners、网络策略；monitoring 外部 URL/secure cookie。
 - `summary.json`：输入与阶段文件摘要、后端清单；无凭据。
 
+r3 首次运行已发布两阶段，但新增 HTTPRoute 默认 wave 0 先于 Gateway wave 2，
+出现 `NoMatchingParent` 并阻止 Gateway 更新。原 STOP 与提交绑定保留；当前修正
+将十条新路由固定为 wave 3，Gateway 保持 wave 2。修正尚未发布，不能宣称运行时 PASS。
+
 两阶段必须分开发布：第一阶段证书当前 generation Ready、权限已生效且 tracking/SSA
 正确后，才能发布第二阶段。仅改变候选列出的四个文件；不更换任何 Application
 source、owner、Root、Seed、controller、存储/凭据。各阶段用 exact-parent/lease
-拒绝并发修改；不能把两阶段 diff 一次推送。Grafana 会按既有 Recreate 策略重启，
+拒绝并发修改；不能把两阶段 diff 一次推送。第二阶段内部保持 NetworkPolicy wave 0 → Gateway wave 2 → HTTPRoute wave 3；
+渲染器拒绝 Gateway wave 漂移，避免路由健康状态反向阻塞 listener 创建。
+Grafana 会按既有 Recreate 策略重启，
 Prometheus/Alertmanager externalUrl 更新也可能触发 Operator 滚动重启。
 
 编译器拒绝不兼容后端/CRD、已存在的 management listeners、identity 冲突或权限不足。

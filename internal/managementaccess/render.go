@@ -142,6 +142,11 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 	if err != nil {
 		return Result{}, err
 	}
+	// The installed edge contract reconciles Gateway in wave 2. Routes must
+	// wait until its new listeners exist; wave 0 routes block that update.
+	if at(gateway, "metadata", "annotations", "argocd.argoproj.io/sync-wave") != "2" {
+		return Result{}, errors.New("unsupported Gateway sync wave; expected 2")
+	}
 	issuer, err := get(pki, "Issuer", "atlas-gateway", "development-ca")
 	if err != nil {
 		return Result{}, err
@@ -182,9 +187,11 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 			} else {
 				rule["backendRefs"] = []any{Object{"group": "", "kind": "Service", "name": e.Service, "port": e.ServicePort, "weight": 1}}
 			}
-			edge = append(edge, resource("gateway.networking.k8s.io/v1", "HTTPRoute", e.Namespace, name+"-"+protocol, Object{
+			route := resource("gateway.networking.k8s.io/v1", "HTTPRoute", e.Namespace, name+"-"+protocol, Object{
 				"hostnames": []string{host}, "parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": "atlas-gateway", "sectionName": name + "-" + protocol}}, "rules": []any{rule},
-			}))
+			})
+			obj(at(route, "metadata", "annotations"))["argocd.argoproj.io/sync-wave"] = "3"
+			edge = append(edge, route)
 		}
 		edge = append(edge, resource("networking.k8s.io/v1", "NetworkPolicy", e.Namespace, name+"-ingress", Object{
 			"podSelector": Object{"matchLabels": e.Selector}, "policyTypes": []string{"Ingress"},
