@@ -201,6 +201,10 @@
           {
             "group": "monitoring.coreos.com",
             "kind": "ServiceMonitor"
+          },
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "HTTPRoute"
           }
         ],
         "sourceRepos": [

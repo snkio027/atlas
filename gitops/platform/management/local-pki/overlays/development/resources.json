@@ -116,6 +116,151 @@
         "renewBefore": "168h",
         "secretName": "s2-8e7c792af1f2-tls"
       }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-grafana-tls",
+        "namespace": "atlas-gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "grafana.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "management-grafana-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-argocd-tls",
+        "namespace": "atlas-gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "argocd.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "management-argocd-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-prometheus-tls",
+        "namespace": "atlas-gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "prometheus.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "management-prometheus-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-alertmanager-tls",
+        "namespace": "atlas-gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "alertmanager.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "management-alertmanager-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-s3-tls",
+        "namespace": "atlas-gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "s3.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "management-s3-tls"
+      }
     }
   ],
   "kind": "List"
