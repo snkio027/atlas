@@ -165,10 +165,10 @@ func TestCurrentHealth(t *testing.T) {
 	mapping(slice(field(stale, "status", "conditions"))[0])["observedGeneration"] = 1
 	unknown := clone(cert)
 	mapping(slice(field(unknown, "status", "conditions"))[0])["status"] = "Unknown"
-	ref := Object{"name": "development", "namespace": "atlas-gateway", "sectionName": "https"}
+	ref := Object{"name": "development", "namespace": "gateway", "sectionName": "https"}
 	route := Object{"kind": "HTTPRoute", "metadata": Object{"generation": 2, "namespace": "workload-web"}, "spec": Object{"parentRefs": []any{ref}}, "status": Object{"parents": []any{Object{"parentRef": ref, "controllerName": "gateway.envoyproxy.io/gatewayclass-controller", "conditions": []any{condition("Accepted", 2, "True"), condition("ResolvedRefs", 2, "True")}}}}}
 	otherParent := clone(route)
-	mapping(slice(field(otherParent, "status", "parents"))[0])["parentRef"] = Object{"name": "other", "namespace": "atlas-gateway", "sectionName": "https"}
+	mapping(slice(field(otherParent, "status", "parents"))[0])["parentRef"] = Object{"name": "other", "namespace": "gateway", "sectionName": "https"}
 	foreign := clone(route)
 	mapping(slice(field(foreign, "status", "parents"))[0])["controllerName"] = "other-controller"
 	rejected := clone(route)

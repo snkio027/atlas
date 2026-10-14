@@ -3,7 +3,7 @@
   "components": {
     "secrets-crds": {
       "path": "gitops/platform/management/sealed-secrets-crds/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -95,
       "dependsOn": [
         "secrets-foundation"
@@ -13,7 +13,7 @@
     },
     "secrets-controller": {
       "path": "gitops/platform/management/sealed-secrets/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -90,
       "dependsOn": [
         "secrets-crds"
@@ -23,7 +23,7 @@
     },
     "platform-credentials": {
       "path": "gitops/platform/management/platform-credentials/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -80,
       "dependsOn": [
         "secrets-controller",
@@ -35,7 +35,7 @@
     },
     "monitoring-crds": {
       "path": "gitops/platform/observability/crds/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -40,
       "dependsOn": [
         "observability-foundation"
@@ -45,7 +45,7 @@
     },
     "monitoring-operator": {
       "path": "gitops/platform/observability/operator/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -30,
       "dependsOn": [
         "monitoring-crds",
@@ -56,7 +56,7 @@
     },
     "monitoring": {
       "path": "gitops/platform/observability/stack/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -10,
       "dependsOn": [
         "monitoring-operator",
@@ -65,7 +65,7 @@
       ],
       "requiredSecrets": [
         {
-          "namespace": "atlas-monitoring",
+          "namespace": "monitoring",
           "name": "grafana-admin",
           "keys": [
             "admin-user",
@@ -77,7 +77,7 @@
     },
     "object-storage": {
       "path": "gitops/platform/storage/seaweedfs/overlays/development",
-      "namespace": "atlas-storage",
+      "namespace": "object-storage",
       "wave": -10,
       "dependsOn": [
         "platform-credentials",
@@ -85,7 +85,7 @@
       ],
       "requiredSecrets": [
         {
-          "namespace": "atlas-storage",
+          "namespace": "object-storage",
           "name": "seaweedfs-auth",
           "keys": [
             "seaweedfs_s3_config"
@@ -104,7 +104,7 @@
     },
     "storage-monitoring": {
       "path": "gitops/platform/observability/storage/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": 0,
       "dependsOn": [
         "monitoring",
@@ -115,7 +115,7 @@
     },
     "secrets-foundation": {
       "path": "gitops/platform/foundation/secrets/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
@@ -123,7 +123,7 @@
     },
     "observability-foundation": {
       "path": "gitops/platform/foundation/observability/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
@@ -131,7 +131,7 @@
     },
     "storage-foundation": {
       "path": "gitops/platform/foundation/storage/overlays/development",
-      "namespace": "atlas-storage",
+      "namespace": "object-storage",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
@@ -142,7 +142,7 @@
     {
       "release": "sealed-secrets",
       "chart": "vendor/platform/sealed-secrets-2.20.0.tgz",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "values": [
         "platform/development/capabilities/values/sealed-secrets.json"
       ],
@@ -160,16 +160,16 @@
         }
       ],
       "namespaceCapabilities": {
-        "atlas-secrets": "secrets-foundation",
-        "atlas-monitoring": "observability-foundation",
-        "atlas-storage": "storage-foundation",
+        "sealed-secrets": "secrets-foundation",
+        "monitoring": "observability-foundation",
+        "object-storage": "storage-foundation",
         "workload-web": "core:foundation"
       }
     },
     {
       "release": "atlas-monitoring",
       "chart": "vendor/platform/kube-prometheus-stack-92.3.0.tgz",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "values": [
         "platform/development/capabilities/values/monitoring.json",
         "platform/development/capabilities/values/operator-only.json"
@@ -191,7 +191,7 @@
     {
       "release": "atlas-monitoring",
       "chart": "vendor/platform/kube-prometheus-stack-92.3.0.tgz",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "values": [
         "platform/development/capabilities/values/monitoring.json"
       ],

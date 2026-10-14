@@ -81,7 +81,7 @@ func (w *Workflow) Plan(ctx context.Context) (Plan, error) {
 		return p, e
 	}
 	if len(w.Model.Intent.Bindings) > 0 {
-		p.CredentialTargets = append(p.CredentialTargets, "atlas-storage/seaweedfs-auth")
+		p.CredentialTargets = append(p.CredentialTargets, "object-storage/seaweedfs-auth")
 	}
 	for _, b := range w.Model.Intent.Bindings {
 		p.CredentialTargets = append(p.CredentialTargets, b.Project+"/"+b.Secret())

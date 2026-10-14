@@ -618,6 +618,12 @@ func (p *Project) ValidateCapabilityActivation() error {
 	if len(missing) > 0 {
 		return fmt.Errorf("capabilities require sealed credentials: %s", strings.Join(missing, ", "))
 	}
+	return p.ValidateCapabilityProjection()
+}
+
+// ValidateCapabilityProjection verifies offline desired-state templates. It does
+// not authorize activation; ValidateCapabilityActivation also requires ciphertext.
+func (p *Project) ValidateCapabilityProjection() error {
 	files, e := p.CapabilityActivation(p.Capabilities.Active)
 	if e != nil {
 		return e

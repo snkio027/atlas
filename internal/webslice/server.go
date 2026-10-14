@@ -110,7 +110,7 @@ func (c *Client) PermissionProbe(ctx context.Context) error {
 func NetworkProbe(ctx context.Context, address string) error {
 	// DNS success is checked independently: a broken resolver must not pass as a
 	// network isolation proof. Probe only the documented S3 capability endpoint.
-	if address != "seaweedfs.atlas-storage.svc.cluster.local:8333" {
+	if address != "seaweedfs.object-storage.svc.cluster.local:8333" {
 		return errors.New("unreviewed network probe endpoint")
 	}
 	host, _, _ := net.SplitHostPort(address)
@@ -171,7 +171,7 @@ func Run(args []string) error {
 		if len(args) != 1 {
 			return errors.New("probe-network takes no arguments")
 		}
-		return NetworkProbe(ctx, "seaweedfs.atlas-storage.svc.cluster.local:8333")
+		return NetworkProbe(ctx, "seaweedfs.object-storage.svc.cluster.local:8333")
 	}
 	c, e := NewClientFromEnv()
 	if e != nil {

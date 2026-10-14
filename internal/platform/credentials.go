@@ -156,8 +156,8 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 		namespace, name string
 		data            map[string]string
 	}{
-		{"atlas-monitoring", "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": credentials.GrafanaPassword}},
-		{"atlas-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3config)}},
+		{p.Capabilities.Catalog.Components["monitoring"].Namespace, "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": credentials.GrafanaPassword}},
+		{p.Capabilities.Catalog.Components["object-storage"].Namespace, "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3config)}},
 		{"workload-web", "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": credentials.AccessKey, "AWS_SECRET_ACCESS_KEY": credentials.SecretKey}},
 	}
 	sealed := []Object{}

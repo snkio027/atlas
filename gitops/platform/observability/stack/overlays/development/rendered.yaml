@@ -10,7 +10,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -30,7 +30,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -50,7 +50,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -72,7 +72,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-alertmanager",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -94,7 +94,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -112,7 +112,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana-config-dashboards",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -130,14 +130,14 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
 {
   "apiVersion": "v1",
   "data": {
-    "datasource.yaml": "apiVersion: 1\ndatasources:\n- name: \"Prometheus\"\n  type: prometheus\n  uid: prometheus\n  url: http://atlas-monitoring-prometheus.atlas-monitoring:9090/\n  access: proxy\n  isDefault: true\n  jsonData:\n    httpMethod: POST\n    timeInterval: 30s\n- name: \"Alertmanager\"\n  type: alertmanager\n  uid: alertmanager\n  url: http://atlas-monitoring-alertmanager.atlas-monitoring:9093/\n  access: proxy\n  jsonData:\n    handleGrafanaManagedAlerts: false\n    implementation: prometheus"
+    "datasource.yaml": "apiVersion: 1\ndatasources:\n- name: \"Prometheus\"\n  type: prometheus\n  uid: prometheus\n  url: http://atlas-monitoring-prometheus.monitoring:9090/\n  access: proxy\n  isDefault: true\n  jsonData:\n    httpMethod: POST\n    timeInterval: 30s\n- name: \"Alertmanager\"\n  type: alertmanager\n  uid: alertmanager\n  url: http://atlas-monitoring-alertmanager.monitoring:9093/\n  access: proxy\n  jsonData:\n    handleGrafanaManagedAlerts: false\n    implementation: prometheus"
   },
   "kind": "ConfigMap",
   "metadata": {
@@ -153,7 +153,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-grafana-datasource",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -177,7 +177,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-alertmanager-overview",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -201,7 +201,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-apiserver",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -225,7 +225,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-cluster-total",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -249,7 +249,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-grafana-overview",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -273,7 +273,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-coredns",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -297,7 +297,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-cluster",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -321,7 +321,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-multicluster",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -345,7 +345,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-namespace",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -369,7 +369,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-node",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -393,7 +393,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-nodes-overview",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -417,7 +417,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-pod",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -441,7 +441,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-workload",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -465,7 +465,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s-resources-workloads-namespace",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -489,7 +489,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubelet",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -513,7 +513,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-namespace-by-pod",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -537,7 +537,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-namespace-by-workload",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -561,7 +561,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node-cluster-rsrc-use",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -585,7 +585,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node-rsrc-use",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -609,7 +609,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-nodes-aix",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -633,7 +633,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-nodes-darwin",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -657,7 +657,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-nodes",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -681,7 +681,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-persistentvolumesusage",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -705,7 +705,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-pod-total",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -729,7 +729,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -753,7 +753,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-workload-total",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   }
 }
 ---
@@ -774,7 +774,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "accessModes": [
@@ -1242,7 +1242,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-monitoring-kube-state-metrics",
-      "namespace": "atlas-monitoring"
+      "namespace": "monitoring"
     }
   ]
 }
@@ -1272,7 +1272,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-monitoring-prometheus",
-      "namespace": "atlas-monitoring"
+      "namespace": "monitoring"
     }
   ]
 }
@@ -1288,7 +1288,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "rules": [
     {
@@ -1319,7 +1319,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -1330,7 +1330,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-monitoring-grafana",
-      "namespace": "atlas-monitoring"
+      "namespace": "monitoring"
     }
   ]
 }
@@ -1346,7 +1346,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "ports": [
@@ -1381,7 +1381,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "ports": [
@@ -1416,7 +1416,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "ports": [
@@ -1451,7 +1451,7 @@
       "self-monitor": "true"
     },
     "name": "atlas-monitoring-alertmanager",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "ports": [
@@ -1527,7 +1527,7 @@
       "self-monitor": "true"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "ports": [
@@ -1568,7 +1568,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "revisionHistoryLimit": 10,
@@ -1767,7 +1767,7 @@
       "helm.sh/chart": "grafana-13.5.0"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "replicas": 1,
@@ -1822,7 +1822,7 @@
               },
               {
                 "name": "NAMESPACE",
-                "value": "atlas-monitoring"
+                "value": "monitoring"
               },
               {
                 "name": "REQ_USERNAME",
@@ -1906,7 +1906,7 @@
               },
               {
                 "name": "NAMESPACE",
-                "value": "atlas-monitoring"
+                "value": "monitoring"
               },
               {
                 "name": "REQ_USERNAME",
@@ -2192,7 +2192,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "replicas": 1,
@@ -2319,7 +2319,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-alertmanager",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "affinity": {
@@ -2358,7 +2358,7 @@
       "name": "atlas-local-alerts"
     },
     "automountServiceAccountToken": true,
-    "externalUrl": "http://atlas-monitoring-alertmanager.atlas-monitoring:9093",
+    "externalUrl": "http://atlas-monitoring-alertmanager.monitoring:9093",
     "image": "quay.io/prometheus/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a",
     "imagePullPolicy": "IfNotPresent",
     "listenLocal": false,
@@ -2439,7 +2439,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "affinity": {
@@ -2477,7 +2477,7 @@
         {
           "apiVersion": "v2",
           "name": "atlas-monitoring-alertmanager",
-          "namespace": "atlas-monitoring",
+          "namespace": "monitoring",
           "pathPrefix": "/",
           "port": "http-web"
         }
@@ -2487,7 +2487,7 @@
     "enableAdminAPI": false,
     "enableOTLPReceiver": false,
     "evaluationInterval": "30s",
-    "externalUrl": "http://atlas-monitoring-prometheus.atlas-monitoring:9090",
+    "externalUrl": "http://atlas-monitoring-prometheus.monitoring:9090",
     "hostNetwork": false,
     "image": "quay.io/prometheus/prometheus:v3.15.0-distroless@sha256:b2a413d5a03ea6a76782a508d1c7947440bba3b973931a25676e278431891b01",
     "imagePullPolicy": "IfNotPresent",
@@ -2505,9 +2505,9 @@
           "key": "kubernetes.io/metadata.name",
           "operator": "In",
           "values": [
-            "atlas-monitoring",
-            "atlas-storage",
-            "atlas-secrets",
+            "monitoring",
+            "object-storage",
+            "sealed-secrets",
             "kube-system"
           ]
         }
@@ -2544,9 +2544,9 @@
           "key": "kubernetes.io/metadata.name",
           "operator": "In",
           "values": [
-            "atlas-monitoring",
-            "atlas-storage",
-            "atlas-secrets",
+            "monitoring",
+            "object-storage",
+            "sealed-secrets",
             "kube-system"
           ]
         }
@@ -2580,9 +2580,9 @@
           "key": "kubernetes.io/metadata.name",
           "operator": "In",
           "values": [
-            "atlas-monitoring",
-            "atlas-storage",
-            "atlas-secrets",
+            "monitoring",
+            "object-storage",
+            "sealed-secrets",
             "kube-system"
           ]
         }
@@ -2645,7 +2645,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-alertmanager.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2659,7 +2659,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerfailedreload",
               "summary": "Reloading an Alertmanager configuration has failed."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(alertmanager_config_last_reload_successful{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[5m]) == 0",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(alertmanager_config_last_reload_successful{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[5m]) == 0",
             "for": "10m",
             "labels": {
               "severity": "critical"
@@ -2672,7 +2672,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagermembersinconsistent",
               "summary": "A member of an Alertmanager cluster has not found all other cluster members."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n  max_over_time(alertmanager_cluster_members{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[5m])\n\u003c on (namespace,service,cluster) group_left\n  count by (namespace,service,cluster) (max_over_time(alertmanager_cluster_members{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[5m]))",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n  max_over_time(alertmanager_cluster_members{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[5m])\n\u003c on (namespace,service,cluster) group_left\n  count by (namespace,service,cluster) (max_over_time(alertmanager_cluster_members{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[5m]))",
             "for": "15m",
             "labels": {
               "severity": "critical"
@@ -2685,7 +2685,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerfailedtosendalerts",
               "summary": "An Alertmanager instance failed to send notifications."
             },
-            "expr": "(\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[15m])\n)\n\u003e 0.01",
+            "expr": "(\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[15m])\n)\n\u003e 0.01",
             "for": "5m",
             "labels": {
               "severity": "warning"
@@ -2698,7 +2698,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerclusterfailedtosendalerts",
               "summary": "All Alertmanager instances in a cluster failed to send notifications to a critical integration."
             },
-            "expr": "min by (namespace,service, integration) (\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\", integration=~`.*`}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\", integration=~`.*`}[15m]) \u003e 0\n)\n\u003e 0.01",
+            "expr": "min by (namespace,service, integration) (\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\", integration=~`.*`}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\", integration=~`.*`}[15m]) \u003e 0\n)\n\u003e 0.01",
             "for": "5m",
             "labels": {
               "severity": "critical"
@@ -2711,7 +2711,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerclusterfailedtosendalerts",
               "summary": "All Alertmanager instances in a cluster failed to send notifications to a non-critical integration."
             },
-            "expr": "min by (namespace,service, integration) (\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\", integration!~`.*`}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\", integration!~`.*`}[15m]) \u003e 0\n)\n\u003e 0.01",
+            "expr": "min by (namespace,service, integration) (\n  rate(alertmanager_notifications_failed_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\", integration!~`.*`}[15m])\n/\n  ignoring (reason) group_left rate(alertmanager_notifications_total{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\", integration!~`.*`}[15m]) \u003e 0\n)\n\u003e 0.01",
             "for": "5m",
             "labels": {
               "severity": "warning"
@@ -2724,7 +2724,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerconfiginconsistent",
               "summary": "Alertmanager instances within the same cluster have different configurations."
             },
-            "expr": "count by (namespace,service,cluster) (\n  count_values by (namespace,service,cluster) (\"config_hash\", alertmanager_config_hash{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"})\n)\n!= 1",
+            "expr": "count by (namespace,service,cluster) (\n  count_values by (namespace,service,cluster) (\"config_hash\", alertmanager_config_hash{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"})\n)\n!= 1",
             "for": "20m",
             "labels": {
               "severity": "critical"
@@ -2737,7 +2737,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerclusterdown",
               "summary": "Half or more of the Alertmanager instances within the same cluster are down."
             },
-            "expr": "(\n  count by (namespace,service,cluster) (\n    avg_over_time(up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[5m]) \u003c 0.5\n  )\n/\n  count by (namespace,service,cluster) (\n    up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}\n  )\n)\n\u003e= 0.5",
+            "expr": "(\n  count by (namespace,service,cluster) (\n    avg_over_time(up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[5m]) \u003c 0.5\n  )\n/\n  count by (namespace,service,cluster) (\n    up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}\n  )\n)\n\u003e= 0.5",
             "for": "5m",
             "labels": {
               "severity": "critical"
@@ -2750,7 +2750,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerclustercrashlooping",
               "summary": "Half or more of the Alertmanager instances within the same cluster are crashlooping."
             },
-            "expr": "(\n  count by (namespace,service,cluster) (\n    changes(process_start_time_seconds{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[10m]) \u003e 4\n  )\n/\n  count by (namespace,service,cluster) (\n    up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}\n  )\n)\n\u003e= 0.5",
+            "expr": "(\n  count by (namespace,service,cluster) (\n    changes(process_start_time_seconds{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[10m]) \u003e 4\n  )\n/\n  count by (namespace,service,cluster) (\n    up{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}\n  )\n)\n\u003e= 0.5",
             "for": "5m",
             "labels": {
               "severity": "critical"
@@ -2763,7 +2763,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/alertmanager/alertmanagerclusterfailedpeers",
               "summary": "An Alertmanager instance has failed peers in the cluster."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(alertmanager_cluster_failed_peers{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(alertmanager_cluster_failed_peers{job=\"atlas-monitoring-alertmanager\",container=\"alertmanager\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -2790,7 +2790,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-config-reloaders",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2831,7 +2831,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-general.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2896,7 +2896,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-cpu-usage-seconds-total",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2932,7 +2932,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-memory-cache",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2964,7 +2964,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-memory-rss",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -2996,7 +2996,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-memory-swap",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3028,7 +3028,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-memory-working-set-bytes",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3060,7 +3060,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.container-resource",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3120,7 +3120,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-k8s.rules.pod-owner",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3201,7 +3201,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-apiserver-availability.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3315,7 +3315,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-apiserver-burnrate.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3439,7 +3439,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-apiserver-histogram.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3483,7 +3483,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-apiserver-slos",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3571,7 +3571,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-prometheus-general.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3607,7 +3607,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-prometheus-node-recording.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3659,7 +3659,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3739,7 +3739,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubelet.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -3788,7 +3788,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-apps",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4036,7 +4036,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-resources",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4168,7 +4168,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-storage",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4261,7 +4261,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-system-apiserver",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4380,7 +4380,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-system-kubelet",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4612,7 +4612,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubernetes-system",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4666,7 +4666,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node-exporter.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -4754,7 +4754,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node-exporter",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -5117,7 +5117,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node-network",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -5158,7 +5158,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-node.rules",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -5206,7 +5206,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-operator",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -5220,7 +5220,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorlisterrors",
               "summary": "Errors while performing list operations in controller."
             },
-            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_list_operations_failed_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[10m])) / sum by (cluster,controller,namespace) (rate(prometheus_operator_list_operations_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[10m]))) \u003e 0.4",
+            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_list_operations_failed_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[10m])) / sum by (cluster,controller,namespace) (rate(prometheus_operator_list_operations_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[10m]))) \u003e 0.4",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5233,7 +5233,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorwatcherrors",
               "summary": "Errors while performing watch operations in controller."
             },
-            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_watch_operations_failed_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m])) / sum by (cluster,controller,namespace) (rate(prometheus_operator_watch_operations_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]))) \u003e 0.4",
+            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_watch_operations_failed_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m])) / sum by (cluster,controller,namespace) (rate(prometheus_operator_watch_operations_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]))) \u003e 0.4",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5246,7 +5246,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorsyncfailed",
               "summary": "Last controller reconciliation failed"
             },
-            "expr": "min_over_time(prometheus_operator_syncs{status=\"failed\",job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "min_over_time(prometheus_operator_syncs{status=\"failed\",job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5259,7 +5259,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorreconcileerrors",
               "summary": "Errors while reconciling objects."
             },
-            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_reconcile_errors_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]))) / (sum by (cluster,controller,namespace) (rate(prometheus_operator_reconcile_operations_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]))) \u003e 0.1",
+            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_reconcile_errors_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]))) / (sum by (cluster,controller,namespace) (rate(prometheus_operator_reconcile_operations_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]))) \u003e 0.1",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5272,7 +5272,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorstatusupdateerrors",
               "summary": "Errors while updating objects status."
             },
-            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_status_update_errors_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]))) / (sum by (cluster,controller,namespace) (rate(prometheus_operator_status_update_operations_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]))) \u003e 0.1",
+            "expr": "(sum by (cluster,controller,namespace) (rate(prometheus_operator_status_update_errors_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]))) / (sum by (cluster,controller,namespace) (rate(prometheus_operator_status_update_operations_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]))) \u003e 0.1",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5285,7 +5285,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatornodelookuperrors",
               "summary": "Errors while reconciling Prometheus."
             },
-            "expr": "rate(prometheus_operator_node_address_lookup_errors_total{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0.1",
+            "expr": "rate(prometheus_operator_node_address_lookup_errors_total{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]) \u003e 0.1",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5298,7 +5298,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatornotready",
               "summary": "Prometheus operator not ready"
             },
-            "expr": "min by (cluster,controller,namespace) (max_over_time(prometheus_operator_ready{job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]) == 0)",
+            "expr": "min by (cluster,controller,namespace) (max_over_time(prometheus_operator_ready{job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]) == 0)",
             "for": "5m",
             "labels": {
               "severity": "warning"
@@ -5311,7 +5311,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus-operator/prometheusoperatorrejectedresources",
               "summary": "Resources rejected by Prometheus operator"
             },
-            "expr": "min_over_time(prometheus_operator_managed_resources{state=\"rejected\",job=\"atlas-monitoring-operator\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "min_over_time(prometheus_operator_managed_resources{state=\"rejected\",job=\"atlas-monitoring-operator\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "5m",
             "labels": {
               "severity": "warning"
@@ -5338,7 +5338,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "groups": [
@@ -5352,7 +5352,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusbadconfig",
               "summary": "Failed Prometheus configuration reload."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(prometheus_config_last_reload_successful{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) == 0",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(prometheus_config_last_reload_successful{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) == 0",
             "for": "10m",
             "labels": {
               "severity": "critical"
@@ -5365,7 +5365,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheussdrefreshfailure",
               "summary": "Failed Prometheus SD refresh."
             },
-            "expr": "increase(prometheus_sd_refresh_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[10m]) \u003e 0",
+            "expr": "increase(prometheus_sd_refresh_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[10m]) \u003e 0",
             "for": "20m",
             "labels": {
               "severity": "warning"
@@ -5378,7 +5378,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheuskuberneteslistwatchfailures",
               "summary": "Requests in Kubernetes SD are failing."
             },
-            "expr": "increase(prometheus_sd_kubernetes_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_sd_kubernetes_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5391,7 +5391,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusnotificationqueuerunningfull",
               "summary": "Prometheus alert notification queue predicted to run full in less than 30m."
             },
-            "expr": "# Without min_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  predict_linear(prometheus_notifications_queue_length{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m], 60 * 30)\n\u003e\n  min_over_time(prometheus_notifications_queue_capacity{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n)",
+            "expr": "# Without min_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  predict_linear(prometheus_notifications_queue_length{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m], 60 * 30)\n\u003e\n  min_over_time(prometheus_notifications_queue_capacity{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n)",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5404,7 +5404,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheuserrorsendingalertstosomealertmanagers",
               "summary": "More than 1% of alerts sent by Prometheus to a specific Alertmanager were affected by errors."
             },
-            "expr": "(\n  rate(prometheus_notifications_errors_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n/\n  rate(prometheus_notifications_sent_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n)\n* 100\n\u003e 1",
+            "expr": "(\n  rate(prometheus_notifications_errors_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n/\n  rate(prometheus_notifications_sent_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n)\n* 100\n\u003e 1",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5417,7 +5417,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusnotconnectedtoalertmanagers",
               "summary": "Prometheus is not connected to any Alertmanagers."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(prometheus_notifications_alertmanagers_discovered{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003c 1",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\nmax_over_time(prometheus_notifications_alertmanagers_discovered{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003c 1",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5430,7 +5430,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheustsdbreloadsfailing",
               "summary": "Prometheus has issues reloading blocks from disk."
             },
-            "expr": "increase(prometheus_tsdb_reloads_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[3h]) \u003e 0",
+            "expr": "increase(prometheus_tsdb_reloads_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[3h]) \u003e 0",
             "for": "4h",
             "labels": {
               "severity": "warning"
@@ -5443,7 +5443,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheustsdbcompactionsfailing",
               "summary": "Prometheus has issues compacting blocks."
             },
-            "expr": "increase(prometheus_tsdb_compactions_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[3h]) \u003e 0",
+            "expr": "increase(prometheus_tsdb_compactions_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[3h]) \u003e 0",
             "for": "4h",
             "labels": {
               "severity": "warning"
@@ -5456,7 +5456,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusnotingestingsamples",
               "summary": "Prometheus is not ingesting samples."
             },
-            "expr": "(\n  sum without(type) (rate(prometheus_tsdb_head_samples_appended_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])) \u003c= 0\nand\n  (\n    sum without(scrape_job) (prometheus_target_metadata_cache_entries{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}) \u003e 0\n  or\n    sum without(rule_group) (prometheus_rule_group_rules{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}) \u003e 0\n  )\n)",
+            "expr": "(\n  sum without(type) (rate(prometheus_tsdb_head_samples_appended_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])) \u003c= 0\nand\n  (\n    sum without(scrape_job) (prometheus_target_metadata_cache_entries{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}) \u003e 0\n  or\n    sum without(rule_group) (prometheus_rule_group_rules{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}) \u003e 0\n  )\n)",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5469,7 +5469,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusduplicatetimestamps",
               "summary": "Prometheus is dropping samples with duplicate timestamps."
             },
-            "expr": "rate(prometheus_target_scrapes_sample_duplicate_timestamp_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "rate(prometheus_target_scrapes_sample_duplicate_timestamp_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5482,7 +5482,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusoutofordertimestamps",
               "summary": "Prometheus drops samples with out-of-order timestamps."
             },
-            "expr": "rate(prometheus_target_scrapes_sample_out_of_order_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "rate(prometheus_target_scrapes_sample_out_of_order_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "10m",
             "labels": {
               "severity": "warning"
@@ -5495,7 +5495,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusremotestoragefailures",
               "summary": "Prometheus fails to send samples to remote storage."
             },
-            "expr": "(\n  (rate(prometheus_remote_storage_failed_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]))\n/\n  (\n    (rate(prometheus_remote_storage_failed_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]))\n  +\n    (rate(prometheus_remote_storage_succeeded_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]))\n  )\n)\n* 100\n\u003e 1",
+            "expr": "(\n  (rate(prometheus_remote_storage_failed_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]))\n/\n  (\n    (rate(prometheus_remote_storage_failed_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]))\n  +\n    (rate(prometheus_remote_storage_succeeded_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) or rate(prometheus_remote_storage_samples_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]))\n  )\n)\n* 100\n\u003e 1",
             "for": "15m",
             "labels": {
               "severity": "critical"
@@ -5508,7 +5508,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusremotewritebehind",
               "summary": "Prometheus remote write is behind."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  max_over_time(prometheus_remote_storage_queue_highest_timestamp_seconds{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n-\n  max_over_time(prometheus_remote_storage_queue_highest_sent_timestamp_seconds{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n)\n\u003e 120",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  max_over_time(prometheus_remote_storage_queue_highest_timestamp_seconds{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n-\n  max_over_time(prometheus_remote_storage_queue_highest_sent_timestamp_seconds{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n)\n\u003e 120",
             "for": "15m",
             "labels": {
               "severity": "critical"
@@ -5517,11 +5517,11 @@
           {
             "alert": "PrometheusRemoteWriteDesiredShards",
             "annotations": {
-              "description": "Prometheus {{$labels.namespace}}/{{$labels.pod}} remote write desired shards calculation wants to run {{ $value }} shards for queue {{ $labels.remote_name}}:{{ $labels.url }}, which is more than the max of {{ printf `prometheus_remote_storage_shards_max{instance=\"%s\",job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}` $labels.instance | query | first | value }}.",
+              "description": "Prometheus {{$labels.namespace}}/{{$labels.pod}} remote write desired shards calculation wants to run {{ $value }} shards for queue {{ $labels.remote_name}}:{{ $labels.url }}, which is more than the max of {{ printf `prometheus_remote_storage_shards_max{instance=\"%s\",job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}` $labels.instance | query | first | value }}.",
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusremotewritedesiredshards",
               "summary": "Prometheus remote write desired shards calculation wants to run more than configured max shards."
             },
-            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  max_over_time(prometheus_remote_storage_shards_desired{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n\u003e\n  max_over_time(prometheus_remote_storage_shards_max{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m])\n)",
+            "expr": "# Without max_over_time, failed scrapes could create false negatives, see\n# https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.\n(\n  max_over_time(prometheus_remote_storage_shards_desired{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n\u003e\n  max_over_time(prometheus_remote_storage_shards_max{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m])\n)",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5534,7 +5534,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusrulefailures",
               "summary": "Prometheus is failing rule evaluations."
             },
-            "expr": "increase(prometheus_rule_evaluation_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_rule_evaluation_failures_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "critical"
@@ -5547,7 +5547,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusmissingruleevaluations",
               "summary": "Prometheus is missing rule evaluations due to slow rule group evaluation."
             },
-            "expr": "increase(prometheus_rule_group_iterations_missed_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_rule_group_iterations_missed_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5560,7 +5560,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheustargetlimithit",
               "summary": "Prometheus has dropped targets because some scrape configs have exceeded the targets limit."
             },
-            "expr": "increase(prometheus_target_scrape_pool_exceeded_target_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_target_scrape_pool_exceeded_target_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5573,7 +5573,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheuslabellimithit",
               "summary": "Prometheus has dropped targets because some scrape configs have exceeded the labels limit."
             },
-            "expr": "increase(prometheus_target_scrape_pool_exceeded_label_limits_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_target_scrape_pool_exceeded_label_limits_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5586,7 +5586,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusscrapebodysizelimithit",
               "summary": "Prometheus has dropped some targets that exceeded body size limit."
             },
-            "expr": "increase(prometheus_target_scrapes_exceeded_body_size_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_target_scrapes_exceeded_body_size_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5599,7 +5599,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheusscrapesamplelimithit",
               "summary": "Prometheus has failed scrapes that have exceeded the configured sample limit."
             },
-            "expr": "increase(prometheus_target_scrapes_exceeded_sample_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0",
+            "expr": "increase(prometheus_target_scrapes_exceeded_sample_limit_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5612,7 +5612,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheustargetsyncfailure",
               "summary": "Prometheus has failed to sync targets."
             },
-            "expr": "increase(prometheus_target_sync_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[30m]) \u003e 0",
+            "expr": "increase(prometheus_target_sync_failed_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[30m]) \u003e 0",
             "for": "5m",
             "labels": {
               "severity": "critical"
@@ -5625,7 +5625,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheushighqueryload",
               "summary": "Prometheus is reaching its maximum capacity serving concurrent requests."
             },
-            "expr": "avg_over_time(prometheus_engine_queries{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) / max_over_time(prometheus_engine_queries_concurrent_max{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\"}[5m]) \u003e 0.8",
+            "expr": "avg_over_time(prometheus_engine_queries{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) / max_over_time(prometheus_engine_queries_concurrent_max{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\"}[5m]) \u003e 0.8",
             "for": "15m",
             "labels": {
               "severity": "warning"
@@ -5638,7 +5638,7 @@
               "runbook_url": "https://runbooks.prometheus-operator.dev/runbooks/prometheus/prometheuserrorsendingalertstoanyalertmanager",
               "summary": "Prometheus encounters more than 3% errors sending alerts to any Alertmanager."
             },
-            "expr": "min without (alertmanager) (\n  rate(prometheus_notifications_errors_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\",alertmanager!~``}[5m])\n/\n  rate(prometheus_notifications_sent_total{job=\"atlas-monitoring-prometheus\",namespace=\"atlas-monitoring\",alertmanager!~``}[5m])\n)\n* 100\n\u003e 3",
+            "expr": "min without (alertmanager) (\n  rate(prometheus_notifications_errors_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\",alertmanager!~``}[5m])\n/\n  rate(prometheus_notifications_sent_total{job=\"atlas-monitoring-prometheus\",namespace=\"monitoring\",alertmanager!~``}[5m])\n)\n* 100\n\u003e 3",
             "for": "15m",
             "labels": {
               "severity": "critical"
@@ -5662,7 +5662,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-grafana",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -5676,7 +5676,7 @@
     "jobLabel": "atlas-monitoring",
     "namespaceSelector": {
       "matchNames": [
-        "atlas-monitoring"
+        "monitoring"
       ]
     },
     "selector": {
@@ -5703,7 +5703,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -5737,7 +5737,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "attachMetadata": {
@@ -5774,7 +5774,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-alertmanager",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -5790,7 +5790,7 @@
     ],
     "namespaceSelector": {
       "matchNames": [
-        "atlas-monitoring"
+        "monitoring"
       ]
     },
     "selector": {
@@ -5818,7 +5818,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-coredns",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -5856,7 +5856,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-apiserver",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -5916,7 +5916,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kubelet",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "attachMetadata": {
@@ -6106,7 +6106,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-operator",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -6128,7 +6128,7 @@
     ],
     "namespaceSelector": {
       "matchNames": [
-        "atlas-monitoring"
+        "monitoring"
       ]
     },
     "selector": {
@@ -6155,7 +6155,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "spec": {
     "endpoints": [
@@ -6170,7 +6170,7 @@
     ],
     "namespaceSelector": {
       "matchNames": [
-        "atlas-monitoring"
+        "monitoring"
       ]
     },
     "selector": {

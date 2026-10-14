@@ -18,6 +18,13 @@ SeaweedFS master/filer/volume 管理端口、Redis、exporter、Operator/webhook
 只读 Prometheus/Alertmanager 仍可暴露监测数据，限制仅适合单所有者本机开发。
 Kind 入口必须绑定 127.0.0.1；不因此声明集群内部或同机其他用户无法访问。
 
+## 版本边界
+
+本文件的 r3 SHA、目标和操作记录属于旧 namespace 布局，须使用其绑定版本。
+当前源码渲染器使用 gateway、monitoring、object-storage；不会将旧 r3 布局自动转换。
+新安装应提供自己的精确部署 SHA/端口，不能复制下面的 r3 示例 SHA。
+参见 [namespace 约定](platform-namespaces.md)。
+
 ## 离线生成可审查清单
 
 从被审核的精确部署 commit 导出 GitOps tree，保留现有 S2 业务对象；不要拿源码仓库

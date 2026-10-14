@@ -104,10 +104,6 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		if plan["readyToEnable"] != true {
-			fmt.Fprintln(os.Stderr, "enabled capabilities are missing sealed credentials; run plan")
-			os.Exit(1)
-		}
 		var files map[string][]byte
 		files, e = p.Render(ctx)
 		if e == nil {
@@ -121,16 +117,16 @@ func main() {
 			}
 		}
 		if e == nil {
-			e = p.ValidateCapabilityActivation()
+			e = p.ValidateCapabilityProjection()
 		}
 		if e == nil {
-			fmt.Println("Rendered core, capability candidates and active catalog; no cluster operations.")
+			fmt.Printf("Rendered templates and catalog; activationReady=%v. Run plan before activation. No cluster operations.\n", plan["readyToEnable"])
 		}
 	} else {
 		var n int
 		n, e = p.Check(ctx)
 		if e == nil {
-			fmt.Printf("Checked %d GitOps resources, artifact hashes, deterministic renders, project boundaries, CRD structural schemas and local Kustomize builds. No cluster operations.\n", n)
+			fmt.Printf("Checked %d GitOps resources, artifact hashes, deterministic renders, project boundaries, CRD structural schemas and local Kustomize builds. Activation credentials are checked separately by plan/select/Bootstrap. No cluster operations.\n", n)
 		}
 	}
 	if e != nil {

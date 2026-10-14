@@ -201,7 +201,21 @@ func TestHistoricalDevelopmentProfileRejectsUpgradedDependencies(t *testing.T) {
 		t.Fatal(e)
 	}
 	a := &App{Root: root, Config: c, Lock: l}
-	if _, e := a.Render(context.Background()); e == nil || !strings.Contains(e.Error(), "frozen instantiation contract changed: platform/development/versions.lock.json") {
+	if _, e := a.Render(context.Background()); e == nil {
+		t.Fatal("current templates accepted as the historical schema-3 profile")
+	}
+	// Source templates no longer carry author ciphertext, so activation can
+	// reject before the frozen-input check. Exercise that independent boundary
+	// directly without adding instance credentials to this fixture.
+	p, e := platform.Load(root, platform.Tools{Helm: "helm", Kubectl: "kubectl", YQ: "yq"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	files, e := p.BundleFiles()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e := a.validateDevelopmentBaseline(files, c.Schema); e == nil || !strings.Contains(e.Error(), "frozen instantiation contract changed: platform/development/versions.lock.json") {
 		t.Fatalf("upgraded inputs must not reuse the historical schema-3 identity: %v", e)
 	}
 }

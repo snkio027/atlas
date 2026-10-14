@@ -159,7 +159,7 @@ func (w *Workflow) backup(ctx context.Context) error {
 	if e := w.bindCluster(ctx); e != nil {
 		return e
 	}
-	b, e := w.kube(ctx, nil, "get", "secrets", "-n", "atlas-secrets", "-l", "sealedsecrets.bitnami.com/sealed-secrets-key=active", "-o", "json")
+	b, e := w.kube(ctx, nil, "get", "secrets", "-n", "sealed-secrets", "-l", "sealedsecrets.bitnami.com/sealed-secrets-key=active", "-o", "json")
 	if e != nil {
 		return e
 	}
@@ -181,10 +181,10 @@ func (w *Workflow) backup(ctx context.Context) error {
 	// observations, not key identity. The controller key itself remains untouched.
 	meta := secret["metadata"].(map[string]any)
 	name, ok := meta["name"].(string)
-	if !ok || name == "" || meta["namespace"] != "atlas-secrets" {
+	if !ok || name == "" || meta["namespace"] != "sealed-secrets" {
 		return errors.New("unexpected key namespace/name")
 	}
-	keyObject := map[string]any{"apiVersion": "v1", "kind": "Secret", "type": secret["type"], "metadata": map[string]any{"name": name, "namespace": "atlas-secrets", "labels": meta["labels"]}, "data": secret["data"]}
+	keyObject := map[string]any{"apiVersion": "v1", "kind": "Secret", "type": secret["type"], "metadata": map[string]any{"name": name, "namespace": "sealed-secrets", "labels": meta["labels"]}, "data": secret["data"]}
 	raw := JSON(keyObject)
 	cert, _, e := keyPair(raw)
 	if e != nil {
@@ -213,7 +213,7 @@ func (w *Workflow) backup(ctx context.Context) error {
 	if e != nil {
 		return e
 	}
-	probe := secretObject("atlas-secrets", "atlas-backup-proof", map[string]string{"proof": probeValue})
+	probe := secretObject("sealed-secrets", "atlas-backup-proof", map[string]string{"proof": probeValue})
 	sealed, e := w.seal(ctx, certPath, probe)
 	if e != nil {
 		return e
@@ -288,7 +288,7 @@ func (w *Workflow) credentials(ctx context.Context) ([]byte, error) {
 		}
 	} else if os.IsNotExist(e) {
 		s3 := JSON(map[string]any{"identities": []any{map[string]any{"name": "web-uploads", "credentials": []any{map[string]string{"accessKey": c.AccessKey, "secretKey": c.SecretKey}}, "actions": []string{"Read:uploads", "Write:uploads", "List:uploads", "Tagging:uploads"}}}})
-		secrets := []map[string]any{secretObject("atlas-monitoring", "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": c.GrafanaPassword}), secretObject("atlas-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3)}), secretObject("workload-web", "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": c.AccessKey, "AWS_SECRET_ACCESS_KEY": c.SecretKey})}
+		secrets := []map[string]any{secretObject("monitoring", "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": c.GrafanaPassword}), secretObject("object-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3)}), secretObject("workload-web", "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": c.AccessKey, "AWS_SECRET_ACCESS_KEY": c.SecretKey})}
 		sealed = SealedRecord{CertificateSHA256: w.Record.CertificateSHA256, CredentialsSHA256: credentialHash}
 		for _, secret := range secrets {
 			o, e := w.seal(ctx, filepath.Join(w.Config.StateDirectory, "sealing-certificate.pem"), secret)

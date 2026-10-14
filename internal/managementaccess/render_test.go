@@ -107,13 +107,13 @@ func TestManagementAccessBoundariesAndDeterminism(t *testing.T) {
 			}
 		}
 	}
-	want := map[string]bool{"argoproj.io/AppProject/argocd/platform-project": true, "gateway.networking.k8s.io/Gateway/atlas-gateway/development": true, "apps/Deployment/atlas-monitoring/atlas-monitoring-grafana": true, "monitoring.coreos.com/Prometheus/atlas-monitoring/atlas-monitoring-prometheus": true, "monitoring.coreos.com/Alertmanager/atlas-monitoring/atlas-monitoring-alertmanager": true}
+	want := map[string]bool{"argoproj.io/AppProject/argocd/platform-project": true, "gateway.networking.k8s.io/Gateway/gateway/development": true, "apps/Deployment/monitoring/atlas-monitoring-grafana": true, "monitoring.coreos.com/Prometheus/monitoring/atlas-monitoring-prometheus": true, "monitoring.coreos.com/Alertmanager/monitoring/atlas-monitoring-alertmanager": true}
 	if !reflect.DeepEqual(changed, want) {
 		t.Fatalf("unexpected existing object delta: %v", changed)
 	}
 	// Add an unrelated business listener, representing an installed S2 project.
 	edge := decode(t, base[workload.EdgePath])
-	gw := mustGet(t, edge, "Gateway", "atlas-gateway", "development")
+	gw := mustGet(t, edge, "Gateway", "gateway", "development")
 	business := clone(obj(arr(at(gw, "spec", "listeners"))[1]))
 	business["name"] = "business-https"
 	business["hostname"] = "archive.atlas.test"
@@ -123,7 +123,7 @@ func TestManagementAccessBoundariesAndDeterminism(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	kg := mustGet(t, decode(t, kept.Routes[workload.EdgePath]), "Gateway", "atlas-gateway", "development")
+	kg := mustGet(t, decode(t, kept.Routes[workload.EdgePath]), "Gateway", "gateway", "development")
 	if !reflect.DeepEqual(arr(at(kg, "spec", "listeners"))[2], business) {
 		t.Fatal("business listener changed")
 	}
@@ -137,7 +137,7 @@ func TestManagementRoutesTLSMethodsNetworkAndPorts(t *testing.T) {
 	}
 	edge := decode(t, r.Routes[workload.EdgePath])
 	pki := decode(t, r.Prerequisites[workload.PKIPath])
-	gw := mustGet(t, edge, "Gateway", "atlas-gateway", "development")
+	gw := mustGet(t, edge, "Gateway", "gateway", "development")
 	listeners := map[string]Object{}
 	for _, l := range arr(at(gw, "spec", "listeners")) {
 		listeners[at(obj(l), "name").(string)] = obj(l)
@@ -145,7 +145,7 @@ func TestManagementRoutesTLSMethodsNetworkAndPorts(t *testing.T) {
 	for _, e := range Endpoints() {
 		t.Run(e.Name, func(t *testing.T) {
 			n := "management-" + e.Name
-			cert := mustGet(t, pki, "Certificate", "atlas-gateway", n+"-tls")
+			cert := mustGet(t, pki, "Certificate", "gateway", n+"-tls")
 			if at(cert, "spec", "issuerRef", "name") != "development-ca" || !reflect.DeepEqual(at(cert, "spec", "dnsNames"), []any{e.Name + ".atlas.test"}) {
 				t.Fatal("certificate not bound to exact host and existing issuer")
 			}
@@ -156,7 +156,7 @@ func TestManagementRoutesTLSMethodsNetworkAndPorts(t *testing.T) {
 				}
 				route := mustGet(t, edge, "HTTPRoute", e.Namespace, n+"-"+proto)
 				refs := arr(at(route, "spec", "parentRefs"))
-				if len(refs) != 1 || at(obj(refs[0]), "sectionName") != n+"-"+proto || at(obj(refs[0]), "namespace") != "atlas-gateway" {
+				if len(refs) != 1 || at(obj(refs[0]), "sectionName") != n+"-"+proto || at(obj(refs[0]), "namespace") != "gateway" {
 					t.Fatal("wrong route attachment")
 				}
 				rules := arr(at(route, "spec", "rules"))
@@ -190,7 +190,7 @@ func TestManagementRoutesTLSMethodsNetworkAndPorts(t *testing.T) {
 			np := mustGet(t, edge, "NetworkPolicy", e.Namespace, n+"-ingress")
 			ingress := obj(arr(at(np, "spec", "ingress"))[0])
 			peer := obj(arr(ingress["from"])[0])
-			if len(arr(ingress["from"])) != 1 || at(peer, "namespaceSelector", "matchLabels", "kubernetes.io/metadata.name") != "envoy-gateway-system" || at(peer, "podSelector", "matchLabels", "gateway.envoyproxy.io/owning-gateway-name") != "development" || at(peer, "podSelector", "matchLabels", "gateway.envoyproxy.io/owning-gateway-namespace") != "atlas-gateway" {
+			if len(arr(ingress["from"])) != 1 || at(peer, "namespaceSelector", "matchLabels", "kubernetes.io/metadata.name") != "envoy-gateway-system" || at(peer, "podSelector", "matchLabels", "gateway.envoyproxy.io/owning-gateway-name") != "development" || at(peer, "podSelector", "matchLabels", "gateway.envoyproxy.io/owning-gateway-namespace") != "gateway" {
 				t.Fatal("gateway identity widened")
 			}
 			ports := arr(ingress["ports"])
@@ -211,7 +211,7 @@ func TestManagementRoutesWaitForGatewayListeners(t *testing.T) {
 		t.Fatal(err)
 	}
 	edge := decode(t, result.Routes[workload.EdgePath])
-	gateway := mustGet(t, edge, "Gateway", "atlas-gateway", "development")
+	gateway := mustGet(t, edge, "Gateway", "gateway", "development")
 	if at(gateway, "metadata", "annotations", "argocd.argoproj.io/sync-wave") != "2" {
 		t.Fatal("Gateway wave changed")
 	}
@@ -230,7 +230,7 @@ func TestManagementRoutesWaitForGatewayListeners(t *testing.T) {
 	}
 	for _, wave := range []any{nil, "0", "3", "invalid"} {
 		xs := decode(t, base[workload.EdgePath])
-		gw := mustGet(t, xs, "Gateway", "atlas-gateway", "development")
+		gw := mustGet(t, xs, "Gateway", "gateway", "development")
 		obj(at(gw, "metadata", "annotations"))["argocd.argoproj.io/sync-wave"] = wave
 		drifted := overlay(base, Files{workload.EdgePath: list(xs)})
 		if _, err := Render(drifted, model, 18443); err == nil {
@@ -246,7 +246,7 @@ func TestManagementRejectsUnsafeOrIncompatibleBase(t *testing.T) {
 			switch name {
 			case "missing-service", "wrong-selector", "wrong-port":
 				xs := decode(t, base[workload.StoragePath])
-				o := mustGet(t, xs, "Service", "atlas-storage", "seaweedfs")
+				o := mustGet(t, xs, "Service", "object-storage", "seaweedfs")
 				if name == "missing-service" {
 					obj(o["metadata"])["name"] = "different"
 				} else if name == "wrong-selector" {
@@ -257,7 +257,7 @@ func TestManagementRejectsUnsafeOrIncompatibleBase(t *testing.T) {
 				base[workload.StoragePath] = list(xs)
 			case "wrong-pod-port":
 				xs := decode(t, base[workload.StoragePath])
-				o := mustGet(t, xs, "StatefulSet", "atlas-storage", "seaweedfs")
+				o := mustGet(t, xs, "StatefulSet", "object-storage", "seaweedfs")
 				c := obj(arr(at(o, "spec", "template", "spec", "containers"))[0])
 				for _, p := range arr(c["ports"]) {
 					if at(obj(p), "name") == "s3" {
@@ -273,7 +273,7 @@ func TestManagementRejectsUnsafeOrIncompatibleBase(t *testing.T) {
 				base[path] = list(xs)
 			case "duplicate-identity":
 				xs := decode(t, base[workload.PKIPath])
-				xs = append(xs, resource("cert-manager.io/v1", "Certificate", "atlas-gateway", "management-grafana-tls", clone(obj(xs[len(xs)-1]["spec"]))))
+				xs = append(xs, resource("cert-manager.io/v1", "Certificate", "gateway", "management-grafana-tls", clone(obj(xs[len(xs)-1]["spec"]))))
 				base[workload.PKIPath] = list(xs)
 			case "permission":
 				xs := decode(t, base[workload.ProjectsPath])

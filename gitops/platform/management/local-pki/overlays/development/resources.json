@@ -7,7 +7,7 @@
       "kind": "Issuer",
       "metadata": {
         "name": "local-selfsigned",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "0"
         }
@@ -21,7 +21,7 @@
       "kind": "Certificate",
       "metadata": {
         "name": "development-ca",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "1"
         }
@@ -49,7 +49,7 @@
       "kind": "Issuer",
       "metadata": {
         "name": "development-ca",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
         }
@@ -65,7 +65,7 @@
       "kind": "Certificate",
       "metadata": {
         "name": "web-tls",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "3"
         }

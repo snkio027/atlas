@@ -1,6 +1,8 @@
 package platform
 
 import (
+	"atlas-refactor/internal/developmentprofile"
+	"atlas-refactor/internal/platformnames"
 	"errors"
 	"fmt"
 )
@@ -19,8 +21,16 @@ func labelMatch(selector, labels Object) bool {
 	}
 	return true
 }
-func checkRoutes(inv map[string]Object) error {
-	gw := inv["gateway.networking.k8s.io/Gateway/atlas-gateway/development"]
+func (p *Project) gatewayNamespace() string {
+	// OT-1 reads fixed historical commits, never the current installation layout.
+	if p.Config.Revision == developmentprofile.OT1Revision {
+		return "atlas-gateway"
+	}
+	return platformnames.Gateway
+}
+
+func checkRoutes(inv map[string]Object, gatewayNamespace string) error {
+	gw := inv["gateway.networking.k8s.io/Gateway/"+gatewayNamespace+"/development"]
 	ns := inv["/Namespace//workload-web"]
 	listeners := map[string]Object{}
 	for _, v := range slice(field(gw, "spec", "listeners")) {
@@ -44,7 +54,7 @@ func checkRoutes(inv map[string]Object) error {
 	if len(refs) != 1 || mapping(refs[0])["name"] != "web-tls" || mapping(refs[0])["kind"] != "Secret" {
 		return errors.New("HTTPS must use the runtime certificate Secret")
 	}
-	cert := inv["cert-manager.io/Certificate/atlas-gateway/web-tls"]
+	cert := inv["cert-manager.io/Certificate/"+gatewayNamespace+"/web-tls"]
 	if field(cert, "spec", "secretName") != "web-tls" || !contains(field(cert, "spec", "dnsNames"), "web.atlas.test") {
 		return errors.New("TLS certificate does not cover the development hostname")
 	}
@@ -57,7 +67,7 @@ func checkRoutes(inv map[string]Object) error {
 		for _, v := range slice(field(o, "spec", "parentRefs")) {
 			ref := mapping(v)
 			listener := listeners[str(ref["sectionName"])]
-			if ref["name"] != metadata(gw)["name"] || ref["namespace"] != "atlas-gateway" || listener == nil {
+			if ref["name"] != metadata(gw)["name"] || ref["namespace"] != gatewayNamespace || listener == nil {
 				return fmt.Errorf("route %s has an unapproved parent", identity(o))
 			}
 			if !contains(field(o, "spec", "hostnames"), str(listener["hostname"])) {
@@ -68,7 +78,7 @@ func checkRoutes(inv map[string]Object) error {
 	if count != 2 {
 		return errors.New("HTTP redirect and HTTPS routes are required")
 	}
-	ep := inv["gateway.envoyproxy.io/EnvoyProxy/atlas-gateway/development"]
+	ep := inv["gateway.envoyproxy.io/EnvoyProxy/"+gatewayNamespace+"/development"]
 	ports := slice(field(ep, "spec", "provider", "kubernetes", "envoyService", "patch", "value", "spec", "ports"))
 	expected := map[float64]float64{80: 30080, 443: 30443}
 	if len(ports) != 2 {

@@ -30,7 +30,7 @@ func projectPermissions(files Files, m *Model) error {
 // in infrastructure. Separate owners may reconcile in any order.
 func certificatePrerequisites(files Files, m *Model) error {
 	return edit(files, PKIPath, func(xs []Object) ([]Object, error) {
-		template, e := find(xs, "Certificate", "atlas-gateway", "web-tls")
+		template, e := find(xs, "Certificate", "gateway", "web-tls")
 		if e != nil {
 			return nil, e
 		}
@@ -49,7 +49,7 @@ func certificatePrerequisites(files Files, m *Model) error {
 func platformAdapters(files Files, m *Model) error {
 	ns := m.Intent.Project.Name
 	if e := edit(files, EdgePath, func(xs []Object) ([]Object, error) {
-		g, e := find(xs, "Gateway", "atlas-gateway", "development")
+		g, e := find(xs, "Gateway", "gateway", "development")
 		if e != nil {
 			return nil, e
 		}
@@ -163,7 +163,7 @@ func validateArtifacts(c CompileContext, m *Model, a *Artifacts) error {
 	if a == nil || a.Schema != 1 || a.InstallID != c.InstallID || a.CertificateSHA256 != c.CertificateSHA256 || a.IntentSHA256 != Digest(JSON(m.Intent)) || len(a.Clients) != len(m.Intent.Bindings) {
 		return errors.New("missing or mismatched registered credentials")
 	}
-	if e := sealedObject(a.Provider, "atlas-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}); e != nil {
+	if e := sealedObject(a.Provider, "object-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}); e != nil {
 		return e
 	}
 	for _, b := range m.Intent.Bindings {

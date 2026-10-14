@@ -11,7 +11,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   }
 }
 ---
@@ -29,7 +29,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets-key-admin",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "rules": [
     {
@@ -74,7 +74,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets-service-proxier",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "rules": [
     {
@@ -124,7 +124,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "secrets-unsealer",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "rules": [
     {
@@ -184,9 +184,9 @@
         ""
       ],
       "resourceNames": [
-        "atlas-secrets",
-        "atlas-monitoring",
-        "atlas-storage",
+        "sealed-secrets",
+        "monitoring",
+        "object-storage",
         "workload-web"
       ],
       "resources": [
@@ -212,7 +212,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "secrets-unsealer",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "rules": [
     {
@@ -272,9 +272,9 @@
         ""
       ],
       "resourceNames": [
-        "atlas-secrets",
-        "atlas-monitoring",
-        "atlas-storage",
+        "sealed-secrets",
+        "monitoring",
+        "object-storage",
         "workload-web"
       ],
       "resources": [
@@ -300,7 +300,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "secrets-unsealer",
-    "namespace": "atlas-storage"
+    "namespace": "object-storage"
   },
   "rules": [
     {
@@ -360,9 +360,9 @@
         ""
       ],
       "resourceNames": [
-        "atlas-secrets",
-        "atlas-monitoring",
-        "atlas-storage",
+        "sealed-secrets",
+        "monitoring",
+        "object-storage",
         "workload-web"
       ],
       "resources": [
@@ -448,9 +448,9 @@
         ""
       ],
       "resourceNames": [
-        "atlas-secrets",
-        "atlas-monitoring",
-        "atlas-storage",
+        "sealed-secrets",
+        "monitoring",
+        "object-storage",
         "workload-web"
       ],
       "resources": [
@@ -477,7 +477,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets-key-admin",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -489,7 +489,7 @@
       "apiGroup": "",
       "kind": "ServiceAccount",
       "name": "sealed-secrets",
-      "namespace": "atlas-secrets"
+      "namespace": "sealed-secrets"
     }
   ]
 }
@@ -508,7 +508,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets-service-proxier",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -538,7 +538,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -550,7 +550,7 @@
       "apiGroup": "",
       "kind": "ServiceAccount",
       "name": "sealed-secrets",
-      "namespace": "atlas-secrets"
+      "namespace": "sealed-secrets"
     }
   ]
 }
@@ -569,7 +569,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-monitoring"
+    "namespace": "monitoring"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -581,7 +581,7 @@
       "apiGroup": "",
       "kind": "ServiceAccount",
       "name": "sealed-secrets",
-      "namespace": "atlas-secrets"
+      "namespace": "sealed-secrets"
     }
   ]
 }
@@ -600,7 +600,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-storage"
+    "namespace": "object-storage"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -612,7 +612,7 @@
       "apiGroup": "",
       "kind": "ServiceAccount",
       "name": "sealed-secrets",
-      "namespace": "atlas-secrets"
+      "namespace": "sealed-secrets"
     }
   ]
 }
@@ -643,7 +643,7 @@
       "apiGroup": "",
       "kind": "ServiceAccount",
       "name": "sealed-secrets",
-      "namespace": "atlas-secrets"
+      "namespace": "sealed-secrets"
     }
   ]
 }
@@ -661,7 +661,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "spec": {
     "ports": [
@@ -695,7 +695,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets-metrics",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "spec": {
     "ports": [
@@ -729,7 +729,7 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
-    "namespace": "atlas-secrets"
+    "namespace": "sealed-secrets"
   },
   "spec": {
     "replicas": 1,
@@ -756,7 +756,7 @@
               "--key-prefix",
               "sealed-secrets-key",
               "--additional-namespaces",
-              "atlas-secrets,atlas-monitoring,atlas-storage,workload-web",
+              "sealed-secrets,monitoring,object-storage,workload-web",
               "--listen-addr",
               ":8080",
               "--listen-metrics-addr",

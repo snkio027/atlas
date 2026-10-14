@@ -26,6 +26,10 @@ Helm 仅在本地渲染，没有 Helm Release 状态。GitOps 消费已渲染的
 无需 Argo CD 在线获取 Helm chart。`argocd-cm` 的 Application 健康检查要求
 子应用没有活动操作且为 Synced，避免将目录顺序误当成就绪依赖。
 
+新安装的 namespace 布局见 [平台 namespace 约定](platform-namespaces.md) 与
+[ADR-0020](adr/0020-platform-namespace-names.md)。名称变化不改变以上控制权模型；
+历史实例与冻结验收继续绑定原版本。
+
 ## 状态与写权限
 
 | 状态 | 正常 Bootstrap 权限 |

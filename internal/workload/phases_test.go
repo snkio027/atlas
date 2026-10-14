@@ -79,7 +79,7 @@ func TestPublicationPrerequisitesUnderAdversarialReconcileOrder(t *testing.T) {
 				}
 				for _, w := range m.Intent.Workloads {
 					name := "s2-" + ShortID("Workload", w.Project, w.Name) + "-tls"
-					cert, err := find(certs, "Certificate", "atlas-gateway", name)
+					cert, err := find(certs, "Certificate", "gateway", name)
 					if err != nil || val(cert, "spec", "secretName") != name {
 						t.Fatal("Project phase must issue TLS prerequisites", name, err)
 					}

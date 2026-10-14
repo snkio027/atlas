@@ -18,7 +18,7 @@ type Pod struct {
 	}
 }
 
-func VerifyPods(pods []Pod, cluster string) error {
+func VerifyPods(pods []Pod, cluster, gatewayNamespace string) error {
 	web, proxy := false, false
 	for _, p := range pods {
 		if p.Status.Phase == "Succeeded" {
@@ -42,10 +42,10 @@ func VerifyPods(pods []Pod, cluster string) error {
 			}
 			web = true
 		}
-		if p.Metadata.Namespace == "envoy-gateway-system" && strings.HasPrefix(p.Metadata.Name, "envoy-atlas-gateway-") &&
+		if p.Metadata.Namespace == "envoy-gateway-system" && strings.HasPrefix(p.Metadata.Name, "envoy-"+gatewayNamespace+"-") &&
 			p.Metadata.Labels["app.kubernetes.io/component"] == "proxy" &&
 			p.Metadata.Labels["gateway.envoyproxy.io/owning-gateway-name"] == "development" &&
-			p.Metadata.Labels["gateway.envoyproxy.io/owning-gateway-namespace"] == "atlas-gateway" {
+			p.Metadata.Labels["gateway.envoyproxy.io/owning-gateway-namespace"] == gatewayNamespace {
 			if p.Spec.NodeName != cluster+"-worker" {
 				return fmt.Errorf("gateway Pod outside gateway node: %s", p.Metadata.Name)
 			}

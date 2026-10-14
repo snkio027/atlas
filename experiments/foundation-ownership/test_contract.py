@@ -1,7 +1,9 @@
 """Offline contract checks. Synthetic observations are never runtime evidence."""
 import copy
 import json
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import contract as c
 from transition import mode_patch, options, REPOSITORY, REVISION
@@ -12,8 +14,20 @@ class ScopeTests(unittest.TestCase):
         self.old = c.read_list((c.BASE / 'fixtures/source/resources.json').read_bytes())
         self.domains = {d: c.read_list((c.BASE / 'fixtures' / d / 'resources.json').read_bytes()) for d in c.DOMAINS}
 
-    def test_immutable_sources_and_working_tree(self):
+    def test_immutable_sources_and_frozen_fixtures(self):
         self.assertEqual(c.check_sources()['result'], 'OFFLINE_SCOPE_VERIFIED')
+
+    def test_current_installation_templates_are_not_historical_evidence(self):
+        current = {c.ROOT / p for p in c.NEW_PATHS.values()}
+        current.add(c.ROOT / 'gitops/platform/management/sealed-secrets/overlays/development/rendered.yaml')
+        original = Path.read_bytes
+
+        def read_bytes(path):
+            self.assertNotIn(path, current, 'current template used as frozen ceremony input')
+            return original(path)
+
+        with patch.object(Path, 'read_bytes', read_bytes):
+            self.assertEqual(c.check_sources()['result'], 'OFFLINE_SCOPE_VERIFIED')
 
     def test_content_identity_scope_and_owner_negative_cases(self):
         cases = []

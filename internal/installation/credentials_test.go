@@ -26,7 +26,7 @@ func testKey(t *testing.T) []byte {
 	if e != nil {
 		t.Fatal(e)
 	}
-	return JSON(map[string]any{"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/tls", "metadata": map[string]string{"namespace": "atlas-secrets", "name": "synthetic-unit-test"}, "data": map[string]string{"tls.crt": base64.StdEncoding.EncodeToString(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})), "tls.key": base64.StdEncoding.EncodeToString(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}))}})
+	return JSON(map[string]any{"apiVersion": "v1", "kind": "Secret", "type": "kubernetes.io/tls", "metadata": map[string]string{"namespace": "sealed-secrets", "name": "synthetic-unit-test"}, "data": map[string]string{"tls.crt": base64.StdEncoding.EncodeToString(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})), "tls.key": base64.StdEncoding.EncodeToString(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}))}})
 }
 func TestBackupKeyPairAndRealSealingRoundTrip(t *testing.T) {
 	p := testProduct(t)

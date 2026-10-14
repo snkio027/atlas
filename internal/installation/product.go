@@ -3,6 +3,7 @@ package installation
 import (
 	"atlas-refactor/internal/atlas"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func BuildProduct(root, version, source string, tools platform.Tools, locks []To
 	if e = p.VerifyArtifacts(); e != nil {
 		return Product{}, e
 	}
-	if e = p.ValidateCapabilityActivation(); e != nil {
+	if e = p.ValidateCapabilityProjection(); e != nil {
 		return Product{}, e
 	}
 	all, e := p.BundleFiles()
@@ -163,6 +164,7 @@ func (p Product) Validate() error {
 				return fmt.Errorf("missing runtime template: %s", path)
 			}
 		}
+		namespaceNames := []string{}
 		for path, b := range files {
 			if filepath.Clean(path) != path || strings.Contains(path, "..") || !(strings.HasPrefix(path, "gitops/") || strings.HasPrefix(path, bootstrapDir)) || path == signalPath {
 				return fmt.Errorf("invalid runtime path: %s", path)
@@ -194,10 +196,19 @@ func (p Product) Validate() error {
 				return fmt.Errorf("runtime template %s: %w", path, e)
 			}
 			for _, o := range objects {
+				if o["kind"] == "Namespace" {
+					namespaceNames = append(namespaceNames, fmt.Sprint(nested(o, "metadata", "name")))
+				}
+				if platformnames.Legacy(fmt.Sprint(nested(o, "metadata", "namespace"))) {
+					return errors.New("legacy namespace in installation package; use its bound version")
+				}
 				if o["kind"] == "Secret" || o["kind"] == "SealedSecret" {
 					return errors.New("product must not carry credentials or author ciphertext")
 				}
 			}
+		}
+		if e := platformnames.ValidateDefinitions(namespaceNames); e != nil {
+			return e
 		}
 		for _, pair := range [][2]string{{"cilium", "gitops/platform/networking/cilium/overlays/development/rendered.yaml"}, {"argocd-self", "gitops/platform/management/argocd-self/overlays/development/rendered.yaml"}} {
 			if len(files[bootstrapDir+pair[0]+"-seed.yaml"]) == 0 || !bytes.Equal(files[bootstrapDir+pair[0]+"-seed.yaml"], files[pair[1]]) {

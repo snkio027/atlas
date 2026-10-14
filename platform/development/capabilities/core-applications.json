@@ -302,7 +302,7 @@
         },
         "destination": {
           "server": "https://kubernetes.default.svc",
-          "namespace": "atlas-gateway"
+          "namespace": "gateway"
         },
         "syncPolicy": {
           "automated": {
@@ -337,7 +337,7 @@
         },
         "destination": {
           "server": "https://kubernetes.default.svc",
-          "namespace": "atlas-gateway"
+          "namespace": "gateway"
         },
         "syncPolicy": {
           "automated": {

@@ -7,7 +7,7 @@
       "kind": "AlertmanagerConfig",
       "metadata": {
         "name": "atlas-local-alerts",
-        "namespace": "atlas-monitoring"
+        "namespace": "monitoring"
       },
       "spec": {
         "route": {

@@ -17,8 +17,8 @@ func candidate(t *testing.T) *Project {
 	return p
 }
 
-// unsealedCandidate explicitly models first-time onboarding, even after the
-// checked-in development profile has encrypted credentials and active services.
+// unsealedCandidate models first-time onboarding with no active capabilities or
+// instance credentials, independent of the source template's enabled selection.
 func unsealedCandidate(t *testing.T) *Project {
 	t.Helper()
 	p := candidate(t)
@@ -158,7 +158,7 @@ func TestPlaintextCredentialTemplateRejected(t *testing.T) {
 	if e := os.MkdirAll(dir, 0700); e != nil {
 		t.Fatal(e)
 	}
-	input := `{"kind":"SealedSecret","apiVersion":"bitnami.com/v1alpha1","metadata":{"name":"grafana-admin","namespace":"atlas-monitoring"},"spec":{"template":{"metadata":{"name":"grafana-admin","namespace":"atlas-monitoring"},"stringData":{"admin-password":"test-only"}}}}`
+	input := `{"kind":"SealedSecret","apiVersion":"bitnami.com/v1alpha1","metadata":{"name":"grafana-admin","namespace":"monitoring"},"spec":{"template":{"metadata":{"name":"grafana-admin","namespace":"monitoring"},"stringData":{"admin-password":"test-only"}}}}`
 	if e := os.WriteFile(filepath.Join(dir, "platform-credentials.json"), []byte(input), 0600); e != nil {
 		t.Fatal(e)
 	}

@@ -6,7 +6,7 @@
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
-        "name": "atlas-monitoring",
+        "name": "monitoring",
         "labels": {
           "atlas.local/owner": "platform",
           "pod-security.kubernetes.io/enforce": "privileged"
@@ -21,7 +21,7 @@
       "kind": "ResourceQuota",
       "metadata": {
         "name": "platform-budget",
-        "namespace": "atlas-monitoring"
+        "namespace": "monitoring"
       },
       "spec": {
         "hard": {
@@ -39,7 +39,7 @@
       "kind": "LimitRange",
       "metadata": {
         "name": "defaults",
-        "namespace": "atlas-monitoring"
+        "namespace": "monitoring"
       },
       "spec": {
         "limits": [
@@ -61,7 +61,7 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "monitoring-ingress",
-        "namespace": "atlas-monitoring"
+        "namespace": "monitoring"
       },
       "spec": {
         "podSelector": {
@@ -88,7 +88,7 @@
               {
                 "namespaceSelector": {
                   "matchLabels": {
-                    "kubernetes.io/metadata.name": "atlas-monitoring"
+                    "kubernetes.io/metadata.name": "monitoring"
                   }
                 },
                 "podSelector": {

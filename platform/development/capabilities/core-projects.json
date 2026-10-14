@@ -32,7 +32,7 @@
           },
           {
             "server": "https://kubernetes.default.svc",
-            "namespace": "atlas-gateway"
+            "namespace": "gateway"
           },
           {
             "server": "https://kubernetes.default.svc",

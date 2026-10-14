@@ -134,14 +134,14 @@ func (w *Workflow) PrepareCredentials(ctx context.Context, p Plan, approval stri
 		return e
 	}
 	seal := filepath.Join(installation.ToolDirectory(w.Install.Config.StateDirectory, w.Install.Product.Tools), "kubeseal")
-	currentCert, e := command(ctx, w.Config.StateDirectory, nil, seal, "--fetch-cert", "--controller-namespace", "atlas-secrets", "--controller-name", "sealed-secrets", "--kubeconfig", filepath.Join(w.Install.Config.StateDirectory, "runtime/.state/kubeconfig"), "--context", "kind-"+p.Cluster)
+	currentCert, e := command(ctx, w.Config.StateDirectory, nil, seal, "--fetch-cert", "--controller-namespace", "sealed-secrets", "--controller-name", "sealed-secrets", "--kubeconfig", filepath.Join(w.Install.Config.StateDirectory, "runtime/.state/kubeconfig"), "--context", "kind-"+p.Cluster)
 	if e != nil {
 		return e
 	}
 	if workload.Digest(currentCert) != p.CertificateSHA256 {
 		return errors.New("live controller certificate differs")
 	}
-	secret, e := w.get(ctx, "secret", "atlas-storage", "seaweedfs-auth")
+	secret, e := w.get(ctx, "secret", "object-storage", "seaweedfs-auth")
 	if e != nil {
 		return e
 	}
@@ -233,7 +233,7 @@ func (w *Workflow) PrepareCredentials(ctx context.Context, p Plan, approval stri
 		return e
 	}
 	if a.Provider == nil || !bytes.Equal(previous, workload.JSON(next)) {
-		a.Provider, e = sealSecret("atlas-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(workload.JSON(next))})
+		a.Provider, e = sealSecret("object-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(workload.JSON(next))})
 		if e != nil {
 			return e
 		}
