@@ -217,6 +217,26 @@
           {
             "group": "monitoring.coreos.com",
             "kind": "ServiceMonitor"
+          },
+          {
+            "group": "flink.apache.org",
+            "kind": "FlinkDeployment"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "Kafka"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "KafkaNodePool"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "KafkaUser"
+          },
+          {
+            "group": "postgresql.cnpg.io",
+            "kind": "Cluster"
           }
         ],
         "sourceRepos": [
