@@ -16,7 +16,7 @@ const (
 // The compiler also rejects namespaces declared by the actual deployment base.
 func Reserved(name string) bool {
 	switch name {
-	case "default", "argocd", "cert-manager", "envoy-gateway-system", "local-path-storage", "workload-web", Gateway, Monitoring, Secrets, ObjectStorage:
+	case "postgresql", "redis", "kafka", "flink", "logging", "default", "argocd", "cert-manager", "envoy-gateway-system", "local-path-storage", "workload-web", Gateway, Monitoring, Secrets, ObjectStorage:
 		return true
 	}
 	return false

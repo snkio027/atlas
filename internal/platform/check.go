@@ -65,7 +65,7 @@ func (p *Project) images(v any) error {
 	switch x := v.(type) {
 	case map[string]any:
 		for k, v := range x {
-			if k == "image" {
+			if k == "image" || k == "imageName" {
 				if !p.imageLocked(str(v)) {
 					return fmt.Errorf("unlocked image %v", v)
 				}

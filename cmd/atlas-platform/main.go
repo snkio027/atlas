@@ -47,6 +47,7 @@ func main() {
 	kubectl := fs.String("kubectl", "kubectl", "locked kubectl (client commands only)")
 	cert := fs.String("cert", "", "reviewed public Sealed Secrets certificate (offline)")
 	kubeseal := fs.String("kubeseal", "kubeseal", "checksum-locked kubeseal executable")
+	credentialProfile := fs.String("credential-profile", "platform", "fixed offline credential recipe: platform or data-services")
 	capabilities := fs.String("capabilities", "monitoring,object-storage,storage-monitoring", "complete desired capability set for plan/select; removal is unsupported")
 	yq := fs.String("yq", "yq", "locked yq executable")
 	fs.Usage = func() {
@@ -77,9 +78,9 @@ func main() {
 		requested = strings.Split(*capabilities, ",")
 	}
 	if command == "prepare-credentials" {
-		e = p.PrepareCredentials(ctx, *cert, *kubeseal)
+		e = p.PrepareCredentialProfile(ctx, *cert, *kubeseal, *credentialProfile)
 		if e == nil {
-			fmt.Println("Prepared sealed manifests; plaintext remains in private .state/capabilities/credentials.json. No cluster operations.")
+			fmt.Println("Prepared sealed manifests; plaintext remains in the private .state profile directory. No cluster operations.")
 		}
 	} else if command == "select" {
 		e = p.SelectCapabilities(ctx, requested)

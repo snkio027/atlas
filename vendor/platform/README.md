@@ -36,3 +36,15 @@ Envoy certificate-generation Job as its supported Helm hook equivalent.
   release archives, checked against publisher asset digests on 2026-10-10.
   Their bundled dependencies are retained as published. Sealed Secrets chart
   2.20.0 remains current and unchanged.
+
+## Data operators (ADR-0021 candidate)
+
+- `cloudnative-pg-0.29.1.tgz`: official cloudnative-pg/charts release; app 1.30.1.
+- `strimzi-kafka-operator-helm-3-chart-1.3.0.tgz`: official Strimzi release.
+- `flink-kubernetes-operator-1.16.0-helm.tgz`: Apache release archive, SHA-512 verified.
+
+Exact source URLs, SHA-256 and verification methods are in
+`platform/development/capabilities/versions.lock.json`. Charts are not modified; upstream
+licenses remain in the archives. Helm renders offline. Finite permission/image
+projections are in `internal/platform/data_operators.go`; namespaces and values are
+reviewable catalog inputs. No live Helm releases are created.

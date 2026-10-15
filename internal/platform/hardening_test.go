@@ -281,7 +281,7 @@ func TestFoundationsAreIndependentAndHaveUniqueOwners(t *testing.T) {
 			if o["kind"] == "Namespace" {
 				ns = str(metadata(o)["name"])
 			}
-			if ns == "monitoring" || ns == "object-storage" {
+			if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
 				t.Fatal("secrets-only pulls unrelated namespace objects", identity(o))
 			}
 		}
@@ -334,8 +334,9 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 		{[]string{"secrets-controller", "storage-foundation"}, "sealed-secrets,object-storage,workload-web", 2},
 		// The disabled controller has a complete offline candidate; foundations
 		// must never receive its RBAC, even when only monitoring CRDs are active.
-		{[]string{"monitoring-crds"}, "sealed-secrets,monitoring,object-storage,workload-web", 4},
+		{[]string{"monitoring-crds"}, "sealed-secrets,flink,monitoring,object-storage,postgresql,redis,workload-web", 10},
 		{[]string{"storage-monitoring"}, "sealed-secrets,monitoring,object-storage,workload-web", 4},
+		{[]string{"secrets-controller", "postgresql-foundation", "redis-foundation"}, "sealed-secrets,postgresql,redis,workload-web", 4},
 	} {
 		names, e := p.ResolveCapabilities(tc.request)
 		if e != nil {
@@ -372,12 +373,12 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 				if !strings.Contains(","+tc.watched+",", ","+ns+",") {
 					t.Fatal("controller RBAC outside watched namespaces", identity(o))
 				}
-				if ns == "monitoring" || ns == "object-storage" {
+				if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
 					count++
 				}
 			}
 		}
-		for _, name := range []string{"observability-foundation", "storage-foundation"} {
+		for _, name := range []string{"observability-foundation", "storage-foundation", "postgresql-foundation", "redis-foundation"} {
 			if _, exists := files[p.Capabilities.Catalog.Components[name].Path+"/rendered.yaml"]; exists {
 				t.Fatal("controller chart emitted foundation resources")
 			}

@@ -45,6 +45,15 @@ func BuildProduct(root, version, source string, tools platform.Tools, locks []To
 	if e = p.ValidateCapabilityProjection(); e != nil {
 		return Product{}, e
 	}
+	// Data services are a post-install capability publication. D1 owns exactly
+	// three credential targets; do not produce an installer that can only finish
+	// after unreviewed extra credential/namespace work.
+	for _, name := range p.Capabilities.Active {
+		component := p.Capabilities.Catalog.Components[name]
+		if component.PermissionDomain == "data" || strings.HasPrefix(component.Path, "gitops/platform/data/") {
+			return Product{}, errors.New("data capabilities must be enabled after D1 installation; build the baseline product before selection")
+		}
+	}
 	all, e := p.BundleFiles()
 	if e != nil {
 		return Product{}, e
@@ -58,6 +67,10 @@ func BuildProduct(root, version, source string, tools platform.Tools, locks []To
 	// Author ciphertext never crosses the product boundary, including dormant
 	// manifests. The installer inserts exactly three newly sealed objects later.
 	files[CredentialPath] = JSON(platform.Object{"apiVersion": "v1", "kind": "List", "items": []any{}})
+	dataCredentials := "gitops/platform/data/data-credentials/overlays/development/resources.json"
+	if _, exists := files[dataCredentials]; exists {
+		files[dataCredentials] = JSON(platform.Object{"apiVersion": "v1", "kind": "List", "items": []any{}})
+	}
 	base := Files{}
 	for path, b := range files {
 		base[path] = b

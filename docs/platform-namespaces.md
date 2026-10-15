@@ -63,3 +63,8 @@ namespace 变化会产生新的 Kubernetes identity，不能作为普通原地�
 2026-10-14：本地完整 `task quality` 通过，包括 345 个 GitOps 资源检查、真实
 Helm/Kustomize、Go race tests、OT-1 固定 13 对象/29 阶段契约。变更清单中的
 185 个对象已比对：除旧实例密文移除外，identity 的变化仅为 namespace；无集群操作。
+
+ADR-0021 数据能力预留 `postgresql`、`redis`、`kafka`、`flink`、`logging`，均不带 atlas 前缀。
+它们按选择创建，业务 Project 不得占用；Alloy 与 Loki 共处 logging。当前单所有者候选
+将 CNPG/Strimzi/Flink controller 与各自单域实例共处对应 namespace，使用独立
+ServiceAccount/Role 和 GitOps owner；不是 controller/数据实例之间的 namespace 隔离。

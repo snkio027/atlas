@@ -1,0 +1,160 @@
+{
+  "checkedOn": "2026-10-14",
+  "registry": "https://registry-1.docker.io/v2/",
+  "images": {
+    "docker.io/library/redis:8.10.2-alpine": {
+      "digest": "sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:2d3814be5e9b06a30a0be54770b7e12052e7e79ec85271aefd34875c1f393b23",
+          "user": null,
+          "entrypoint": [
+            "docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "redis-server"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "REDIS_VERSION=8.10.2"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:41a10b18bd238fa7837b1615b2b5b113edff1654233238ac82d87e6fb5531f44",
+          "user": null,
+          "entrypoint": [
+            "docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "redis-server"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "REDIS_VERSION=8.10.2"
+          ]
+        }
+      }
+    },
+    "docker.io/library/flink:2.3.0-scala_2.12-java17": {
+      "digest": "sha256:df6b153c93d3e60f4b96b323979bf0305861949a600fcee287214609d325037e",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:7db31c8d37dd3ad3b26c3bf438d7229682f1621fdf4f6349e33778d8d0e16dab",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "help"
+          ],
+          "env": [
+            "PATH=/opt/flink/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20.1+1",
+            "FLINK_TGZ_URL=https://dlcdn.apache.org/flink/flink-2.3.0/flink-2.3.0-bin-scala_2.12.tgz",
+            "FLINK_ASC_URL=https://downloads.apache.org/flink/flink-2.3.0/flink-2.3.0-bin-scala_2.12.tgz.asc",
+            "GPG_KEY=E11F792053638C56C98ACFADB5B638DCA5F94E4A",
+            "CHECK_GPG=true",
+            "FLINK_HOME=/opt/flink"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:0fb77cb0fe2045918ef2bf46e5d3447a32f3a73338323fadfcda6e09228c62c1",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "help"
+          ],
+          "env": [
+            "PATH=/opt/flink/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20.1+1",
+            "FLINK_TGZ_URL=https://dlcdn.apache.org/flink/flink-2.3.0/flink-2.3.0-bin-scala_2.12.tgz",
+            "FLINK_ASC_URL=https://downloads.apache.org/flink/flink-2.3.0/flink-2.3.0-bin-scala_2.12.tgz.asc",
+            "GPG_KEY=E11F792053638C56C98ACFADB5B638DCA5F94E4A",
+            "CHECK_GPG=true",
+            "FLINK_HOME=/opt/flink"
+          ]
+        }
+      }
+    },
+    "docker.io/grafana/loki:3.7.8": {
+      "digest": "sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:81a6802ec4bd1b88c564494f06376889ed022998a188826190d26d2754ac2aae",
+          "user": "10001",
+          "entrypoint": [
+            "/usr/bin/loki"
+          ],
+          "cmd": [
+            "-config.file=/etc/loki/local-config.yaml"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:a2753977b07471e0bb271f421677036fb1c84a2fd409e14fa19dfc7cc3b789b5",
+          "user": "10001",
+          "entrypoint": [
+            "/usr/bin/loki"
+          ],
+          "cmd": [
+            "-config.file=/etc/loki/local-config.yaml"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+          ]
+        }
+      }
+    },
+    "docker.io/grafana/alloy:v1.20.1": {
+      "digest": "sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:5133c159d34c7acf37a1b6d91682abcb6b28b2a29bae152ff5cf4753296f956c",
+          "user": null,
+          "entrypoint": [
+            "/bin/alloy"
+          ],
+          "cmd": [
+            "run",
+            "/etc/alloy/config.alloy",
+            "--storage.path=/var/lib/alloy/data"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "ALLOY_DEPLOY_MODE=docker"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:830fe0d4e1cde1fb1d15b23a792939c88c81bf41aac8ed34180143acaaa9889b",
+          "user": null,
+          "entrypoint": [
+            "/bin/alloy"
+          ],
+          "cmd": [
+            "run",
+            "/etc/alloy/config.alloy",
+            "--storage.path=/var/lib/alloy/data"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "ALLOY_DEPLOY_MODE=docker"
+          ]
+        }
+      }
+    }
+  }
+}

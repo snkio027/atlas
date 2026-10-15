@@ -1,0 +1,120 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "loki-datasource",
+        "namespace": "monitoring",
+        "labels": {
+          "grafana_datasource": "1"
+        }
+      },
+      "data": {
+        "loki.yaml": "apiVersion: 1\ndatasources:\n  - name: Loki\n    uid: loki\n    type: loki\n    access: proxy\n    url: http://loki.logging.svc.cluster.local:3100\n    isDefault: false\n    editable: false\n"
+      }
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "kind": "ServiceMonitor",
+      "metadata": {
+        "name": "loki",
+        "namespace": "monitoring",
+        "labels": {
+          "release": "atlas-monitoring"
+        }
+      },
+      "spec": {
+        "namespaceSelector": {
+          "matchNames": [
+            "logging"
+          ]
+        },
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "loki"
+          }
+        },
+        "endpoints": [
+          {
+            "port": "http",
+            "interval": "30s"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "kind": "ServiceMonitor",
+      "metadata": {
+        "name": "alloy",
+        "namespace": "monitoring",
+        "labels": {
+          "release": "atlas-monitoring"
+        }
+      },
+      "spec": {
+        "namespaceSelector": {
+          "matchNames": [
+            "logging"
+          ]
+        },
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "alloy"
+          }
+        },
+        "endpoints": [
+          {
+            "port": "http",
+            "interval": "30s"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "kind": "PrometheusRule",
+      "metadata": {
+        "name": "data-platform",
+        "namespace": "monitoring",
+        "labels": {
+          "release": "atlas-monitoring"
+        }
+      },
+      "spec": {
+        "groups": [
+          {
+            "name": "data-platform",
+            "rules": [
+              {
+                "alert": "DataPlatformPodNotReady",
+                "expr": "kube_pod_status_ready{namespace=~\"postgresql|redis|kafka|flink|logging\",condition=\"false\"} == 1",
+                "for": "5m",
+                "labels": {
+                  "severity": "warning"
+                },
+                "annotations": {
+                  "summary": "Data platform Pod is not Ready; functional protocol checks are separate."
+                }
+              },
+              {
+                "alert": "DataPlatformVolumeAlmostFull",
+                "expr": "kubelet_volume_stats_available_bytes{namespace=~\"postgresql|redis|kafka|flink|logging\"} / kubelet_volume_stats_capacity_bytes{namespace=~\"postgresql|redis|kafka|flink|logging\"} < 0.15",
+                "for": "5m",
+                "labels": {
+                  "severity": "warning"
+                },
+                "annotations": {
+                  "summary": "Data platform PVC has less than 15% free space."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

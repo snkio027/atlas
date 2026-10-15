@@ -50,3 +50,5 @@ task build
 - [原 Atlas cutover](docs/go-bootstrap-cutover-contract.md)：独立决策，尚未执行
 
 历史证据保持原提交绑定；新业务路径不改写 r7，不默认新建一轮验收集群。
+
+数据基础设施候选：见 [PostgreSQL / Redis / Kafka / Flink / Loki](docs/data-platform.md)。默认未启用；本地验证与部署审查分开。
