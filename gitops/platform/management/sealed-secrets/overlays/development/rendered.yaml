@@ -185,8 +185,102 @@
       ],
       "resourceNames": [
         "sealed-secrets",
+        "flink",
         "monitoring",
         "object-storage",
+        "postgresql",
+        "redis",
+        "workload-web"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "flink"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "sealed-secrets",
+        "flink",
+        "monitoring",
+        "object-storage",
+        "postgresql",
+        "redis",
         "workload-web"
       ],
       "resources": [
@@ -273,8 +367,11 @@
       ],
       "resourceNames": [
         "sealed-secrets",
+        "flink",
         "monitoring",
         "object-storage",
+        "postgresql",
+        "redis",
         "workload-web"
       ],
       "resources": [
@@ -361,8 +458,193 @@
       ],
       "resourceNames": [
         "sealed-secrets",
+        "flink",
         "monitoring",
         "object-storage",
+        "postgresql",
+        "redis",
+        "workload-web"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "postgresql"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "sealed-secrets",
+        "flink",
+        "monitoring",
+        "object-storage",
+        "postgresql",
+        "redis",
+        "workload-web"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "redis"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "sealed-secrets",
+        "flink",
+        "monitoring",
+        "object-storage",
+        "postgresql",
+        "redis",
         "workload-web"
       ],
       "resources": [
@@ -449,8 +731,11 @@
       ],
       "resourceNames": [
         "sealed-secrets",
+        "flink",
         "monitoring",
         "object-storage",
+        "postgresql",
+        "redis",
         "workload-web"
       ],
       "resources": [
@@ -569,6 +854,37 @@
       "helm.sh/chart": "sealed-secrets-2.20.0"
     },
     "name": "sealed-secrets",
+    "namespace": "flink"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
     "namespace": "monitoring"
   },
   "roleRef": {
@@ -601,6 +917,68 @@
     },
     "name": "sealed-secrets",
     "namespace": "object-storage"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "postgresql"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "redis"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -756,7 +1134,7 @@
               "--key-prefix",
               "sealed-secrets-key",
               "--additional-namespaces",
-              "sealed-secrets,monitoring,object-storage,workload-web",
+              "sealed-secrets,flink,monitoring,object-storage,postgresql,redis,workload-web",
               "--listen-addr",
               ":8080",
               "--listen-metrics-addr",

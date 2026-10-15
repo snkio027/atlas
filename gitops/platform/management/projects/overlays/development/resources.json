@@ -81,7 +81,27 @@
             "server": "https://kubernetes.default.svc"
           },
           {
+            "namespace": "flink",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "kafka",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "logging",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
             "namespace": "monitoring",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "postgresql",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "redis",
             "server": "https://kubernetes.default.svc"
           },
           {
