@@ -169,6 +169,34 @@
           {
             "group": "gateway.networking.k8s.io",
             "kind": "Gateway"
+          },
+          {
+            "group": "bitnami.com",
+            "kind": "SealedSecret"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "AlertmanagerConfig"
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "Alertmanager"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "Prometheus"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "PrometheusRule"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "ServiceMonitor"
           }
         ],
         "sourceRepos": [

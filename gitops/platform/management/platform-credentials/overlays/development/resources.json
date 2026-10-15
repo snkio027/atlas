@@ -1,5 +1,77 @@
 {
   "apiVersion": "v1",
-  "items": [],
+  "items": [
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "grafana-admin",
+        "namespace": "monitoring"
+      },
+      "spec": {
+        "encryptedData": {
+          "admin-password": "AgAu0SOy0F+hWsSs+LkeahAbJoKJP9YsYKeJrIgBGL4djKK/e7vjxEsM/OIzZlBdtLyEcDV7wGahtvttZjxnwgme+KeE1Uej51wQvI77o4GafGaJM0cAiLzMSM6Jy0M6EpKsAHW/v1kGs8mXu3bM1x22kJTTbJAnjW7aQzGbRJVWG3V7WO7ZNt6PJMZYJVglhM6EHSWV6gB8Lxkhw3xSK9hqPDUYneqy4bz2yyrWRHgDqlQpAcx7L3YpECBfcYie6D0Y4b/5GRDzbbqcVReQwcLCVzvt4AtNERLwMI0/RqicpddhBvPZAAfhpSfsGMXjhq2bl816BlK/rEKXyOdgrB3B9KndvoVqU2ftev51QzaImoZWUn1XLKFcJWTrd+szEyFELpbHNF3tnK5to2ZyJnZv+XoJplusr7zyf6Zja0uB8jpotVUAdunLBSqNQxGsl+yc81nFZllIulKxvrrIVLmFQiJhiCn9R7pTaHA6SzGa0znxxPQL0YOLqiJkwDyMIMuSxFxsVm35fZBX35RfaEuRA24cbTBsJw7S1kZouUPUM2vJlOb31IL9CHhmzTYxYfcG+JKVb/5UlRSHtcXnFHik2UIjqUkpH+nN3s7G/0KxDS///2EQICfKCDxzJtEVwfi13E8G0GGoJzBIeg0IUsXw92tu7Fgz5AESuHlXm+Ud3uZnokl/FUFZZ4eKLWw79A4cjMCF43Fpr8LM+FeT08ClLwxQsmAgSmqMrcDSFQqIiPy46R2CZ1f6qVho",
+          "admin-user": "AgBkwll76vDTzqB6hrJgumI5ty6ljfWOdlY3YPGX26RyMb+22CKgXeWTVPg8rC07gzw7UKfw/d3YPRVRhCKKZonf/ab8odmstV2KVL1l0iRkEHeQ5d45QKHgT4ENwLdqme8zCSP8K8H/9WtMMxWeNBlPuc6VZynOOEpLUtS6cEJ0c4ufMUuAKxfhSQTCFTILBsd7i4EqwthK4+NYzXmxZe1OtQWteRWY6PHDvIwCTFpDGpuPSBtaag4BGv67JOpCS9g3nOh9gR33Z7Hj8gkSaOtZMS7iohzrwganJGBps0g+ANJQgGC8GxIubHbgEwSux5i8SkjohmqFnUkuGqqYGVhau1FNacRy60we4K88CpU/LGVgcKNF6rNoLVsq21W2URdn6lwVvN3pyfr+qmDvEdr0vLJUDZXof5CbTKLgaKrGCYfTGW6XilA6eZNem/n6s8e8k5+j30dlTLMXuEH57hr2Gn3wYFo7DfSHcbWahVH13g/Q+9+i4qdr3HSESa1Nq8rNF5ZkQ7MAlZhdKDnU0iyk1mK5FuPSMSNI6x8gBp12JU1pdD/wHDtCl5hRbXVDcIWP2ARtzN+ppfKEQ/6dYaOYQx2BMbA4Ol+9nDiDcrLUUIPvPnv+SgXrv+6eL+QzaUO/KAF3XiGfvZhbg5f5kJ8KAO4b+jDZikxuiLESBSnkhHdrsPEhU0fAsEfKNmzNKu15FDTmWQ=="
+        },
+        "template": {
+          "metadata": {
+            "name": "grafana-admin",
+            "namespace": "monitoring"
+          },
+          "type": "Opaque"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "seaweedfs-auth",
+        "namespace": "object-storage"
+      },
+      "spec": {
+        "encryptedData": {
+          "seaweedfs_s3_config": "AgCaGSHN60O9r0xGA0AIOaWNBvOzgGVsZLMptP1N/oFZIr7y9TVMmcxy4C1touaGGrmoOZahSD6rehvgVi6bfIbroUtRnkZg+Hc4F3IggRpjLbsoFp7DM4ojTaEdo+4jD2Rc2nw4RTFA6DnzKJoVxvcw3hcWtz5kfK8IkrEF2iET9pJSEdQaGrR0bMrDcIsljAAUHnQ1J2RIx1cuAQDCUJjuYM/Rn8BfBo8HXPUQoD5cP+sod0MXbXByZ1ssJ8U5qb8govAcRCthLeVd6ktR65ddQbTehH9WVEvhYJwFq+ZzyHhq612FKVRRgmslXvyzg1PNhLxDQbcE6pTMV3ZfN4bNS0FFzANSEf75FwY/NMmzvhzAbbgnDO17ilueFJX7P1v5F633CEa1FVZVIh6fY7I9owzVa7RVak6VpTalVjD+WV2rBKI/PPDATI+blmOlnxM2E0Nkoxky9ljwgNKcjJHP7cgeATNuFjmI5X1SRDNUY0MHwa2SmHNmI3phO83dnY2sbg8S9lZuYq4FJjYvxiUuk8SEwK7HVuoa0XOfZq6XRIjB9DHvzxAMbf1Etccyl2b2Tu652fIEpZK01rNYh/UBiBkF1SD62Veyx/c5pSUw7Dl+PGq3AKGkBLTPt4Rd+akyKWHV1d5R8QeyLw3hmuHsQxbUL3trfpERuzH46a4A3IHD2zrVFoBSL/xSidAhrsrskcDwOz/l8af9x2stuUUGAj6rK5GjHsWkwpZtQgzwhNnRTTQX/YE4/GgEejA7Aur1dN3nabU4MJp9FyTi2fLx9Aguj32O23hAqrjLxhYCC6S68BHUUjYFN+6TAzylxMZgceFjwfvVRhX/5+o7KuqxOmBy3ppHowG3Bv8+JM++2vav05CRmmIAteeACIvvFLcyGsOyFqboZd3PBNUvFM6YpgXS3STtnBaXzRw0xa8MgG0weo4CzMh7aOOTgHnU4ECfg/JxFDbbFKUOXLmOpQiOCDlOflt1QUYC5KGDwdPGyXuL+2zDN4IpjwtvE3WsblmFJbWWT+9MVDARJAxG6Vdh2Dfb+Aytl9QL3ofW9lOjyBcEjZx0YyR9f4AQknkynyJs3qF5tf0+7dG/N+39FHCukmbZWJGfDG3wVnuvDQqu96QXD+6kEH3ePQT3hfcwxCa0jSpC/4nL8qeNFehIpuwvrvq4yNiO2XcQf3NwaEKDvtGSjygGF0ttauIBKMcEcZ4="
+        },
+        "template": {
+          "metadata": {
+            "name": "seaweedfs-auth",
+            "namespace": "object-storage"
+          },
+          "type": "Opaque"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "s3-client",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "encryptedData": {
+          "AWS_ACCESS_KEY_ID": "AgAuxq5SQMeycoaiC6QlkHY1nboxIcj37FW9y9HpA6CFOH6i3H3a4eOqDR0cNDk3rSOAtiY6ifxeCY4nhfLrcXbITp140SZnCP/zAc6mXqiCQgVIGUG9Ksd37lJ491rBQLGU+wrTUhKtryZDvkvk5xvjGBqFDn3L2EIE5QKLKMhHPKPc6dwH9yW/smEZG2DT+kbmvPMg1eFgJ3lPSPT41No6yopYHS0C2lM/wiHco+dhmfpfjR+aPJBBMDs0yR66HCtK79xBQcjkCUJbIrwXkkyM0hNqweQDaM1sURttBDppj2a2IzFy53yz5cpnDDAl0OLI8KUYp8j5/TCEXoX7aX+CfEYxsIMI0J9JAexqKaUzSV6gE4D03Njacxn0FU1c64JTvs3DRtVi4wTNqNP9WjI6p0jmH62tNSs/VgqB2WfchF5T9HP5U5zM923jlmskxnvWnTqt6iludu0k4ccf3JvVEf/cbDh8IdrIo7HUBbP4Gt/GFOycRatICEghj1qXfiZiCE8gQLfQL0z47eUsv0qZAUG3XOrxn2tvu5EJnxYkEGr9a03gxl7ME2KSL3POUSGv53p6DRijkoUREWnTnfoxgqE0nHCjUTLFOrl+/lQbxcwt4JsqUV0ble1ns5jjsolNEwHBwqn8OgoheTlVj989IwJ1WzPIOWGLRmZgQEcTpvexNCmZYAsgYtwW/G8TMyo00OYqe/I4Itm3g4i5RVloBfcVoEuWaHY8ui9Wac9ju2G3GIohGIDI1PIP",
+          "AWS_SECRET_ACCESS_KEY": "AgBqJvj/nwN1MPTXvJ+0P9aXTwVkV3AghaAnqDssGG28WonGXRlgjRM9kAoKy9NiVEWoqDetj5zTaQwHEuJR0jtiChz3nAKsQJHGQOyA2tRSMiyemCIfSHw+v7y7/K2q+c7OGBp1Of7BKoG0YzH2qxK7R24i5wX/IhTPVEEi6vwlZhJq+R6/SSw0YklC5T30QrXxmu+CZ4EuXpdoG+wJXF7lsgxz9r37P5NGPRm6qMKK6J2U0G0Z+SnYSaGqoYMztFEj3JQt6SCsDS3hT9mOSHz5MkWQRy67UV3Ua+OGz0ATtuty56EuycjOw2tHi/oi7/0uIC1sl1+ZUMTWEgVYZBVPK7WgJIqA/5wUBxyO5/gBxUdD8M8zfN8howFTXJl6GPpz7trGm+kb3V1ubGX3GrPyIewicjAJs8sxprvGkxEgxKoECS9fuT3LtCDRYwzXVPmIrSVY1jPyX2SpOKd+F1BVA7qDOzgPR+jTXcIFXIbqpVDCa+xMtjfXl+lN2K5zg60BXS6u3Wpcc4vaNKTxe+uVgX4mSoTdDE/m/NOt5OHNgVbzc39ovu0gBh8MrsraLTANijHedpuq08o2AI9Eo6nL9CFSQLpAvWO12T5HjyqcP9b9O/Mu7DPzzAfv48yGY5mDSSEzJnIPdBe4tIT+VXhqNPI5NNzuLfAiHlSCzjd9Cwf6ioKS0N+9TTaG5iFOyRuia1Rd+cI00AmChIIXVQced5L/Nw1OTwsmWBldAvqb5tpS0gPGe1N+HYNP"
+        },
+        "template": {
+          "metadata": {
+            "name": "s3-client",
+            "namespace": "workload-web"
+          },
+          "type": "Opaque"
+        }
+      }
+    }
+  ],
   "kind": "List"
 }
