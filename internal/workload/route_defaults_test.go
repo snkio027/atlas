@@ -34,6 +34,11 @@ func TestConsumerRoutesMatchGatewayAPIDefaults(t *testing.T) {
 	if err = json.Unmarshal(raw, &expected); err != nil {
 		t.Fatal(err)
 	}
+	for _, spec := range expected {
+		for _, raw := range arr(spec["parentRefs"]) {
+			obj(raw)["namespace"] = "platform-gateway"
+		}
+	}
 	seen := 0
 	for path, raw := range result.Files {
 		if !strings.HasPrefix(path, "gitops/workloads/projects/demo/") || !strings.HasSuffix(path, "/resources.json") {
@@ -52,7 +57,7 @@ func TestConsumerRoutesMatchGatewayAPIDefaults(t *testing.T) {
 			if !ok {
 				t.Fatalf("unexpected route %s", name)
 			}
-			if meta(route)["namespace"] != "demo" || !bytes.Equal(JSON(route["spec"]), JSON(want)) {
+			if meta(route)["namespace"] != "project-demo" || !bytes.Equal(JSON(route["spec"]), JSON(want)) {
 				t.Errorf("%s: compiled route differs from the locked API defaulted spec", name)
 			}
 			delete(expected, name)

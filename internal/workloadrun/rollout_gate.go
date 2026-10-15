@@ -2,6 +2,7 @@ package workloadrun
 
 import (
 	"atlas-refactor/internal/observation"
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"bytes"
 	"errors"
@@ -57,7 +58,9 @@ func newRolloutSession(active bool, prior map[string]Object, owners, uid map[str
 	}
 	return &rolloutSession{active: active, prior: prior, owners: owners, uid: pinned, accepted: accepted, targetSeen: map[string]bool{}, compared: map[string]bool{}}
 }
-func appIdentity(name string) string { return "argoproj.io/Application/argocd/" + name }
+func appIdentity(name string) string {
+	return "argoproj.io/Application/" + platformnames.Argo + "/" + name
+}
 func sameSpec(a, b Object) bool {
 	return bytes.Equal(workload.JSON(a["spec"]), workload.JSON(b["spec"]))
 }
@@ -117,7 +120,7 @@ func (s *rolloutSession) application(want observation.ExpectedApplication, fact 
 		return gateRejected, "EXISTING_APPLICATION_ABSENT"
 	}
 	// This check is independent of status health, and applies even during creation.
-	invariant := observation.ClassifyResource(observation.ExpectedResource{Ref: fact.Ref, UID: s.uid[id], Tracking: observation.Tracking(s.owners[want.Name], "argocd", fact.Ref), RequireSSA: true, Readiness: "identity-content"}, live, nil)
+	invariant := observation.ClassifyResource(observation.ExpectedResource{Ref: fact.Ref, UID: s.uid[id], Tracking: observation.Tracking(s.owners[want.Name], platformnames.Argo, fact.Ref), RequireSSA: true, Readiness: "identity-content"}, live, nil)
 	if s.owners[want.Name] == "" || invariant.Classification != observation.Verified || fact.Generation == nil || *fact.Generation < 1 {
 		return gateRejected, fmt.Sprintf("IDENTITY_OR_OWNERSHIP_INVALID %v", invariant.Reasons)
 	}

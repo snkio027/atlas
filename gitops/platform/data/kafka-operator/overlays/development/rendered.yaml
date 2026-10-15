@@ -10,7 +10,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator",
-    "namespace": "kafka"
+    "namespace": "platform-strimzi-operator"
   }
 }
 ---
@@ -29,7 +29,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator",
-    "namespace": "kafka"
+    "namespace": "platform-strimzi-operator"
   }
 }
 ---
@@ -684,7 +684,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -711,7 +711,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -738,7 +738,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -755,7 +755,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator",
-    "namespace": "kafka"
+    "namespace": "service-kafka"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -766,7 +766,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -783,7 +783,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator-leader-election",
-    "namespace": "kafka"
+    "namespace": "platform-strimzi-operator"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -794,7 +794,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -811,7 +811,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator-watched",
-    "namespace": "kafka"
+    "namespace": "service-kafka"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -822,7 +822,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -839,7 +839,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator-entity-operator-delegation",
-    "namespace": "kafka"
+    "namespace": "service-kafka"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -850,7 +850,7 @@
     {
       "kind": "ServiceAccount",
       "name": "strimzi-cluster-operator",
-      "namespace": "kafka"
+      "namespace": "platform-strimzi-operator"
     }
   ]
 }
@@ -867,7 +867,7 @@
       "release": "strimzi"
     },
     "name": "strimzi-cluster-operator",
-    "namespace": "kafka"
+    "namespace": "platform-strimzi-operator"
   },
   "spec": {
     "replicas": 1,
@@ -894,11 +894,7 @@
             "env": [
               {
                 "name": "STRIMZI_NAMESPACE",
-                "valueFrom": {
-                  "fieldRef": {
-                    "fieldPath": "metadata.namespace"
-                  }
-                }
+                "value": "service-kafka"
               },
               {
                 "name": "STRIMZI_FULL_RECONCILIATION_INTERVAL_MS",

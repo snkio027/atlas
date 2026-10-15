@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: local-selfsigned
+      namespace: platform-gateway
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      selfSigned: {}
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: development-ca
+      namespace: platform-gateway
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      isCA: true
+      commonName: Atlas Development CA
+      secretName: development-ca
+      duration: 8760h
+      renewBefore: 720h
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+        rotationPolicy: Always
+      issuerRef:
+        name: local-selfsigned
+        kind: Issuer
+        group: cert-manager.io
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: development-ca
+      namespace: platform-gateway
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      ca:
+        secretName: development-ca
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: web-tls
+      namespace: platform-gateway
+      annotations:
+        argocd.argoproj.io/sync-wave: "3"
+    spec:
+      secretName: web-tls
+      dnsNames:
+        - web.atlas.test
+      duration: 720h
+      renewBefore: 168h
+      privateKey:
+        algorithm: ECDSA
+        size: 256
+        rotationPolicy: Always
+      issuerRef:
+        name: development-ca
+        kind: Issuer
+        group: cert-manager.io

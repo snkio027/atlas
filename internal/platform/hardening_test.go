@@ -109,7 +109,7 @@ func treeHashes(t *testing.T, root string) map[string]string {
 		if d.IsDir() {
 			return nil
 		}
-		b, e := os.ReadFile(path)
+		b, e := readInput(path)
 		if e != nil {
 			return e
 		}
@@ -148,7 +148,7 @@ func TestManualSelectionEditAndLegacyOwnerCannotHideRemoval(t *testing.T) {
 	for _, names := range [][]string{{"monitoring"}, {"capability-foundation"}} {
 		core := resourceFile(t, capabilityDir+"/core-applications.json")
 		for _, name := range names {
-			core = append(core, Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": "argocd"}})
+			core = append(core, Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": "platform-argocd"}})
 		}
 		b, _ := json.Marshal(Object{"apiVersion": "v1", "kind": "List", "items": core})
 		if e := p.Write(map[string][]byte{platformApplications: b}); e != nil {
@@ -281,7 +281,7 @@ func TestFoundationsAreIndependentAndHaveUniqueOwners(t *testing.T) {
 			if o["kind"] == "Namespace" {
 				ns = str(metadata(o)["name"])
 			}
-			if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
+			if ns != "" && ns != "platform-sealed-secrets" && ns != "project-platform-smoke" {
 				t.Fatal("secrets-only pulls unrelated namespace objects", identity(o))
 			}
 		}
@@ -329,14 +329,14 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 		watched string
 		bound   int
 	}{
-		{[]string{"secrets-controller"}, "sealed-secrets,workload-web", 0},
-		{[]string{"secrets-controller", "observability-foundation"}, "sealed-secrets,monitoring,workload-web", 2},
-		{[]string{"secrets-controller", "storage-foundation"}, "sealed-secrets,object-storage,workload-web", 2},
+		{[]string{"secrets-controller"}, "platform-sealed-secrets,project-platform-smoke", 0},
+		{[]string{"secrets-controller", "observability-foundation"}, "platform-sealed-secrets,platform-monitoring,project-platform-smoke", 2},
+		{[]string{"secrets-controller", "storage-foundation"}, "platform-sealed-secrets,project-platform-smoke,service-object-storage", 2},
 		// The disabled controller has a complete offline candidate; foundations
 		// must never receive its RBAC, even when only monitoring CRDs are active.
-		{[]string{"monitoring-crds"}, "sealed-secrets,flink,monitoring,object-storage,postgresql,redis,workload-web", 10},
-		{[]string{"storage-monitoring"}, "sealed-secrets,monitoring,object-storage,workload-web", 4},
-		{[]string{"secrets-controller", "postgresql-foundation", "redis-foundation"}, "sealed-secrets,postgresql,redis,workload-web", 4},
+		{[]string{"monitoring-crds"}, "platform-sealed-secrets,platform-cnpg-operator,platform-flink-operator,platform-monitoring,platform-strimzi-operator,project-platform-smoke,service-flink-session,service-object-storage,service-postgresql,service-redis", 16},
+		{[]string{"storage-monitoring"}, "platform-sealed-secrets,platform-monitoring,project-platform-smoke,service-object-storage", 4},
+		{[]string{"secrets-controller", "postgresql-foundation", "redis-foundation"}, "platform-sealed-secrets,project-platform-smoke,service-postgresql,service-redis", 4},
 	} {
 		names, e := p.ResolveCapabilities(tc.request)
 		if e != nil {
@@ -373,7 +373,7 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 				if !strings.Contains(","+tc.watched+",", ","+ns+",") {
 					t.Fatal("controller RBAC outside watched namespaces", identity(o))
 				}
-				if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
+				if ns != "platform-sealed-secrets" && ns != "project-platform-smoke" {
 					count++
 				}
 			}
@@ -409,7 +409,7 @@ func TestDomainMappingsRejectUnknownAndNonCanonicalProjects(t *testing.T) {
 		t.Run(tc, func(t *testing.T) {
 			p := unsealedCandidate(t)
 			for _, path := range []string{inputDir + "/config.json", inputDir + "/versions.lock.json"} {
-				b, e := os.ReadFile(filepath.Join(testRoot(t), path))
+				b, e := readInput(filepath.Join(testRoot(t), path))
 				if e != nil {
 					t.Fatal(e)
 				}
@@ -452,7 +452,7 @@ func TestSelectAddAndRepeatRealHelm(t *testing.T) {
 	p := unsealedCandidate(t)
 	p.Tools = Tools{Helm: helm, Kubectl: filepath.Join(filepath.Dir(helm), "kubectl"), YQ: filepath.Join(filepath.Dir(helm), "yq")}
 	for path := range p.Capabilities.Lock.Artifacts {
-		b, e := os.ReadFile(filepath.Join(testRoot(t), path))
+		b, e := readInput(filepath.Join(testRoot(t), path))
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -473,9 +473,9 @@ func TestSelectAddAndRepeatRealHelm(t *testing.T) {
 		namespace, name string
 		keys            []string
 	}{
-		{"monitoring", "grafana-admin", []string{"admin-user", "admin-password"}},
-		{"object-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}},
-		{"workload-web", "s3-client", []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}},
+		{"platform-monitoring", "grafana-admin", []string{"admin-user", "admin-password"}},
+		{"service-object-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}},
+		{"project-platform-smoke", "s3-client", []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}},
 	} {
 		data := Object{}
 		for _, key := range target.keys {

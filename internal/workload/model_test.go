@@ -1,6 +1,7 @@
 package workload
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/platform"
 	"bytes"
 	"encoding/base64"
@@ -55,7 +56,7 @@ func TestStrictTypedInput(t *testing.T) {
 }
 func TestResolveRejectsUnauthorizedOrImpossibleIntent(t *testing.T) {
 	for name, f := range map[string]func(*Intent){
-		"project": func(i *Intent) { i.Workloads[0].Project = "missing" }, "workload": func(i *Intent) { i.Bindings[0].Workload = "missing" }, "grant": func(i *Intent) { i.Project.CapabilityAccess = []Grant{} }, "bucket": func(i *Intent) { i.Bindings[0].Bucket = "other" }, "admin": func(i *Intent) { i.Bindings[0].Access = "admin" }, "namespace": func(i *Intent) { i.Project.Name = "argocd" }, "duplicates": func(i *Intent) { i.Workloads = append(i.Workloads, i.Workloads[0]) }, "binding duplicates": func(i *Intent) { i.Bindings = append(i.Bindings, i.Bindings[0]) }, "quota peak": func(i *Intent) { i.Project.Quota.Pods = 1 }, "limits": func(i *Intent) { i.Workloads[0].Resources.Requests.CPU = 501 }, "floating": func(i *Intent) { i.Workloads[0].Image = "example.invalid/api:latest" }, "tls": func(i *Intent) { i.Workloads[0].Exposure.TLS = false }, "wildcard": func(i *Intent) { i.Workloads[0].Exposure.Hostname = "*.atlas.test" }, "zero": func(i *Intent) { i.Workloads[0].Replicas = 0 }} {
+		"project": func(i *Intent) { i.Workloads[0].Project = "missing" }, "workload": func(i *Intent) { i.Bindings[0].Workload = "missing" }, "grant": func(i *Intent) { i.Project.CapabilityAccess = []Grant{} }, "bucket": func(i *Intent) { i.Bindings[0].Bucket = "other" }, "admin": func(i *Intent) { i.Bindings[0].Access = "admin" }, "namespace": func(i *Intent) { i.Project.Name = "platform-argocd" }, "duplicates": func(i *Intent) { i.Workloads = append(i.Workloads, i.Workloads[0]) }, "binding duplicates": func(i *Intent) { i.Bindings = append(i.Bindings, i.Bindings[0]) }, "quota peak": func(i *Intent) { i.Project.Quota.Pods = 1 }, "limits": func(i *Intent) { i.Workloads[0].Resources.Requests.CPU = 501 }, "floating": func(i *Intent) { i.Workloads[0].Image = "example.invalid/api:latest" }, "tls": func(i *Intent) { i.Workloads[0].Exposure.TLS = false }, "wildcard": func(i *Intent) { i.Workloads[0].Exposure.Hostname = "*.atlas.test" }, "zero": func(i *Intent) { i.Workloads[0].Replicas = 0 }} {
 		t.Run(name, func(t *testing.T) {
 			i := fixture(t)
 			f(&i)
@@ -105,12 +106,12 @@ func compileFixture(t *testing.T) (CompileContext, *Model) {
 	}
 	// Model a completed D1 instance without reusing public instance ciphertext.
 	f[CredentialsPath] = JSON(Object{"apiVersion": "v1", "kind": "List", "items": []Object{
-		syntheticSealed("object-storage", "seaweedfs-auth", "seaweedfs_s3_config"),
-		syntheticSealed("monitoring", "grafana-admin", "admin-user", "admin-password"),
-		syntheticSealed("workload-web", "s3-client", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"),
+		syntheticSealed("service-object-storage", "seaweedfs-auth", "seaweedfs_s3_config"),
+		syntheticSealed("platform-monitoring", "grafana-admin", "admin-user", "admin-password"),
+		syntheticSealed("project-platform-smoke", "s3-client", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"),
 	}})
 	signal := "gitops/platform/management/argocd-self/overlays/development/signal.json"
-	f[signal] = JSON(resource("v1", "ConfigMap", "argocd", "atlas-refactor-adoption-signal", nil))
+	f[signal] = JSON(resource("v1", "ConfigMap", "platform-argocd", "atlas-refactor-adoption-signal", nil))
 	model, e := p.ObservationResourceModel()
 	if e != nil {
 		t.Fatal(e)
@@ -125,9 +126,9 @@ func syntheticSealed(ns, name string, keys ...string) Object {
 	return Object{"apiVersion": "bitnami.com/v1alpha1", "kind": "SealedSecret", "metadata": Object{"name": name, "namespace": ns}, "spec": Object{"encryptedData": data, "template": Object{"metadata": Object{"name": name, "namespace": ns}, "type": "Opaque"}}}
 }
 func artifactFixture(c CompileContext, m *Model) *Artifacts {
-	a := &Artifacts{Schema: 1, InstallID: c.InstallID, CertificateSHA256: c.CertificateSHA256, IntentSHA256: Digest(JSON(m.Intent)), Provider: syntheticSealed("object-storage", "seaweedfs-auth", "seaweedfs_s3_config"), Clients: map[string]Object{}}
+	a := &Artifacts{Schema: 1, InstallID: c.InstallID, CertificateSHA256: c.CertificateSHA256, IntentSHA256: Digest(JSON(m.Intent)), Provider: syntheticSealed("service-object-storage", "seaweedfs-auth", "seaweedfs_s3_config"), Clients: map[string]Object{}}
 	for _, b := range m.Intent.Bindings {
-		a.Clients[b.ID()] = syntheticSealed(b.Project, b.Secret(), "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
+		a.Clients[b.ID()] = syntheticSealed(b.Namespace(), b.Secret(), "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 	}
 	return a
 }
@@ -159,15 +160,15 @@ func TestCompileDeterministicOwnershipAndIsolation(t *testing.T) {
 		}
 		ids[r.Identity] = r
 	}
-	for _, id := range []string{"/Namespace//demo", "/ServiceAccount/demo/web-api", "networking.k8s.io/NetworkPolicy/demo/default-deny"} {
+	for _, id := range []string{"/Namespace//project-demo", "/ServiceAccount/project-demo/web-api", "networking.k8s.io/NetworkPolicy/project-demo/default-deny"} {
 		if ids[id].Owner != m.Intent.Project.AppName() {
 			t.Fatal("wrong project owner", id)
 		}
 	}
-	if ids["apps/Deployment/demo/web-api"].Owner != m.Intent.Workloads[0].AppName() {
+	if ids["apps/Deployment/project-demo/web-api"].Owner != m.Intent.Workloads[0].AppName() {
 		t.Fatal("wrong workload owner")
 	}
-	if ids["bitnami.com/SealedSecret/demo/"+m.Intent.Bindings[0].Secret()].Owner != "platform-credentials" {
+	if ids["bitnami.com/SealedSecret/project-demo/"+m.Intent.Bindings[0].Secret()].Owner != "platform-credentials" {
 		t.Fatal("wrong secret owner")
 	}
 	// An unbound peer in the same namespace must not receive credential refs or S3 labels.
@@ -197,7 +198,7 @@ func TestCompileDeterministicOwnershipAndIsolation(t *testing.T) {
 func TestCompilationRejectsSharedIdentityAndCipherDrift(t *testing.T) {
 	c, m := compileFixture(t)
 	a := artifactFixture(c, m)
-	meta(a.Clients[m.Intent.Bindings[0].ID()])["namespace"] = "workload-web"
+	meta(a.Clients[m.Intent.Bindings[0].ID()])["namespace"] = "project-platform-smoke"
 	if _, e := Compile(c, m, "consumer", a); e == nil {
 		t.Fatal("accepted foreign cipher")
 	}
@@ -279,7 +280,7 @@ func TestS2RealKustomizeBuild(t *testing.T) {
 	}
 }
 func FuzzStrictIntent(f *testing.F) {
-	b, e := os.ReadFile("../../examples/s2/platform/workloads/demo/web-api.json")
+	b, e := authored.Read("../../examples/s2/platform/workloads/demo/web-api.yaml")
 	if e != nil {
 		f.Fatal(e)
 	}

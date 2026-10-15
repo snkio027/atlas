@@ -132,7 +132,7 @@ func ready(o *Live) bool {
 	return o != nil && o.Status.Sync.Status == "Synced" && o.Status.Health.Status == "Healthy" && o.Operation == nil && o.Status.OperationState.Phase != "Running" && o.Status.OperationState.Phase != "Terminating"
 }
 func (a *App) validSignal(signal *Live) bool {
-	return dataMatches(signal, map[string]string{"fingerprint": a.fingerprint()}) && signal.Metadata.Annotations["argocd.argoproj.io/tracking-id"] == "argocd-self:/ConfigMap:argocd/atlas-refactor-adoption-signal"
+	return dataMatches(signal, map[string]string{"fingerprint": a.fingerprint()}) && signal.Metadata.Annotations["argocd.argoproj.io/tracking-id"] == "argocd-self:/ConfigMap:"+a.argoNamespace()+"/atlas-refactor-adoption-signal"
 }
 
 func (a *App) clusterExists(ctx context.Context) (bool, error) {
@@ -192,15 +192,15 @@ func (a *App) inspect(ctx context.Context) (observation, error) {
 		}
 		return state(Fresh, "owned cluster; Seed authority available")
 	}
-	root, e := a.get(ctx, "application", "argocd", "atlas-refactor-root")
+	root, e := a.get(ctx, "application", a.argoNamespace(), "atlas-refactor-root")
 	if e != nil {
 		return observation{}, e
 	}
-	signal, e := a.get(ctx, "configmap", "argocd", "atlas-refactor-adoption-signal")
+	signal, e := a.get(ctx, "configmap", a.argoNamespace(), "atlas-refactor-adoption-signal")
 	if e != nil {
 		return observation{}, e
 	}
-	self, e := a.get(ctx, "application", "argocd", "argocd-self")
+	self, e := a.get(ctx, "application", a.argoNamespace(), "argocd-self")
 	if e != nil {
 		return observation{}, e
 	}
@@ -225,7 +225,7 @@ func (a *App) inspect(ctx context.Context) (observation, error) {
 	if signal != nil && !a.validSignal(signal) {
 		return state(Drifted, "invalid GitOps adoption signal")
 	}
-	project, e := a.get(ctx, "appproject", "argocd", "atlas-bootstrap")
+	project, e := a.get(ctx, "appproject", a.argoNamespace(), "atlas-bootstrap")
 	if e != nil {
 		return observation{}, e
 	}
@@ -259,7 +259,7 @@ func (a *App) inspect(ctx context.Context) (observation, error) {
 	inventory := false
 	if self != nil {
 		for _, r := range self.Status.Resources {
-			if r.Group == "" && r.Kind == "ConfigMap" && r.Namespace == "argocd" && r.Name == "atlas-refactor-adoption-signal" {
+			if r.Group == "" && r.Kind == "ConfigMap" && r.Namespace == a.argoNamespace() && r.Name == "atlas-refactor-adoption-signal" {
 				inventory = true
 			}
 		}

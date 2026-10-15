@@ -30,6 +30,10 @@ Helm 仅在本地渲染，没有 Helm Release 状态。GitOps 消费已渲染的
 [ADR-0020](adr/0020-platform-namespace-names.md)。名称变化不改变以上控制权模型；
 历史实例与冻结验收继续绑定原版本。
 
+后续 namespace 职责与归属重设计见 [Proposed ADR-0022](adr/0022-role-scoped-namespace-layout.md)。
+目标为 platform/service/project 三类前缀及 Operator/实例分域；当前仅完成设计契约，
+不代表新布局已经实现或完成真实安装，也不构成对现有实例的迁移授权。
+
 ## 状态与写权限
 
 | 状态 | 正常 Bootstrap 权限 |
@@ -73,7 +77,7 @@ revision 或读取 ownership 时失败关闭。详见第二、三轮失败记录
 注入外部工具；模拟器记录完整副作用序列。后续扩大职责时再拆分独立包。
 
 配置采用严格 JSON，拒绝重复键、未知字段、尾随数据、路径逃逸和符号链接。
-镜像要求版本和 digest，模板与 chart 要求 SHA-256。Go 无外部模块依赖。
+镜像要求版本和 digest，模板与 chart 要求 SHA-256。YAML 输入依赖经 ADR-0023 审查的 go.yaml.in/yaml/v3；go.sum 与模块锁绑定版本/摘要，构建使用离线 vendor。
 配置和制品与身份绑定后，修改它们会产生漂移；本阶段不提供自动升级或迁移。
 
 工具执行使用参数数组与有限环境，不通过 shell。Docker 绑定 owner-local

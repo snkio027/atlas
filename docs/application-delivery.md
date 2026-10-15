@@ -56,12 +56,12 @@ bin/atlas-platform app init \
   --owner your-name --project archive --name experiment-archive --s3
 ```
 
-instance 目录需要 installation.json，已核验安装包的 runtime.json 可位于目录本身
+instance 目录需要 installation.yaml，已核验安装包的 runtime.json 可位于目录本身
 （公开 D1 首装文档的默认布局）或 package/ 子目录；同时存在两份则拒绝歧义。
 init 创建新工作区，不复制旧实例状态、不创建集群、不使用明文凭据。
 
 进入工作区，查看或编辑 platform/projects、platform/workloads、platform/bindings
-中的 JSON。不要改 generated YAML：
+中的 YAML。不要手改生成的 GitOps 清单：
 
 ```sh
 cd /absolute/workspaces/archive
@@ -85,7 +85,7 @@ check 校验类型、引用、预算与离线制品；plan 核对远端 parent/�
 2. 在原工作区运行 `app select-image --artifact /absolute/artifacts/archive-v2/image.json`。
    它仅更新 authored 镜像和登记制品；原凭据与旧计划保留。
 3. `app check → app plan → app deploy`，审查旧/新镜像、replicas、resources 和权限。
-4. 下一次正常更新同样操作。副本或预算调整只编辑原 Workload JSON，然后重新计划。
+4. 下一次正常更新同样操作。副本或预算调整只编辑原 Workload YAML，然后重新计划。
 
 consumer-only 更新保留身份/TLS/Binding，使用已登记独立凭据，不要求重新安装或 probe。
 重复已成功的 deploy 只观察；不要为了查看状态重新生成计划。
@@ -121,7 +121,7 @@ status 定位业务层问题。平台命令不会替你执行上传/删除或宣
 | 部分发布、STOP、身份/owner 违例 | status/logs；不清 STOP、不重发 publication、不生成新凭据 |
 | 已成功部署 | status/open、自己的业务测试；功能历史不随当前 Ready 自动更新 |
 
-工作区 app.json 和 .atlas/ 由 .gitignore 排除：含实例路径、计划、凭据与 authority
+工作区 app.yaml 和 .atlas/ 由 .gitignore 排除：含实例路径、计划、凭据与 authority
 evidence，不能作为模板分享。只把 authored platform/ 提交到业务仓库。
 不提供 cache clean，私钥/备份/证据不自动清理。
 

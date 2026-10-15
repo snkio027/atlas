@@ -44,7 +44,7 @@ func (a *App) handoffComplete(ctx context.Context, root, self, signal *Live, ado
 		{"project-bootstrap", "atlas-bootstrap", "/projects", "-20"},
 		{"platform-control", "platform-project", "/platform/applications", "-10"},
 	} {
-		live, e := a.get(ctx, "application", "argocd", child.name)
+		live, e := a.get(ctx, "application", a.argoNamespace(), child.name)
 		if e != nil {
 			return false, e
 		}
@@ -141,7 +141,7 @@ func crdReconciled(self, want *Live, commit string) bool {
 	}
 	for _, r := range self.Status.OperationState.SyncResult.Resources {
 		if r.Group == group && r.Kind == want.Kind && r.Name == want.Metadata.Name {
-			if r.Version != version || r.Namespace != "argocd" || r.Status != "Synced" || r.SyncPhase != "Sync" {
+			if r.Version != version || r.Namespace != self.Metadata.Namespace || r.Status != "Synced" || r.SyncPhase != "Sync" {
 				return false
 			}
 			synced++

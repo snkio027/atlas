@@ -57,7 +57,7 @@ func TestRecordedConfigCannotEscapeWorkspace(t *testing.T) {
 }
 func TestWorkspaceStrictConfigAndRelativeArtifact(t *testing.T) {
 	d := privateTemp(t)
-	path := filepath.Join(d, "app.json")
+	path := filepath.Join(d, "app.yaml")
 	raw := workload.JSON(Config{Schema: 1, InstallationConfig: "relative", InstallationPackage: "/pkg", ProductSource: "/src", Artifact: "/image"})
 	if err := Write(path, raw, true); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestInstanceBindingAcceptsPublicD1LayoutAndRejectsAmbiguity(t *testing.T) {
 	for _, layout := range []string{"root", "nested", "ambiguous", "missing"} {
 		t.Run(layout, func(t *testing.T) {
 			d := privateTemp(t)
-			if err := Write(filepath.Join(d, "installation.json"), []byte("{}"), true); err != nil {
+			if err := Write(filepath.Join(d, "installation.yaml"), []byte("{}"), true); err != nil {
 				t.Fatal(err)
 			}
 			if layout == "root" || layout == "ambiguous" {

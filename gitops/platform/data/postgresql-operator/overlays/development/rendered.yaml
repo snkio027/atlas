@@ -10,7 +10,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg",
-    "namespace": "postgresql"
+    "namespace": "platform-cnpg-operator"
   }
 }
 ---
@@ -19,7 +19,7 @@
   "data": {
     "OPERATOR_IMAGE_NAME": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
     "POSTGRES_IMAGE_NAME": "ghcr.io/cloudnative-pg/postgresql:18.6@sha256:899d3ed526b659d77935dde0e6bf2d69dbbf17d3d8c6486ca8cfd04bd3c18533",
-    "WATCH_NAMESPACE": "postgresql"
+    "WATCH_NAMESPACE": "service-postgresql"
   },
   "kind": "ConfigMap",
   "metadata": {
@@ -31,7 +31,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg-controller-manager-config",
-    "namespace": "postgresql"
+    "namespace": "platform-cnpg-operator"
   }
 }
 ---
@@ -51,7 +51,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg-default-monitoring",
-    "namespace": "postgresql"
+    "namespace": "platform-cnpg-operator"
   }
 }
 ---
@@ -221,7 +221,7 @@
     {
       "kind": "ServiceAccount",
       "name": "cnpg",
-      "namespace": "postgresql"
+      "namespace": "platform-cnpg-operator"
     }
   ]
 }
@@ -238,7 +238,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg",
-    "namespace": "postgresql"
+    "namespace": "service-postgresql"
   },
   "rules": [
     {
@@ -571,7 +571,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg",
-    "namespace": "postgresql"
+    "namespace": "service-postgresql"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -582,7 +582,7 @@
     {
       "kind": "ServiceAccount",
       "name": "cnpg",
-      "namespace": "postgresql"
+      "namespace": "platform-cnpg-operator"
     }
   ]
 }
@@ -599,7 +599,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg-webhook-service",
-    "namespace": "postgresql"
+    "namespace": "platform-cnpg-operator"
   },
   "spec": {
     "ports": [
@@ -629,7 +629,7 @@
       "helm.sh/chart": "cloudnative-pg-0.29.1"
     },
     "name": "cnpg",
-    "namespace": "postgresql"
+    "namespace": "platform-cnpg-operator"
   },
   "spec": {
     "replicas": 1,
@@ -642,9 +642,9 @@
     "template": {
       "metadata": {
         "annotations": {
-          "checksum/config": "eea5f1b9df9326ea1520fc8b7d91cbaddc7d6625311beb357fec4d52f073e832",
-          "checksum/monitoring-config": "312f8369d8f50846dbcdcdb714ac49fe5ea9ac31b00883a63afd5ffc51ca0fa6",
-          "checksum/rbac": "6e9d9c132f40f74d1f2d6f9f96d1f2987bb2f647ca4152bf9c1401f57d253fc1"
+          "checksum/config": "638221a2e8de20635f7489259bdf1ab39ae92313118d41e4bbcb5ec1b8d12b00",
+          "checksum/monitoring-config": "65672378e715fe17b4ca7ff60683026bd296be9521f58baeb9cf45564bb89aa5",
+          "checksum/rbac": "dda240162bfe06b6266f1808e78a584b44f0b7b43949a2f41d2124a57870e070"
         },
         "labels": {
           "app.kubernetes.io/instance": "cnpg",
@@ -683,7 +683,7 @@
               },
               {
                 "name": "WATCH_NAMESPACE",
-                "value": "postgresql"
+                "value": "service-postgresql"
               }
             ],
             "image": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
@@ -812,7 +812,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/mutate-postgresql-cnpg-io-v1-backup",
           "port": 443
         }
@@ -821,7 +821,7 @@
       "name": "mbackup.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -850,7 +850,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/mutate-postgresql-cnpg-io-v1-cluster",
           "port": 443
         }
@@ -859,7 +859,7 @@
       "name": "mcluster.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -888,7 +888,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/mutate-postgresql-cnpg-io-v1-database",
           "port": 443
         }
@@ -897,7 +897,7 @@
       "name": "mdatabase.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -926,7 +926,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/mutate-postgresql-cnpg-io-v1-scheduledbackup",
           "port": 443
         }
@@ -935,7 +935,7 @@
       "name": "mscheduledbackup.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -981,7 +981,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/validate-postgresql-cnpg-io-v1-backup",
           "port": 443
         }
@@ -990,7 +990,7 @@
       "name": "vbackup.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -1019,7 +1019,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/validate-postgresql-cnpg-io-v1-cluster",
           "port": 443
         }
@@ -1028,7 +1028,7 @@
       "name": "vcluster.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -1057,7 +1057,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/validate-postgresql-cnpg-io-v1-scheduledbackup",
           "port": 443
         }
@@ -1066,7 +1066,7 @@
       "name": "vscheduledbackup.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -1095,7 +1095,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/validate-postgresql-cnpg-io-v1-database",
           "port": 443
         }
@@ -1104,7 +1104,7 @@
       "name": "vdatabase.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -1133,7 +1133,7 @@
       "clientConfig": {
         "service": {
           "name": "cnpg-webhook-service",
-          "namespace": "postgresql",
+          "namespace": "platform-cnpg-operator",
           "path": "/validate-postgresql-cnpg-io-v1-pooler",
           "port": 443
         }
@@ -1142,7 +1142,7 @@
       "name": "vpooler.cnpg.io",
       "namespaceSelector": {
         "matchLabels": {
-          "kubernetes.io/metadata.name": "postgresql"
+          "kubernetes.io/metadata.name": "service-postgresql"
         }
       },
       "rules": [
@@ -1163,6 +1163,97 @@
         }
       ],
       "sideEffects": "None"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "cnpg",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "cloudnative-pg",
+      "app.kubernetes.io/version": "1.30.1",
+      "helm.sh/chart": "cloudnative-pg-0.29.1"
+    },
+    "name": "cnpg",
+    "namespace": "platform-cnpg-operator"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "coordination.k8s.io"
+      ],
+      "resources": [
+        "leases"
+      ],
+      "verbs": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "configmaps",
+        "secrets"
+      ],
+      "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "cnpg",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "cloudnative-pg",
+      "app.kubernetes.io/version": "1.30.1",
+      "helm.sh/chart": "cloudnative-pg-0.29.1"
+    },
+    "name": "cnpg",
+    "namespace": "platform-cnpg-operator"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "cnpg"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "cnpg",
+      "namespace": "platform-cnpg-operator"
     }
   ]
 }

@@ -4,6 +4,7 @@ package managementaccess
 
 import (
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"bytes"
 	"encoding/json"
@@ -31,11 +32,11 @@ type Endpoint struct {
 // storage topology, reloader and metrics-exporter ports stay private.
 func Endpoints() []Endpoint {
 	return []Endpoint{
-		{"grafana", "monitoring", "atlas-monitoring-grafana", 80, 3000, map[string]string{"app.kubernetes.io/name": "grafana", "app.kubernetes.io/instance": "atlas-monitoring"}, false},
-		{"argocd", "argocd", "atlas-refactor-argocd-server", 80, 8080, map[string]string{"app.kubernetes.io/name": "argocd-server", "app.kubernetes.io/instance": "atlas-refactor-argocd"}, false},
-		{"prometheus", "monitoring", "atlas-monitoring-prometheus", 9090, 9090, map[string]string{"app.kubernetes.io/name": "prometheus", "operator.prometheus.io/name": "atlas-monitoring-prometheus"}, true},
-		{"alertmanager", "monitoring", "atlas-monitoring-alertmanager", 9093, 9093, map[string]string{"app.kubernetes.io/name": "alertmanager", "alertmanager": "atlas-monitoring-alertmanager"}, true},
-		{"s3", "object-storage", "seaweedfs", 8333, 8333, map[string]string{"app.kubernetes.io/name": "seaweedfs"}, false},
+		{"grafana", platformnames.Monitoring, "atlas-monitoring-grafana", 80, 3000, map[string]string{"app.kubernetes.io/name": "grafana", "app.kubernetes.io/instance": "atlas-monitoring"}, false},
+		{"argocd", platformnames.Argo, "atlas-refactor-argocd-server", 80, 8080, map[string]string{"app.kubernetes.io/name": "argocd-server", "app.kubernetes.io/instance": "atlas-refactor-argocd"}, false},
+		{"prometheus", platformnames.Monitoring, "atlas-monitoring-prometheus", 9090, 9090, map[string]string{"app.kubernetes.io/name": "prometheus", "operator.prometheus.io/name": "atlas-monitoring-prometheus"}, true},
+		{"alertmanager", platformnames.Monitoring, "atlas-monitoring-alertmanager", 9093, 9093, map[string]string{"app.kubernetes.io/name": "alertmanager", "alertmanager": "atlas-monitoring-alertmanager"}, true},
+		{"s3", platformnames.ObjectStorage, "seaweedfs", 8333, 8333, map[string]string{"app.kubernetes.io/name": "seaweedfs"}, false},
 	}
 }
 
@@ -129,7 +130,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 			return Result{}, err
 		}
 	}
-	cm, err := get(objects, "ConfigMap", "argocd", "argocd-cmd-params-cm")
+	cm, err := get(objects, "ConfigMap", platformnames.Argo, "argocd-cmd-params-cm")
 	if err != nil {
 		return Result{}, err
 	}
@@ -138,7 +139,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 	}
 	pki, _ := platform.DecodeJSONManifests(base[workload.PKIPath])
 	edge, _ := platform.DecodeJSONManifests(base[workload.EdgePath])
-	gateway, err := get(edge, "Gateway", "gateway", "development")
+	gateway, err := get(edge, "Gateway", platformnames.Gateway, "development")
 	if err != nil {
 		return Result{}, err
 	}
@@ -147,7 +148,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 	if at(gateway, "metadata", "annotations", "argocd.argoproj.io/sync-wave") != "2" {
 		return Result{}, errors.New("unsupported Gateway sync wave; expected 2")
 	}
-	issuer, err := get(pki, "Issuer", "gateway", "development-ca")
+	issuer, err := get(pki, "Issuer", platformnames.Gateway, "development-ca")
 	if err != nil {
 		return Result{}, err
 	}
@@ -163,7 +164,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 				return Result{}, fmt.Errorf("management listener already exists: %s", e.Name)
 			}
 		}
-		pki = append(pki, resource("cert-manager.io/v1", "Certificate", "gateway", name+"-tls", Object{
+		pki = append(pki, resource("cert-manager.io/v1", "Certificate", platformnames.Gateway, name+"-tls", Object{
 			"secretName": name + "-tls", "dnsNames": []string{host}, "duration": "720h", "renewBefore": "168h",
 			"privateKey": Object{"algorithm": "ECDSA", "size": 256, "rotationPolicy": "Always"},
 			"issuerRef":  Object{"name": "development-ca", "kind": "Issuer", "group": "cert-manager.io"},
@@ -188,7 +189,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 				rule["backendRefs"] = []any{Object{"group": "", "kind": "Service", "name": e.Service, "port": e.ServicePort, "weight": 1}}
 			}
 			route := resource("gateway.networking.k8s.io/v1", "HTTPRoute", e.Namespace, name+"-"+protocol, Object{
-				"hostnames": []string{host}, "parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": "gateway", "sectionName": name + "-" + protocol}}, "rules": []any{rule},
+				"hostnames": []string{host}, "parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": platformnames.Gateway, "sectionName": name + "-" + protocol}}, "rules": []any{rule},
 			})
 			obj(at(route, "metadata", "annotations"))["argocd.argoproj.io/sync-wave"] = "3"
 			edge = append(edge, route)
@@ -196,8 +197,8 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 		edge = append(edge, resource("networking.k8s.io/v1", "NetworkPolicy", e.Namespace, name+"-ingress", Object{
 			"podSelector": Object{"matchLabels": e.Selector}, "policyTypes": []string{"Ingress"},
 			"ingress": []any{Object{"from": []any{Object{
-				"namespaceSelector": Object{"matchLabels": Object{"kubernetes.io/metadata.name": "envoy-gateway-system"}},
-				"podSelector":       Object{"matchLabels": Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": "gateway"}},
+				"namespaceSelector": Object{"matchLabels": Object{"kubernetes.io/metadata.name": platformnames.Gateway}},
+				"podSelector":       Object{"matchLabels": Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": platformnames.Gateway}},
 			}}, "ports": []any{Object{"protocol": "TCP", "port": e.PodPort}}}},
 		}))
 	}
@@ -210,7 +211,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 	if err != nil {
 		return Result{}, err
 	}
-	project, err := get(projects, "AppProject", "argocd", "platform-project")
+	project, err := get(projects, "AppProject", platformnames.Argo, "platform-project")
 	if err != nil {
 		return Result{}, err
 	}
@@ -283,7 +284,7 @@ func monitorURLs(raw []byte, port int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, err := get(xs, "Deployment", "monitoring", "atlas-monitoring-grafana")
+	d, err := get(xs, "Deployment", platformnames.Monitoring, "atlas-monitoring-grafana")
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +307,7 @@ func monitorURLs(raw []byte, port int) ([]byte, error) {
 		return nil, errors.New("Grafana container missing")
 	}
 	for _, v := range []struct{ kind, name, host string }{{"Prometheus", "atlas-monitoring-prometheus", "prometheus"}, {"Alertmanager", "atlas-monitoring-alertmanager", "alertmanager"}} {
-		o, err := get(xs, v.kind, "monitoring", v.name)
+		o, err := get(xs, v.kind, platformnames.Monitoring, v.name)
 		if err != nil {
 			return nil, err
 		}

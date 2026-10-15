@@ -1,44 +1,41 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "gateway.envoyproxy.io/v1alpha1",
       "kind": "EnvoyProxy",
       "metadata": {
-        "name": "development",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "0"
-        }
+        },
+        "name": "development",
+        "namespace": "platform-gateway"
       },
       "spec": {
-        "ipFamily": "IPv4",
         "bootstrap": {
-          "type": "JSONPatch",
           "jsonPatches": [
             {
-              "op": "add",
               "jsonPath": "$.static_resources.clusters[?(@.name == 'xds_cluster')]",
+              "op": "add",
               "path": "/dns_lookup_family",
               "value": "V4_ONLY"
             }
-          ]
+          ],
+          "type": "JSONPatch"
         },
+        "ipFamily": "IPv4",
         "provider": {
-          "type": "Kubernetes",
           "kubernetes": {
             "envoyDeployment": {
-              "replicas": 1,
               "container": {
                 "image": "docker.io/envoyproxy/envoy:distroless-v1.39.3@sha256:7369b033550a14997e5d698677b7b51f0210a80754f5d084c5caa1a78268267b",
                 "resources": {
+                  "limits": {
+                    "memory": "512Mi"
+                  },
                   "requests": {
                     "cpu": "50m",
                     "memory": "128Mi"
-                  },
-                  "limits": {
-                    "memory": "512Mi"
                   }
                 }
               },
@@ -46,10 +43,10 @@
                 "nodeSelector": {
                   "node-role.local/gateway": "true"
                 }
-              }
+              },
+              "replicas": 1
             },
             "envoyService": {
-              "type": "NodePort",
               "externalTrafficPolicy": "Cluster",
               "patch": {
                 "type": "StrategicMerge",
@@ -57,19 +54,21 @@
                   "spec": {
                     "ports": [
                       {
-                        "port": 80,
-                        "nodePort": 30080
+                        "nodePort": 30080,
+                        "port": 80
                       },
                       {
-                        "port": 443,
-                        "nodePort": 30443
+                        "nodePort": 30443,
+                        "port": 443
                       }
                     ]
                   }
                 }
-              }
+              },
+              "type": "NodePort"
             }
-          }
+          },
+          "type": "Kubernetes"
         }
       }
     },
@@ -77,10 +76,10 @@
       "apiVersion": "gateway.networking.k8s.io/v1",
       "kind": "GatewayClass",
       "metadata": {
-        "name": "atlas-envoy",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "1"
-        }
+        },
+        "name": "atlas-envoy"
       },
       "spec": {
         "controllerName": "gateway.envoyproxy.io/gatewayclass-controller",
@@ -88,7 +87,7 @@
           "group": "gateway.envoyproxy.io",
           "kind": "EnvoyProxy",
           "name": "development",
-          "namespace": "gateway"
+          "namespace": "platform-gateway"
         }
       }
     },
@@ -96,67 +95,69 @@
       "apiVersion": "gateway.networking.k8s.io/v1",
       "kind": "Gateway",
       "metadata": {
-        "name": "development",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
-        }
+        },
+        "name": "development",
+        "namespace": "platform-gateway"
       },
       "spec": {
         "gatewayClassName": "atlas-envoy",
         "listeners": [
           {
-            "name": "http",
-            "hostname": "web.atlas.test",
-            "port": 80,
-            "protocol": "HTTP",
             "allowedRoutes": {
-              "namespaces": {
-                "from": "Selector",
-                "selector": {
-                  "matchLabels": {
-                    "atlas.io/gateway-access": "development"
-                  }
-                }
-              },
               "kinds": [
                 {
                   "group": "gateway.networking.k8s.io",
                   "kind": "HTTPRoute"
                 }
-              ]
-            }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "atlas.io/gateway-access": "development",
+                    "kubernetes.io/metadata.name": "project-platform-smoke"
+                  }
+                }
+              }
+            },
+            "hostname": "web.atlas.test",
+            "name": "http",
+            "port": 80,
+            "protocol": "HTTP"
           },
           {
-            "name": "https",
-            "hostname": "web.atlas.test",
-            "port": 443,
-            "protocol": "HTTPS",
             "allowedRoutes": {
-              "namespaces": {
-                "from": "Selector",
-                "selector": {
-                  "matchLabels": {
-                    "atlas.io/gateway-access": "development"
-                  }
-                }
-              },
               "kinds": [
                 {
                   "group": "gateway.networking.k8s.io",
                   "kind": "HTTPRoute"
                 }
-              ]
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "atlas.io/gateway-access": "development",
+                    "kubernetes.io/metadata.name": "project-platform-smoke"
+                  }
+                }
+              }
             },
+            "hostname": "web.atlas.test",
+            "name": "https",
+            "port": 443,
+            "protocol": "HTTPS",
             "tls": {
-              "mode": "Terminate",
               "certificateRefs": [
                 {
                   "group": "",
                   "kind": "Secret",
                   "name": "web-tls"
                 }
-              ]
+              ],
+              "mode": "Terminate"
             }
           }
         ]
@@ -166,24 +167,25 @@
       "apiVersion": "gateway.envoyproxy.io/v1alpha1",
       "kind": "BackendTrafficPolicy",
       "metadata": {
-        "name": "ipv4-dns",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
-        }
+        },
+        "name": "ipv4-dns",
+        "namespace": "platform-gateway"
       },
       "spec": {
+        "dns": {
+          "lookupFamily": "IPv4"
+        },
         "targetRefs": [
           {
             "group": "gateway.networking.k8s.io",
             "kind": "Gateway",
             "name": "development"
           }
-        ],
-        "dns": {
-          "lookupFamily": "IPv4"
-        }
+        ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

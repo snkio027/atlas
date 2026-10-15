@@ -1,6 +1,7 @@
 # S2：把 Web/API 项目编译到已安装平台
 
 最新验收：**r7 Runtime PASS**，实测实现 `d011813ac94559e623f29d54efbde231cab261fc`。
+历史 S2 验收仍绑定原提交；当前输入已采用 YAML 与角色 namespace 布局（新布局 Runtime 待验证）。
 当前状态：功能冻结；[PR #9](https://github.com/snkio027/atlas-refactor/pull/9) 已合入 main（`6dcc6d3`）。
 `fc809be` 的入口/终态修复通过增量复审与 exact-head Quality，不把 r7 结果改绑到新提交。
 ADR-0015/0016/0017 已接受，适用范围仅为单所有者、本地开发。
@@ -13,11 +14,11 @@ S2 开发分支从 PR #8 合入后的 `531d234` 开始；S1 与 D1 的历史结�
 
 用户在自己的 deployment workspace 编写三个严格 JSON 类型：
 
-- `platform/projects/demo.json`：owner、quota、允许消费的 capability。
-- `platform/workloads/demo/web-api.json`：WebService 镜像、端口、资源、TLS 和 metrics。
-- `platform/bindings/demo/web-api-storage.json`：为 web-api 授权 uploads 的对象读写。
+- `platform/projects/demo.yaml`：owner、quota、允许消费的 capability。
+- `platform/workloads/demo/web-api.yaml`：WebService 镜像、端口、资源、TLS 和 metrics。
+- `platform/bindings/demo/web-api-storage.yaml`：为 web-api 授权 uploads 的对象读写。
 
-可从 [示例](../examples/s2/platform/projects/demo.json) 开始。示例镜像是本地构建的
+可从 [示例](../examples/s2/platform/projects/demo.yaml) 开始。示例镜像是本地构建的
 `atlas.local/s2-web` OCI 制品，不能从公网拉取；`image` 字符串的合法性不证明制品存在。
 正式部署流程校验完整 archive、manifest、config、layer 摘要并把明确镜像导入该实例的四个节点。
 导入器按 manifest 验证 tag 来源，然后登记 CRI 使用的 `repo@digest` 名称；最后用 authored
@@ -66,7 +67,7 @@ schema 新增 consumer 默认值、源码与产品 schema 不一致，以及预�
 以及相同实例的有效 sealing certificate 和已有备份 receipt。不会导出或轮换 controller 私钥。
 
 ```sh
-# 在产品源码根目录；依赖 Go 1.27.2，使用标准库，没有网络构建依赖。
+# 在产品源码根目录；依赖 Go 1.27.2，使用已校验 vendor，无需获取网络构建依赖。
 mkdir -p .state/s2/artifacts
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false \
   -ldflags=-buildid= -o .state/s2/artifacts/atlas-web ./cmd/atlas-web
@@ -79,19 +80,17 @@ OCI 打包是 create-only；相同 executable 得到相同 archive，不自动�
 把输出的完整镜像引用填到 Workload；把 archive SHA256 填到私有配置。
 正式执行要求编译二进制绑定一个干净的源码 commit，修改代码后需重新生成并审查计划。
 
-私有 `s2.json` 示例，所有路径替换为当前实例的绝对路径：
+私有 `s2.yaml` 示例，所有路径替换为当前实例的绝对路径：
 
-```json
-{
-  "schema": 1,
-  "installationConfig": "/absolute/instance/installation.json",
-  "installationPackage": "/absolute/instance/package",
-  "intentDirectory": "/absolute/deployment-workspace",
-  "productSource": "/absolute/atlas-refactor",
-  "stateDirectory": "/absolute/s2-state",
-  "imageArchive": "/absolute/atlas-web.oci.tar",
-  "imageSHA256": "<archive SHA256>"
-}
+```yaml
+schema: 1
+installationConfig: /absolute/instance/installation.yaml
+installationPackage: /absolute/instance/package
+intentDirectory: /absolute/deployment-workspace
+productSource: /absolute/atlas-refactor
+stateDirectory: /absolute/s2-state
+imageArchive: /absolute/atlas-web.oci.tar
+imageSHA256: "<archive SHA256>"
 ```
 
 S2 state 必须与 D1 state 独立。archive 与私有 state 文件使用 owner-only 权限。
@@ -101,10 +100,10 @@ S2 state 必须与 D1 state 独立。archive 与私有 state 文件使用 owner-
 ## 计划、发布与观察
 
 ```sh
-atlas-platform workload plan --config /absolute/s2.json
-atlas-platform workload compile --config /absolute/s2.json --phase infrastructure
+atlas-platform workload plan --config /absolute/s2.yaml
+atlas-platform workload compile --config /absolute/s2.yaml --phase infrastructure
 # 审查生成资源、namespace/RBAC、公开密文目标、镜像与 probe 范围以后：
-atlas-platform workload deploy --config /absolute/s2.json --approve-plan <SHA256>
+atlas-platform workload deploy --config /absolute/s2.yaml --approve-plan <SHA256>
 ```
 
 `plan` 只下载指定公开 deployment Git 分支到独立 bare repository，读取本地安装元数据并编译计划，
@@ -174,7 +173,7 @@ Deploy 在任何成功重复路径前检查 final 与 terminal；两者并存明
 日常只读观察：
 
 ```sh
-atlas-platform workload observe --config /absolute/s2.json \
+atlas-platform workload observe --config /absolute/s2.yaml \
   --phase consumer --revision <published commit> --wait 10m
 ```
 

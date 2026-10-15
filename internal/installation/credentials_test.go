@@ -64,7 +64,7 @@ func TestBackupKeyPairAndRealSealingRoundTrip(t *testing.T) {
 	if e = os.Chmod(toolPath, 0700); e != nil {
 		t.Fatal(e)
 	}
-	sealed, e := w.seal(context.Background(), path, secretObject("workload-web", "probe", map[string]string{"proof": "synthetic-not-a-real-secret"}))
+	sealed, e := w.seal(context.Background(), path, secretObject("project-platform-smoke", "probe", map[string]string{"proof": "synthetic-not-a-real-secret"}))
 	if e != nil {
 		t.Fatal(e)
 	}

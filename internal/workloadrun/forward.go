@@ -1,6 +1,7 @@
 package workloadrun
 
 import (
+	"atlas-refactor/internal/platformnames"
 	"bufio"
 	"context"
 	"errors"
@@ -21,9 +22,9 @@ func (w *Workflow) forwardService(ctx context.Context, name string) (string, fun
 	var namespace, service, port string
 	switch name {
 	case "prometheus":
-		namespace, service, port = "monitoring", "atlas-monitoring-prometheus", "9090"
+		namespace, service, port = platformnames.Monitoring, "atlas-monitoring-prometheus", "9090"
 	case "s3":
-		namespace, service, port = "object-storage", "seaweedfs", "8333"
+		namespace, service, port = platformnames.ObjectStorage, "seaweedfs", "8333"
 	default:
 		return "", nil, errors.New("unreviewed forwarding target")
 	}

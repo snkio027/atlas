@@ -1,0 +1,20 @@
+schema: 1
+kind: Workload
+type: WebService
+project: demo
+name: web-api
+image: atlas.local/s2-web:v1@sha256:d77da4cc37503ca65d02fd08a2948b8750843bb118852c24de43994281393fa0
+port: 8080
+replicas: 1
+resources:
+  requests:
+    cpuMillicores: 100
+    memoryMiB: 128
+  limits:
+    cpuMillicores: 500
+    memoryMiB: 256
+exposure:
+  hostname: api-demo.atlas.test
+  tls: true
+observability:
+  metrics: true

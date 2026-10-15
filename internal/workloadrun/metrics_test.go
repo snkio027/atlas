@@ -29,7 +29,7 @@ func TestMetricGate(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != "GET" || r.URL.Path != "/api/v1/query" || r.URL.Query().Get("query") != `up{namespace="demo",service="web-api"}` {
+				if r.Method != "GET" || r.URL.Path != "/api/v1/query" || r.URL.Query().Get("query") != `up{namespace="project-demo",service="web-api"}` {
 					t.Errorf("unexpected request: %s %s", r.Method, r.URL)
 				}
 				if tc.code == 302 {

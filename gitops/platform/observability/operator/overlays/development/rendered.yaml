@@ -16,7 +16,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-operator",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   }
 }
 ---
@@ -281,7 +281,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-monitoring-operator",
-      "namespace": "monitoring"
+      "namespace": "platform-monitoring"
     }
   ]
 }
@@ -303,7 +303,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-operator",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "ports": [
@@ -338,7 +338,7 @@
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-operator",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "replicas": 1,
@@ -485,8 +485,8 @@
   "kind": "MutatingWebhookConfiguration",
   "metadata": {
     "annotations": {
-      "cert-manager.io/inject-ca-from": "monitoring/atlas-monitoring-admission",
-      "certmanager.k8s.io/inject-ca-from": "monitoring/atlas-monitoring-admission"
+      "cert-manager.io/inject-ca-from": "platform-monitoring/atlas-monitoring-admission",
+      "certmanager.k8s.io/inject-ca-from": "platform-monitoring/atlas-monitoring-admission"
     },
     "labels": {
       "app": "kube-prometheus-stack-admission",
@@ -511,7 +511,7 @@
       "clientConfig": {
         "service": {
           "name": "atlas-monitoring-operator",
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "path": "/admission-prometheusrules/mutate"
         }
       },
@@ -545,8 +545,8 @@
   "kind": "ValidatingWebhookConfiguration",
   "metadata": {
     "annotations": {
-      "cert-manager.io/inject-ca-from": "monitoring/atlas-monitoring-admission",
-      "certmanager.k8s.io/inject-ca-from": "monitoring/atlas-monitoring-admission"
+      "cert-manager.io/inject-ca-from": "platform-monitoring/atlas-monitoring-admission",
+      "certmanager.k8s.io/inject-ca-from": "platform-monitoring/atlas-monitoring-admission"
     },
     "labels": {
       "app": "kube-prometheus-stack-admission",
@@ -571,7 +571,7 @@
       "clientConfig": {
         "service": {
           "name": "atlas-monitoring-operator",
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "path": "/admission-prometheusrules/validate"
         }
       },
@@ -605,7 +605,7 @@
       "clientConfig": {
         "service": {
           "name": "atlas-monitoring-operator",
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "path": "/admission-alertmanagerconfigs/validate"
         }
       },
@@ -639,7 +639,7 @@
   "kind": "Certificate",
   "metadata": {
     "name": "atlas-monitoring-root-cert",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "commonName": "ca.webhook.kube-prometheus-stack",
@@ -657,13 +657,13 @@
   "kind": "Certificate",
   "metadata": {
     "name": "atlas-monitoring-admission",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "commonName": "atlas-monitoring-operator",
     "dnsNames": [
       "atlas-monitoring-operator",
-      "atlas-monitoring-operator.monitoring.svc"
+      "atlas-monitoring-operator.platform-monitoring.svc"
     ],
     "duration": "8760h0m0s",
     "issuerRef": {
@@ -678,7 +678,7 @@
   "kind": "Issuer",
   "metadata": {
     "name": "atlas-monitoring-self-signed-issuer",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "selfSigned": {}
@@ -690,7 +690,7 @@
   "kind": "Issuer",
   "metadata": {
     "name": "atlas-monitoring-root-issuer",
-    "namespace": "monitoring"
+    "namespace": "platform-monitoring"
   },
   "spec": {
     "ca": {

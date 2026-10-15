@@ -1,15 +1,60 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "networking.k8s.io/v1",
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "operator-control",
-        "namespace": "flink"
+        "namespace": "platform-flink-operator"
       },
       "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "port": 8081,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "service-flink-session"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "atlas.local/data-runtime": "flink"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "ingress": [
+          {
+            "ports": [
+              {
+                "port": 9443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
         "podSelector": {
           "matchLabels": {
             "app.kubernetes.io/name": "flink-kubernetes-operator"
@@ -18,47 +63,9 @@
         "policyTypes": [
           "Ingress",
           "Egress"
-        ],
-        "ingress": [
-          {
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 9443
-              }
-            ]
-          }
-        ],
-        "egress": [
-          {
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 443
-              },
-              {
-                "protocol": "TCP",
-                "port": 6443
-              }
-            ]
-          },
-          {
-            "to": [
-              {
-                "podSelector": {
-                  "matchLabels": {}
-                }
-              }
-            ],
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 8081
-              }
-            ]
-          }
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

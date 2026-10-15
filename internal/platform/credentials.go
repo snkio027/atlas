@@ -67,14 +67,14 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 	if e != nil {
 		return e
 	}
-	b, e := os.ReadFile(executable)
+	b, e := readInput(executable)
 	if e != nil {
 		return e
 	}
 	if hash(b) != lock.ExecutableSHA256 {
 		return errors.New("kubeseal executable checksum mismatch")
 	}
-	cert, e := os.ReadFile(certPath)
+	cert, e := readInput(certPath)
 	if e != nil {
 		return e
 	}
@@ -166,7 +166,7 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 	if profile == "platform" && (len(credentials.GrafanaPassword) < 32 || len(credentials.AccessKey) < 32 || len(credentials.SecretKey) < 32) || profile == "data-services" && (len(dataCredentials.PostgresPassword) < 32 || len(dataCredentials.RedisPassword) < 32 || len(dataCredentials.FlinkWebhookPassword) < 32) {
 		return errors.New("invalid generated credentials")
 	}
-	privateBytes, e := os.ReadFile(privatePath)
+	privateBytes, e := readInput(privatePath)
 	if e != nil {
 		return e
 	}
@@ -175,7 +175,7 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 	if profile == "data-services" {
 		outputPath = capabilityDir + "/resources/data-credentials.json"
 	}
-	current, e := os.ReadFile(filepath.Join(p.Root, outputPath))
+	current, e := readInput(filepath.Join(p.Root, outputPath))
 	if e != nil {
 		return e
 	}
@@ -197,7 +197,7 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 	}{
 		{p.Capabilities.Catalog.Components["monitoring"].Namespace, "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": credentials.GrafanaPassword}},
 		{p.Capabilities.Catalog.Components["object-storage"].Namespace, "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3config)}},
-		{"workload-web", "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": credentials.AccessKey, "AWS_SECRET_ACCESS_KEY": credentials.SecretKey}},
+		{p.namespace("workload-web"), "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": credentials.AccessKey, "AWS_SECRET_ACCESS_KEY": credentials.SecretKey}},
 	}
 	if profile == "data-services" {
 		passwordHash := sha256.Sum256([]byte(dataCredentials.RedisPassword))
@@ -205,15 +205,15 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 		definitions = append(definitions, struct {
 			namespace, name string
 			data            map[string]string
-		}{"postgresql", "postgresql-app", map[string]string{"username": "platform", "password": dataCredentials.PostgresPassword}})
+		}{p.namespace("postgresql"), "postgresql-app", map[string]string{"username": "platform", "password": dataCredentials.PostgresPassword}})
 		definitions = append(definitions, struct {
 			namespace, name string
 			data            map[string]string
-		}{"redis", "redis-auth", map[string]string{"password": dataCredentials.RedisPassword, "users.acl": "user default off\nuser platform-admin on #" + hex.EncodeToString(passwordHash[:]) + " ~* &* +@all\n"}})
+		}{p.namespace("redis"), "redis-auth", map[string]string{"password": dataCredentials.RedisPassword, "users.acl": "user default off\nuser platform-admin on #" + hex.EncodeToString(passwordHash[:]) + " ~* &* +@all\n"}})
 		definitions = append(definitions, struct {
 			namespace, name string
 			data            map[string]string
-		}{"flink", "flink-webhook-password", map[string]string{"password": dataCredentials.FlinkWebhookPassword}})
+		}{p.operatorNamespace("flink-operator", "flink"), "flink-webhook-password", map[string]string{"password": dataCredentials.FlinkWebhookPassword}})
 	}
 	sealed := []Object{}
 	certFile, e := os.CreateTemp(privateDir, "public-cert-*.pem")
@@ -234,7 +234,7 @@ func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubese
 			data[k] = base64.StdEncoding.EncodeToString([]byte(v))
 		}
 		secret := Object{"apiVersion": "v1", "kind": "Secret", "type": "Opaque", "metadata": Object{"namespace": d.namespace, "name": d.name}, "data": data}
-		if profile == "data-services" && d.namespace == "postgresql" && d.name == "postgresql-app" {
+		if profile == "data-services" && d.namespace == p.namespace("postgresql") && d.name == "postgresql-app" {
 			secret["type"] = "kubernetes.io/basic-auth"
 		}
 		input, _ := json.Marshal(secret)

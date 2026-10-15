@@ -151,7 +151,7 @@ func TestReleaseBoundBootstrapWithoutSourceCheckout(t *testing.T) {
 	if e = Decode(f[signalPath], &signal); e != nil {
 		t.Fatal(e)
 	}
-	if nested(signal, "metadata", "namespace") != "argocd" {
+	if nested(signal, "metadata", "namespace") != "platform-argocd" {
 		t.Fatal("signal identity")
 	}
 	repeated, e := a.Render(context.Background())
@@ -308,7 +308,7 @@ func TestProjectedKustomizeWithoutSourceCheckout(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		files[signalPath] = JSON(map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]string{"name": "atlas-refactor-adoption-signal", "namespace": "argocd"}, "data": map[string]string{"fingerprint": strings.Repeat("a", 64)}})
+		files[signalPath] = JSON(map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]string{"name": "atlas-refactor-adoption-signal", "namespace": "platform-argocd"}, "data": map[string]string{"fingerprint": strings.Repeat("a", 64)}})
 		for path, b := range files {
 			if e = save(filepath.Join(root, path), b, true); e != nil {
 				t.Fatal(e)
@@ -449,7 +449,7 @@ func TestActivePhasePayloadNamespaceClosure(t *testing.T) {
 				}
 			}
 		}
-		seeded := map[string]bool{"argocd": true, "kube-system": true, "default": true, "kube-public": true, "kube-node-lease": true, "local-path-storage": true}
+		seeded := map[string]bool{"platform-argocd": true, "kube-system": true, "default": true, "kube-public": true, "kube-node-lease": true, "local-path-storage": true}
 		for _, r := range resources {
 			ns, _ := nested(r.object, "metadata", "namespace").(string)
 			if ns == "" || seeded[ns] {

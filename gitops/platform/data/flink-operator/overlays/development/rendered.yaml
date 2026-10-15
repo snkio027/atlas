@@ -12,7 +12,7 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink",
-    "namespace": "flink"
+    "namespace": "service-flink-session"
   }
 }
 ---
@@ -27,14 +27,14 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink-operator",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   }
 }
 ---
 {
   "apiVersion": "v1",
   "data": {
-    "config.yaml": "################################################################################\n#  Licensed to the Apache Software Foundation (ASF) under one\n#  or more contributor license agreements.  See the NOTICE file\n#  distributed with this work for additional information\n#  regarding copyright ownership.  The ASF licenses this file\n#  to you under the Apache License, Version 2.0 (the\n#  \"License\"); you may not use this file except in compliance\n#  with the License.  You may obtain a copy of the License at\n#\n#      http://www.apache.org/licenses/LICENSE-2.0\n#\n#  Unless required by applicable law or agreed to in writing, software\n#  distributed under the License is distributed on an \"AS IS\" BASIS,\n#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n#  See the License for the specific language governing permissions and\n# limitations under the License.\n################################################################################\n\n# These parameters are required for Java 17 support.\n# Flink 1.18 uses env.java.opts.all, if a user supplies their own version of these opts in their FlinkDeployment the options below will be overridden.\n# env.java.default-opts.all is used for 1.19 onwards so users can supply their own opts.all in their Job deployments and have these appended.\nkubernetes.operator.default-configuration.flink-version.v1_18.env.java.opts.all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED\nkubernetes.operator.default-configuration.flink-version.v1_19+.env.java.default-opts.all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED\n\n# Flink operator related configs\n# kubernetes.operator.reconcile.interval: 60 s\n# kubernetes.operator.reconcile.parallelism: 5\n# kubernetes.operator.flink.client.cancel.timeout: 1 min\n# kubernetes.operator.resource.cleanup.timeout: 60 s\n# kubernetes.operator.observer.rest-ready.delay: 10 s\n# kubernetes.operator.observer.progress-check.interval: 10 s\n# kubernetes.operator.observer.savepoint.trigger.grace-period: 10 s\n# kubernetes.operator.flink.client.timeout: 10 s\n# kubernetes.operator.deployment.rollback.enabled: false\n# kubernetes.operator.deployment.readiness.timeout: 5min\n# kubernetes.operator.user.artifacts.base.dir: /opt/flink/artifacts\n# kubernetes.operator.job.upgrade.ignore-pending-savepoint: false\n# kubernetes.operator.watched.namespaces: ns1,ns2\n# kubernetes.operator.label.selector: flink=enabled\n# kubernetes.operator.dynamic.namespaces.enabled: false\n# kubernetes.operator.retry.initial.interval: 5 s\n# kubernetes.operator.retry.interval.multiplier: 2\n# kubernetes.operator.retry.max.attempts: 10\n# kubernetes.operator.exception.stacktrace.enabled: false\n# kubernetes.operator.exception.stacktrace.max.length: 2048\n# kubernetes.operator.exception.field.max.length: 2048\n# kubernetes.operator.exception.throwable.list.max.count: 2\n# kubernetes.operator.exception.label.mapper: Job has already been submitted:duplicatedJobFound,Server returned HTTP response code:httpResponseCodeFound\n# kubernetes.operator.leader-election.enabled: false\n# kubernetes.operator.leader-election.lease-name: flink-operator-lease\n\n# kubernetes.operator.snapshot.resource.enabled: true\n# kubernetes.operator.savepoint.dispose-on-delete: true\n\n# kubernetes.operator.metrics.reporter.slf4j.factory.class: org.apache.flink.metrics.slf4j.Slf4jReporterFactory\n# kubernetes.operator.metrics.reporter.slf4j.interval: 5 MINUTE\n\nkubernetes.operator:\n  reconcile.interval: 15 s\n  observer.progress-check.interval: 5 s\n  deployment.rollback.enabled: false\n\nkubernetes.operator.watched.namespaces: flink\nkubernetes.operator.health.probe.enabled: true\nkubernetes.operator.health.probe.port: 8085\n",
+    "config.yaml": "################################################################################\n#  Licensed to the Apache Software Foundation (ASF) under one\n#  or more contributor license agreements.  See the NOTICE file\n#  distributed with this work for additional information\n#  regarding copyright ownership.  The ASF licenses this file\n#  to you under the Apache License, Version 2.0 (the\n#  \"License\"); you may not use this file except in compliance\n#  with the License.  You may obtain a copy of the License at\n#\n#      http://www.apache.org/licenses/LICENSE-2.0\n#\n#  Unless required by applicable law or agreed to in writing, software\n#  distributed under the License is distributed on an \"AS IS\" BASIS,\n#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n#  See the License for the specific language governing permissions and\n# limitations under the License.\n################################################################################\n\n# These parameters are required for Java 17 support.\n# Flink 1.18 uses env.java.opts.all, if a user supplies their own version of these opts in their FlinkDeployment the options below will be overridden.\n# env.java.default-opts.all is used for 1.19 onwards so users can supply their own opts.all in their Job deployments and have these appended.\nkubernetes.operator.default-configuration.flink-version.v1_18.env.java.opts.all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED\nkubernetes.operator.default-configuration.flink-version.v1_19+.env.java.default-opts.all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED\n\n# Flink operator related configs\n# kubernetes.operator.reconcile.interval: 60 s\n# kubernetes.operator.reconcile.parallelism: 5\n# kubernetes.operator.flink.client.cancel.timeout: 1 min\n# kubernetes.operator.resource.cleanup.timeout: 60 s\n# kubernetes.operator.observer.rest-ready.delay: 10 s\n# kubernetes.operator.observer.progress-check.interval: 10 s\n# kubernetes.operator.observer.savepoint.trigger.grace-period: 10 s\n# kubernetes.operator.flink.client.timeout: 10 s\n# kubernetes.operator.deployment.rollback.enabled: false\n# kubernetes.operator.deployment.readiness.timeout: 5min\n# kubernetes.operator.user.artifacts.base.dir: /opt/flink/artifacts\n# kubernetes.operator.job.upgrade.ignore-pending-savepoint: false\n# kubernetes.operator.watched.namespaces: ns1,ns2\n# kubernetes.operator.label.selector: flink=enabled\n# kubernetes.operator.dynamic.namespaces.enabled: false\n# kubernetes.operator.retry.initial.interval: 5 s\n# kubernetes.operator.retry.interval.multiplier: 2\n# kubernetes.operator.retry.max.attempts: 10\n# kubernetes.operator.exception.stacktrace.enabled: false\n# kubernetes.operator.exception.stacktrace.max.length: 2048\n# kubernetes.operator.exception.field.max.length: 2048\n# kubernetes.operator.exception.throwable.list.max.count: 2\n# kubernetes.operator.exception.label.mapper: Job has already been submitted:duplicatedJobFound,Server returned HTTP response code:httpResponseCodeFound\n# kubernetes.operator.leader-election.enabled: false\n# kubernetes.operator.leader-election.lease-name: flink-operator-lease\n\n# kubernetes.operator.snapshot.resource.enabled: true\n# kubernetes.operator.savepoint.dispose-on-delete: true\n\n# kubernetes.operator.metrics.reporter.slf4j.factory.class: org.apache.flink.metrics.slf4j.Slf4jReporterFactory\n# kubernetes.operator.metrics.reporter.slf4j.interval: 5 MINUTE\n\nkubernetes.operator:\n  reconcile.interval: 15 s\n  observer.progress-check.interval: 5 s\n  deployment.rollback.enabled: false\n\nkubernetes.operator.watched.namespaces: service-flink-session\nkubernetes.operator.health.probe.enabled: true\nkubernetes.operator.health.probe.port: 8085\n",
     "log4j-console.properties": "################################################################################\n#  Licensed to the Apache Software Foundation (ASF) under one\n#  or more contributor license agreements.  See the NOTICE file\n#  distributed with this work for additional information\n#  regarding copyright ownership.  The ASF licenses this file\n#  to you under the Apache License, Version 2.0 (the\n#  \"License\"); you may not use this file except in compliance\n#  with the License.  You may obtain a copy of the License at\n#\n#      http://www.apache.org/licenses/LICENSE-2.0\n#\n#  Unless required by applicable law or agreed to in writing, software\n#  distributed under the License is distributed on an \"AS IS\" BASIS,\n#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n#  See the License for the specific language governing permissions and\n# limitations under the License.\n################################################################################\n\n# This affects logging for both user code and Flink\nrootLogger.level = INFO\nrootLogger.appenderRef.console.ref = ConsoleAppender\nrootLogger.appenderRef.rolling.ref = RollingFileAppender\n\n# Uncomment this if you want to _only_ change Flink's logging\n#logger.flink.name = org.apache.flink\n#logger.flink.level = INFO\n\n# The following lines keep the log level of common libraries/connectors on\n# log level INFO. The root logger does not override this. You have to manually\n# change the log levels here.\nlogger.akka.name = akka\nlogger.akka.level = INFO\nlogger.kafka.name= org.apache.kafka\nlogger.kafka.level = INFO\nlogger.hadoop.name = org.apache.hadoop\nlogger.hadoop.level = INFO\nlogger.zookeeper.name = org.apache.zookeeper\nlogger.zookeeper.level = INFO\n\n# Log all infos to the console\nappender.console.name = ConsoleAppender\nappender.console.type = CONSOLE\nappender.console.layout.type = PatternLayout\nappender.console.layout.pattern = %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p %-60c %x - %m%n\n\n# Log all infos in the given rolling file\nappender.rolling.name = RollingFileAppender\nappender.rolling.type = RollingFile\nappender.rolling.append = false\nappender.rolling.fileName = ${sys:log.file}\nappender.rolling.filePattern = ${sys:log.file}.%i\nappender.rolling.layout.type = PatternLayout\nappender.rolling.layout.pattern = %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p %-60c %x - %m%n\nappender.rolling.policies.type = Policies\nappender.rolling.policies.size.type = SizeBasedTriggeringPolicy\nappender.rolling.policies.size.size=100MB\nappender.rolling.strategy.type = DefaultRolloverStrategy\nappender.rolling.strategy.max = 10\n\n# Suppress the irrelevant (wrong) warnings from the Netty channel handler\nlogger.netty.name = org.apache.flink.shaded.akka.org.jboss.netty.channel.DefaultChannelPipeline\nlogger.netty.level = OFF\n\n# The monitor interval in seconds to enable log4j automatic reconfiguration\n# monitorInterval = 30\n# Flink Deployment Logging Overrides\n# rootLogger.level = DEBUG\n\n",
     "log4j-operator.properties": "################################################################################\n#  Licensed to the Apache Software Foundation (ASF) under one\n#  or more contributor license agreements.  See the NOTICE file\n#  distributed with this work for additional information\n#  regarding copyright ownership.  The ASF licenses this file\n#  to you under the Apache License, Version 2.0 (the\n#  \"License\"); you may not use this file except in compliance\n#  with the License.  You may obtain a copy of the License at\n#\n#      http://www.apache.org/licenses/LICENSE-2.0\n#\n#  Unless required by applicable law or agreed to in writing, software\n#  distributed under the License is distributed on an \"AS IS\" BASIS,\n#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n#  See the License for the specific language governing permissions and\n# limitations under the License.\n################################################################################\n\nrootLogger.level = INFO\nrootLogger.appenderRef.console.ref = ConsoleAppender\n\n# Log all infos to the console\nappender.console.name = ConsoleAppender\nappender.console.type = CONSOLE\nappender.console.layout.type = PatternLayout\nappender.console.layout.pattern = %style{%d}{yellow} %style{%-30c{1.}}{cyan} %highlight{[%-5level]%notEmpty{[%X{resource.namespace}/}%notEmpty{%X{resource.name}]} %msg%n%throwable}\n\n# Do not log config loading\nlogger.conf.name = org.apache.flink.configuration.GlobalConfiguration\nlogger.conf.level = ERROR\n\n# Avoid logging fallback key INFO messages\nlogger.conf.name = org.apache.flink.configuration.Configuration\nlogger.conf.level = ERROR\n\n# The monitor interval in seconds to enable log4j automatic reconfiguration\n# monitorInterval = 30\n# Flink Operator Logging Overrides\n# rootLogger.level = DEBUG\n# logger.operator.name= org.apache.flink.kubernetes.operator\n# logger.operator.level = DEBUG\n\n",
     "logback-console.xml": "\u003c!--\n  Licensed to the Apache Software Foundation (ASF) under one\n  or more contributor license agreements.  See the NOTICE file\n  distributed with this work for additional information\n  regarding copyright ownership.  The ASF licenses this file\n  to you under the Apache License, Version 2.0 (the\n  \"License\"); you may not use this file except in compliance\n  with the License.  You may obtain a copy of the License at\n\n      http://www.apache.org/licenses/LICENSE-2.0\n\n  Unless required by applicable law or agreed to in writing, software\n  distributed under the License is distributed on an \"AS IS\" BASIS,\n  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n  See the License for the specific language governing permissions and\n  limitations under the License.\n  --\u003e\n\n\u003cconfiguration\u003e\n    \u003cappender name=\"ConsoleAppender\" class=\"ch.qos.logback.core.ConsoleAppender\"\u003e\n        \u003cencoder\u003e\n            \u003cpattern\u003e%d{yyyy-MM-dd HH:mm:ss,SSS} %-5level %-60.60logger{60} %X - %msg%n\u003c/pattern\u003e\n        \u003c/encoder\u003e\n    \u003c/appender\u003e\n\n    \u003cappender name=\"RollingFileAppender\" class=\"ch.qos.logback.core.rolling.RollingFileAppender\"\u003e\n        \u003cfile\u003e${log.file}\u003c/file\u003e\n        \u003cappend\u003efalse\u003c/append\u003e\n        \u003cencoder\u003e\n            \u003cpattern\u003e%d{yyyy-MM-dd HH:mm:ss,SSS} %-5level %-60.60logger{60} %X - %msg%n\u003c/pattern\u003e\n        \u003c/encoder\u003e\n        \u003crollingPolicy class=\"ch.qos.logback.core.rolling.FixedWindowRollingPolicy\"\u003e\n            \u003cfileNamePattern\u003e${log.file}.%i\u003c/fileNamePattern\u003e\n            \u003cminIndex\u003e1\u003c/minIndex\u003e\n            \u003cmaxIndex\u003e10\u003c/maxIndex\u003e\n        \u003c/rollingPolicy\u003e\n        \u003ctriggeringPolicy class=\"ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy\"\u003e\n            \u003cmaxFileSize\u003e100MB\u003c/maxFileSize\u003e\n        \u003c/triggeringPolicy\u003e\n    \u003c/appender\u003e\n\n    \u003c!-- The following loggers keep the log level of common libraries/connectors on INFO --\u003e\n    \u003clogger name=\"akka\" level=\"INFO\" /\u003e\n    \u003clogger name=\"org.apache.kafka\" level=\"INFO\" /\u003e\n    \u003clogger name=\"org.apache.hadoop\" level=\"INFO\" /\u003e\n    \u003clogger name=\"org.apache.zookeeper\" level=\"INFO\" /\u003e\n\n    \u003c!-- Suppress the irrelevant (wrong) warnings from the Netty channel handler --\u003e\n    \u003clogger name=\"org.apache.flink.shaded.akka.org.jboss.netty.channel.DefaultChannelPipeline\" level=\"OFF\" /\u003e\n\n    \u003croot level=\"INFO\"\u003e\n        \u003cappender-ref ref=\"ConsoleAppender\" /\u003e\n        \u003cappender-ref ref=\"RollingFileAppender\" /\u003e\n    \u003c/root\u003e\n\u003c/configuration\u003e\n\n\n\n",
@@ -49,7 +49,7 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink-operator-config",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   }
 }
 ---
@@ -64,7 +64,7 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink-operator",
-    "namespace": "flink"
+    "namespace": "service-flink-session"
   },
   "rules": [
     {
@@ -218,6 +218,51 @@
 ---
 {
   "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "flink-kubernetes-operator",
+      "app.kubernetes.io/version": "1.16.0",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+    },
+    "name": "flink-operator",
+    "namespace": "platform-flink-operator"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "coordination.k8s.io"
+      ],
+      "resources": [
+        "leases"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "update",
+        "patch",
+        "delete"
+      ]
+    },
+    {
+      "apiGroups": [
+        "flink.apache.org"
+      ],
+      "resources": [
+        "flinkstatesnapshots"
+      ],
+      "verbs": [
+        "list"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
   "kind": "RoleBinding",
   "metadata": {
     "labels": {
@@ -227,7 +272,7 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink-operator-role-binding",
-    "namespace": "flink"
+    "namespace": "service-flink-session"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -238,7 +283,34 @@
     {
       "kind": "ServiceAccount",
       "name": "flink-operator",
-      "namespace": "flink"
+      "namespace": "platform-flink-operator"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "flink-kubernetes-operator",
+      "app.kubernetes.io/version": "1.16.0",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+    },
+    "name": "flink-operator-role-binding",
+    "namespace": "platform-flink-operator"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "flink-operator"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "flink-operator",
+      "namespace": "platform-flink-operator"
     }
   ]
 }
@@ -248,7 +320,7 @@
   "kind": "Service",
   "metadata": {
     "name": "flink-operator-webhook-service",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   },
   "spec": {
     "ports": [
@@ -274,7 +346,7 @@
       "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
     },
     "name": "flink-kubernetes-operator",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   },
   "spec": {
     "replicas": 1,
@@ -598,9 +670,9 @@
   "kind": "MutatingWebhookConfiguration",
   "metadata": {
     "annotations": {
-      "cert-manager.io/inject-ca-from": "flink/flink-operator-serving-cert"
+      "cert-manager.io/inject-ca-from": "platform-flink-operator/flink-operator-serving-cert"
     },
-    "name": "flink-operator-flink-webhook-configuration"
+    "name": "flink-operator-platform-flink-operator-webhook-configuration"
   },
   "webhooks": [
     {
@@ -610,7 +682,7 @@
       "clientConfig": {
         "service": {
           "name": "flink-operator-webhook-service",
-          "namespace": "flink",
+          "namespace": "platform-flink-operator",
           "path": "/mutate"
         }
       },
@@ -622,7 +694,7 @@
             "key": "kubernetes.io/metadata.name",
             "operator": "In",
             "values": [
-              "flink"
+              "service-flink-session"
             ]
           }
         ]
@@ -656,9 +728,9 @@
   "kind": "ValidatingWebhookConfiguration",
   "metadata": {
     "annotations": {
-      "cert-manager.io/inject-ca-from": "flink/flink-operator-serving-cert"
+      "cert-manager.io/inject-ca-from": "platform-flink-operator/flink-operator-serving-cert"
     },
-    "name": "flink-operator-flink-webhook-configuration"
+    "name": "flink-operator-platform-flink-operator-webhook-configuration"
   },
   "webhooks": [
     {
@@ -668,7 +740,7 @@
       "clientConfig": {
         "service": {
           "name": "flink-operator-webhook-service",
-          "namespace": "flink",
+          "namespace": "platform-flink-operator",
           "path": "/validate"
         }
       },
@@ -680,7 +752,7 @@
             "key": "kubernetes.io/metadata.name",
             "operator": "In",
             "values": [
-              "flink"
+              "service-flink-session"
             ]
           }
         ]
@@ -715,13 +787,13 @@
   "kind": "Certificate",
   "metadata": {
     "name": "flink-operator-serving-cert",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   },
   "spec": {
     "commonName": "FlinkDeployment Validator",
     "dnsNames": [
-      "flink-operator-webhook-service.flink.svc",
-      "flink-operator-webhook-service.flink.svc.cluster.local"
+      "flink-operator-webhook-service.platform-flink-operator.svc",
+      "flink-operator-webhook-service.platform-flink-operator.svc.cluster.local"
     ],
     "issuerRef": {
       "kind": "Issuer",
@@ -746,7 +818,7 @@
   "kind": "Issuer",
   "metadata": {
     "name": "flink-operator-selfsigned-issuer",
-    "namespace": "flink"
+    "namespace": "platform-flink-operator"
   },
   "spec": {
     "selfSigned": {}

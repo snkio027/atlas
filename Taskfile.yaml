@@ -4,7 +4,7 @@ env:
   GOTOOLCHAIN: local
   GOPROXY: 'off'
   GOSUMDB: 'off'
-  GOFLAGS: -mod=readonly
+  GOFLAGS: -mod=vendor
 
 vars:
   LOCAL_OT1_TOOLS: '{{.ROOT_DIR}}/.state/tools/ot1'

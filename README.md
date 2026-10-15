@@ -29,8 +29,9 @@ atlas-platform app open --service experiment-archive
 [Proposed ADR-0018](docs/adr/0018-ordinary-application-delivery.md) 单独审查；
 本地检查不代表真实业务交付闭环已经通过。普通部署完成与业务功能验收分开报告。
 
-新安装的平台 namespace 使用职责或组件名，不带 `atlas-` 前缀；名称对应、组件扩展
+新安装采用 `platform-* / service-* / project-*`，系统 namespace 保留原名。人工配置使用 YAML，锁、计划与证据使用 JSON；名称对应、组件扩展
 与旧实例边界见 [平台 namespace 约定](docs/platform-namespaces.md)。
+本次新布局仅完成本地验证；[部署审查](docs/namespace-layout-review.md)与现有实例操作分开。
 
 ## 维护与验证
 

@@ -180,10 +180,11 @@ type ExpectedResource struct {
 	Readiness string `json:"readiness"`
 }
 type ExpectedApplication struct {
-	Name     string `json:"name"`
-	UID      string `json:"uid,omitempty"`
-	Spec     Object `json:"spec"`
-	Revision string `json:"revision"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name"`
+	UID       string `json:"uid,omitempty"`
+	Spec      Object `json:"spec"`
+	Revision  string `json:"revision"`
 }
 type Expectation struct {
 	Schema            int                   `json:"schema"`
@@ -207,7 +208,7 @@ func (e Expectation) Validate() error {
 	}
 	seen := map[string]bool{}
 	for _, a := range e.Applications {
-		r := Ref{"argoproj.io/v1alpha1", "Application", "argocd", a.Name}
+		r := Ref{"argoproj.io/v1alpha1", "Application", a.ApplicationNamespace(), a.Name}
 		if err := r.Validate(); err != nil {
 			return err
 		}
@@ -323,4 +324,11 @@ func (e Envelope) Report() string {
 }
 func SortedRefs(values []Ref) {
 	sort.Slice(values, func(i, j int) bool { return values[i].Key() < values[j].Key() })
+}
+
+func (a ExpectedApplication) ApplicationNamespace() string {
+	if a.Namespace != "" {
+		return a.Namespace
+	}
+	return "argocd"
 }

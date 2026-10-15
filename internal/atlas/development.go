@@ -127,7 +127,7 @@ func (a *App) developmentRender() map[string][]byte {
 	for path, b := range a.development.files {
 		files[path] = b
 	}
-	signal := configMap("argocd", "atlas-refactor-adoption-signal", map[string]string{"fingerprint": a.fingerprint()})
+	signal := configMap(a.argoNamespace(), "atlas-refactor-adoption-signal", map[string]string{"fingerprint": a.fingerprint()})
 	signal["metadata"].(Object)["annotations"] = Object{"argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"}
 	files[developmentSignal] = jsonBytes(signal)
 	return files
@@ -207,7 +207,7 @@ func (a *App) developmentRolloutComplete(ctx context.Context, root, self, signal
 	for _, name := range names {
 		live := liveApps[name]
 		if live == nil {
-			live, e = a.get(ctx, "application", "argocd", name)
+			live, e = a.get(ctx, "application", a.argoNamespace(), name)
 			if e != nil {
 				return false, e
 			}
@@ -239,7 +239,7 @@ func (a *App) developmentAuthorityIntact(ctx context.Context, self, signal *Live
 	if self == nil || signal == nil {
 		return false, nil
 	}
-	cilium, e := a.get(ctx, "application", "argocd", "cilium")
+	cilium, e := a.get(ctx, "application", a.argoNamespace(), "cilium")
 	if e != nil || !specMatches(cilium, a.development.apps["cilium"]) {
 		return false, e
 	}

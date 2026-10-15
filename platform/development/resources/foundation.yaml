@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: platform-cert-manager
+      annotations:
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+      labels:
+        atlas.local/class: platform
+        atlas.local/domain: security
+        atlas.local/owner: platform
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: platform-gateway
+      annotations:
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+      labels:
+        atlas.local/class: platform
+        atlas.local/domain: networking
+        atlas.local/owner: platform
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: local-path-storage
+      annotations:
+        argocd.argoproj.io/sync-options: Prune=confirm,Delete=false
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: project-platform-smoke
+      annotations:
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+      labels:
+        atlas.io/gateway-access: development
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/enforce-version: v1.36
+        atlas.local/class: project
+        atlas.local/domain: platform-validation
+        atlas.local/owner: platform
+        atlas.local/project: platform-smoke
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: web-budget
+      namespace: project-platform-smoke
+    spec:
+      hard:
+        requests.cpu: "2"
+        requests.memory: 2Gi
+        limits.cpu: "4"
+        limits.memory: 4Gi
+        requests.storage: 10Gi
+        persistentvolumeclaims: "5"
+        pods: "12"
+        services: "10"
+  - apiVersion: v1
+    kind: LimitRange
+    metadata:
+      name: web-defaults
+      namespace: project-platform-smoke
+    spec:
+      limits:
+        - type: Container
+          default:
+            cpu: 500m
+            memory: 256Mi
+          defaultRequest:
+            cpu: 50m
+            memory: 64Mi
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-deny
+      namespace: project-platform-smoke
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Ingress
+        - Egress
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: allow-dns
+      namespace: project-platform-smoke
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Egress
+      egress:
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+          ports:
+            - protocol: UDP
+              port: 53
+            - protocol: TCP
+              port: 53
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: gateway-to-web
+      namespace: project-platform-smoke
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: web-smoke
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: platform-gateway
+              podSelector:
+                matchLabels:
+                  gateway.envoyproxy.io/owning-gateway-name: development
+                  gateway.envoyproxy.io/owning-gateway-namespace: platform-gateway
+          ports:
+            - protocol: TCP
+              port: 8080

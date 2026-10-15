@@ -3,6 +3,7 @@ package installation
 import (
 	"atlas-refactor/internal/atlas"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"context"
 	"errors"
 	"fmt"
@@ -177,7 +178,7 @@ func applications(f Files) (map[string]map[string]any, error) {
 	return out, nil
 }
 func (w *Workflow) getApp(ctx context.Context, name string) (map[string]any, error) {
-	b, e := w.kube(ctx, nil, "get", "application", name, "-n", "argocd", "--ignore-not-found=true", "-o", "json")
+	b, e := w.kube(ctx, nil, "get", "application", name, "-n", platformnames.Argo, "--ignore-not-found=true", "-o", "json")
 	if e != nil {
 		return nil, e
 	}
@@ -222,7 +223,7 @@ func (w *Workflow) checkApplications(ctx context.Context, f Files) error {
 	if e != nil {
 		return e
 	}
-	b, e := w.kube(ctx, nil, "get", "applications", "-n", "argocd", "-o", "json")
+	b, e := w.kube(ctx, nil, "get", "applications", "-n", platformnames.Argo, "-o", "json")
 	if e != nil {
 		return e
 	}

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -154,7 +153,7 @@ func (p *Project) loadCapabilities() error {
 		if !localPath(path, "vendor/platform/") {
 			return errors.New("invalid capability artifact")
 		}
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return e
 		}
@@ -183,7 +182,7 @@ func (p *Project) loadCapabilities() error {
 				return err
 			}
 			for _, file := range files {
-				data, err := os.ReadFile(file)
+				data, err := readInput(file)
 				if err != nil {
 					return err
 				}
@@ -283,7 +282,7 @@ func (p *Project) CapabilityPlan(requested []string) (Object, error) {
 	if e != nil {
 		return nil, e
 	}
-	coreBytes, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "core-projects.json"))
+	coreBytes, e := readInput(filepath.Join(p.Root, capabilityDir, "core-projects.json"))
 	if e != nil {
 		return nil, e
 	}
@@ -314,7 +313,7 @@ func (p *Project) missingCapabilitySecrets(names []string) ([]string, error) {
 	}
 	objects := []Object{}
 	for _, path := range paths {
-		b, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "resources", path))
+		b, e := readInput(filepath.Join(p.Root, capabilityDir, "resources", path))
 		if e != nil {
 			return nil, e
 		}
@@ -412,13 +411,21 @@ func (p *Project) RenderCapabilities(ctx context.Context) (map[string][]byte, er
 			args = append(args, "--set-json", "additionalNamespaces="+string(b))
 		}
 		for _, v := range j.Values {
-			args = append(args, "--values", v)
+			valuePath, err := p.inputPath(v)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, "--values", valuePath)
 		}
-		b, e := p.run(ctx, nil, p.Tools.Helm, args...)
+		b, e := p.helmTemplate(ctx, args)
 		if e != nil {
 			return nil, e
 		}
 		objects, e := p.yaml(ctx, b)
+		if e != nil {
+			return nil, e
+		}
+		objects, e = p.projectOperatorLayout(j, objects)
 		if e != nil {
 			return nil, e
 		}
@@ -483,12 +490,25 @@ func (p *Project) RenderCapabilities(ctx context.Context) (map[string][]byte, er
 		}
 	}
 	for name, x := range c.Catalog.Components {
-		b, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "resources", name+".json"))
+		b, e := readInput(filepath.Join(p.Root, capabilityDir, "resources", name+".json"))
 		if e != nil {
 			return nil, e
 		}
-		if _, e := decodeObjects(b); e != nil {
+		xs, e := decodeObjects(b)
+		if e != nil {
 			return nil, e
+		}
+		if p.currentLayout() {
+			if name == "secrets-controller" {
+				if e = p.projectNamespaceReader(xs); e != nil {
+					return nil, e
+				}
+			}
+			xs, e = namespaceDefinitions(name, xs)
+			if e != nil {
+				return nil, e
+			}
+			b = encodedList(xs)
 		}
 		files[x.Path+"/resources.json"] = b
 		if objects, ok := owners[name]; ok {
@@ -528,7 +548,7 @@ func (p *Project) componentObjects(path string) ([]Object, error) {
 	}
 	objects := []Object{}
 	for _, file := range files {
-		b, err := os.ReadFile(file)
+		b, err := readInput(file)
 		if err != nil {
 			return nil, err
 		}
@@ -544,11 +564,11 @@ func (p *Project) componentObjects(path string) ([]Object, error) {
 // CapabilityActivation is a deterministic projection onto the existing
 // platform control and canonical project. It never edits Tier-0 or credentials.
 func (p *Project) CapabilityActivation(names []string) (map[string][]byte, error) {
-	apps, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "core-applications.json"))
+	apps, e := readInput(filepath.Join(p.Root, capabilityDir, "core-applications.json"))
 	if e != nil {
 		return nil, e
 	}
-	projects, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "core-projects.json"))
+	projects, e := readInput(filepath.Join(p.Root, capabilityDir, "core-projects.json"))
 	if e != nil {
 		return nil, e
 	}
@@ -598,7 +618,7 @@ func (p *Project) CapabilityActivation(names []string) (map[string][]byte, error
 				spec["destinations"] = append(slice(spec["destinations"]), Object{"namespace": required.Namespace, "server": "https://kubernetes.default.svc"})
 			}
 		}
-		app := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": "argocd", "annotations": Object{"argocd.argoproj.io/sync-wave": strconv.Itoa(x.Wave), "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"}}, "spec": Object{"project": p.Capabilities.Catalog.PermissionDomains[x.PermissionDomain], "source": Object{"repoURL": p.Config.RepositoryURL, "targetRevision": p.Config.Revision, "path": x.Path}, "destination": Object{"server": "https://kubernetes.default.svc", "namespace": x.Namespace}, "syncPolicy": Object{"automated": Object{"enabled": true, "prune": true, "selfHeal": true}, "syncOptions": []any{"ServerSideApply=true", "FailOnSharedResource=true"}}}}
+		app := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": p.namespace("argocd"), "annotations": Object{"argocd.argoproj.io/sync-wave": strconv.Itoa(x.Wave), "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"}}, "spec": Object{"project": p.Capabilities.Catalog.PermissionDomains[x.PermissionDomain], "source": Object{"repoURL": p.Config.RepositoryURL, "targetRevision": p.Config.Revision, "path": x.Path}, "destination": Object{"server": "https://kubernetes.default.svc", "namespace": x.Namespace}, "syncPolicy": Object{"automated": Object{"enabled": true, "prune": true, "selfHeal": true}, "syncOptions": []any{"ServerSideApply=true", "FailOnSharedResource=true"}}}}
 		aa = append(aa, app)
 		objects, e := p.capabilityObjects(name)
 		if e != nil {
@@ -678,7 +698,7 @@ func (p *Project) ValidateCapabilityProjection() error {
 		return e
 	}
 	for path, want := range files {
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return e
 		}
@@ -717,7 +737,7 @@ func (p *Project) CheckCapabilities(ctx context.Context) (int, error) {
 		return 0, e
 	}
 	for path, want := range files {
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return 0, e
 		}
@@ -800,6 +820,15 @@ func (p *Project) CheckCapabilities(ctx context.Context) (int, error) {
 	}
 	for _, project := range projects {
 		if e := checkObject(project); e != nil {
+			return 0, e
+		}
+	}
+	if p.currentLayout() {
+		objects := []Object{}
+		for _, o := range inv {
+			objects = append(objects, o)
+		}
+		if e := ValidateOperatorPermissions(objects); e != nil {
 			return 0, e
 		}
 	}

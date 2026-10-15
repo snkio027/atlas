@@ -40,7 +40,7 @@ cert-manager、本地存储和受限业务 namespace。清单、本地验证和 
 
 ## 构建与检查
 
-需要 Go **1.27.2**。运行时实现只使用标准库，没有第三方 Go 模块。
+需要 Go **1.27.2**。人工配置解析使用锁定的 YAML 模块，其余模块边界见 ADR-0023；源码内 vendor 支持离线构建。
 
 ```sh
 task quality
@@ -59,8 +59,8 @@ Task 优先使用现有 `.state/tools/{helm,kubectl,yq,kubeseal}`，缺少时使
 Go 自动工具链获取与模块网络访问被关闭。若本机没有 Task，也可运行：
 
 ```sh
-GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off go test -race ./...
-GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off go vet ./...
+GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=vendor go test -race ./...
+GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=vendor go vet ./...
 GOTOOLCHAIN=local CGO_ENABLED=0 go build -trimpath -o bin/atlas ./cmd/atlas
 ```
 

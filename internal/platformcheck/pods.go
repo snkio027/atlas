@@ -1,6 +1,7 @@
 package platformcheck
 
 import (
+	"atlas-refactor/internal/platformnames"
 	"errors"
 	"fmt"
 	"strings"
@@ -20,6 +21,10 @@ type Pod struct {
 
 func VerifyPods(pods []Pod, cluster, gatewayNamespace string) error {
 	web, proxy := false, false
+	smoke, proxyNS := "workload-web", "envoy-gateway-system"
+	if gatewayNamespace == platformnames.Gateway {
+		smoke, proxyNS = platformnames.Smoke, platformnames.Gateway
+	}
 	for _, p := range pods {
 		if p.Status.Phase == "Succeeded" {
 			continue
@@ -36,13 +41,13 @@ func VerifyPods(pods []Pod, cluster, gatewayNamespace string) error {
 			}
 			return fmt.Errorf("pod failed/unknown: %s/%s", p.Metadata.Namespace, p.Metadata.Name)
 		}
-		if p.Metadata.Namespace == "workload-web" {
+		if p.Metadata.Namespace == smoke {
 			if p.Spec.NodeName != cluster+"-worker3" {
 				return fmt.Errorf("workload Pod outside data node: %s", p.Metadata.Name)
 			}
 			web = true
 		}
-		if p.Metadata.Namespace == "envoy-gateway-system" && strings.HasPrefix(p.Metadata.Name, "envoy-"+gatewayNamespace+"-") &&
+		if p.Metadata.Namespace == proxyNS && strings.HasPrefix(p.Metadata.Name, "envoy-"+gatewayNamespace+"-") &&
 			p.Metadata.Labels["app.kubernetes.io/component"] == "proxy" &&
 			p.Metadata.Labels["gateway.envoyproxy.io/owning-gateway-name"] == "development" &&
 			p.Metadata.Labels["gateway.envoyproxy.io/owning-gateway-namespace"] == gatewayNamespace {

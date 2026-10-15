@@ -3,6 +3,7 @@
 package workload
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"crypto/sha256"
@@ -108,8 +109,11 @@ func ShortID(kind string, parts ...string) string {
 	b, _ := json.Marshal(a)
 	return Digest(b)[:12]
 }
-func (b Binding) ID() string     { return ShortID("CapabilityBinding", b.Project, b.Name) }
-func (b Binding) Secret() string { return "s3-" + b.ID() }
+func (p Project) Namespace() string  { return platformnames.Project(p.Name) }
+func (w Workload) Namespace() string { return platformnames.Project(w.Project) }
+func (b Binding) Namespace() string  { return platformnames.Project(b.Project) }
+func (b Binding) ID() string         { return ShortID("CapabilityBinding", b.Project, b.Name) }
+func (b Binding) Secret() string     { return "s3-" + b.ID() }
 func (w Workload) AppName() string {
 	return "s2-w-" + w.Project + "-" + w.Name + "-" + ShortID("Workload", w.Project, w.Name)
 }
@@ -269,16 +273,16 @@ func Resolve(in Intent, objectStorage bool) (*Model, error) {
 		}
 		names[w.Name] = true
 		if !imageRE.MatchString(w.Image) || w.Port < 1024 || w.Port > 65535 || w.Replicas < 1 || w.Replicas > 128 {
-			return nil, fmt.Errorf("platform/workloads/%s/%s.json: image / port / replicas: require a pinned image, port 1024..65535 and replicas 1..128", w.Project, w.Name)
+			return nil, fmt.Errorf("platform/workloads/%s/%s.yaml: image / port / replicas: require a pinned image, port 1024..65535 and replicas 1..128", w.Project, w.Name)
 		}
 		h, ok := strings.CutSuffix(w.Exposure.Hostname, ".atlas.test")
 		if !ok || !nameRE.MatchString(h) || hosts[w.Exposure.Hostname] || !w.Exposure.TLS {
-			return nil, fmt.Errorf("platform/workloads/%s/%s.json: exposure: unique <name>.atlas.test hostname with tls=true required", w.Project, w.Name)
+			return nil, fmt.Errorf("platform/workloads/%s/%s.yaml: exposure: unique <name>.atlas.test hostname with tls=true required", w.Project, w.Name)
 		}
 		hosts[w.Exposure.Hostname] = true
 		r := w.Resources
 		if !validQuantity(r.Requests) || !validQuantity(r.Limits) || r.Requests.CPU > r.Limits.CPU || r.Requests.Memory > r.Limits.Memory {
-			return nil, fmt.Errorf("platform/workloads/%s/%s.json: resources: positive requests must fit limits (memory >= 64 MiB)", w.Project, w.Name)
+			return nil, fmt.Errorf("platform/workloads/%s/%s.yaml: resources: positive requests must fit limits (memory >= 64 MiB)", w.Project, w.Name)
 		}
 		n := w.Replicas + 1
 		total.Pods += n
@@ -288,7 +292,7 @@ func Resolve(in Intent, objectStorage bool) (*Model, error) {
 		total.LimitsMemory += n * r.Limits.Memory
 	}
 	if total.Pods > q.Pods || total.RequestsCPU > q.RequestsCPU || total.LimitsCPU > q.LimitsCPU || total.RequestsMemory > q.RequestsMemory || total.LimitsMemory > q.LimitsMemory {
-		return nil, fmt.Errorf("platform/projects/%s.json: quota: rolling peak %+v exceeds budget %+v; lower Workload requests/limits/replicas or review Project quota", p.Name, total, q)
+		return nil, fmt.Errorf("platform/projects/%s.yaml: quota: rolling peak %+v exceeds budget %+v; lower Workload requests/limits/replicas or review Project quota", p.Name, total, q)
 	}
 	bindings := map[string]*Binding{}
 	bn := map[string]bool{}
@@ -296,7 +300,7 @@ func Resolve(in Intent, objectStorage bool) (*Model, error) {
 		b := &c.Bindings[i]
 		g := Grant{b.Capability, b.Bucket, b.Access}
 		if b.Schema != 1 || b.Kind != "CapabilityBinding" || b.Project != p.Name || !nameRE.MatchString(b.Name) || bn[b.Name] || bindings[b.Workload] != nil || !names[b.Workload] || !grants[g] || !objectStorage {
-			return nil, fmt.Errorf("platform/bindings/%s/%s.json: project / workload / capability / bucket / access: invalid, duplicate or unauthorized Binding reference", b.Project, b.Name)
+			return nil, fmt.Errorf("platform/bindings/%s/%s.yaml: project / workload / capability / bucket / access: invalid, duplicate or unauthorized Binding reference", b.Project, b.Name)
 		}
 		bn[b.Name] = true
 		bindings[b.Workload] = b
@@ -376,10 +380,10 @@ func ReadIntent(root string) (Intent, error) {
 			if d.IsDir() {
 				return nil
 			}
-			if !d.Type().IsRegular() || filepath.Ext(path) != ".json" {
+			if !d.Type().IsRegular() || (filepath.Ext(path) != ".json" && filepath.Ext(path) != ".yaml") {
 				return errors.New("unexpected intent file")
 			}
-			raw, e := os.ReadFile(path)
+			raw, e := authored.Read(path)
 			if e != nil {
 				return e
 			}
@@ -392,21 +396,21 @@ func ReadIntent(root string) (Intent, error) {
 				}
 				projects++
 				in.Project = p
-				expected = filepath.Join(base, p.Name+".json")
+				expected = filepath.Join(base, p.Name+filepath.Ext(path))
 			case "workloads":
 				var w Workload
 				if e = StrictDecode(raw, &w); e != nil {
 					return e
 				}
 				in.Workloads = append(in.Workloads, w)
-				expected = filepath.Join(base, w.Project, w.Name+".json")
+				expected = filepath.Join(base, w.Project, w.Name+filepath.Ext(path))
 			case "bindings":
 				var b Binding
 				if e = StrictDecode(raw, &b); e != nil {
 					return e
 				}
 				in.Bindings = append(in.Bindings, b)
-				expected = filepath.Join(base, b.Project, b.Name+".json")
+				expected = filepath.Join(base, b.Project, b.Name+filepath.Ext(path))
 			}
 			if path != expected {
 				return errors.New("intent filename differs from identity")
@@ -432,4 +436,20 @@ func (m *Model) Authored() map[string][]byte {
 		r["platform/bindings/"+b.Project+"/"+b.Name+".json"] = JSON(b)
 	}
 	return r
+}
+
+func (m *Model) HumanAuthored() (map[string][]byte, error) {
+	result := map[string][]byte{}
+	for name, raw := range m.Authored() {
+		var v any
+		if err := json.Unmarshal(raw, &v); err != nil {
+			return nil, err
+		}
+		b, err := authored.YAML(v)
+		if err != nil {
+			return nil, err
+		}
+		result[strings.TrimSuffix(name, ".json")+".yaml"] = b
+	}
+	return result, nil
 }

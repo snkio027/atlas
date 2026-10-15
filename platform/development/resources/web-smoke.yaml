@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: web-data
+      namespace: project-platform-smoke
+      annotations:
+        argocd.argoproj.io/sync-options: Prune=confirm,Delete=false
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: atlas-local-retain
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: web-smoke
+      namespace: project-platform-smoke
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: web-smoke
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: web-smoke
+        spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            - name: initialize-once
+              image: docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+              command:
+                - sh
+                - -ec
+                - 'if [ ! -e /data/index.html ]; then printf "Atlas development web: %s\n" "$HOSTNAME" > /data/index.html; fi'
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          containers:
+            - name: web
+              image: docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+              command:
+                - httpd
+                - -f
+                - -p
+                - "8080"
+                - -h
+                - /data
+              ports:
+                - name: http
+                  containerPort: 8080
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: http
+              livenessProbe:
+                httpGet:
+                  path: /
+                  port: http
+                initialDelaySeconds: 5
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: web-data
+          nodeSelector:
+            node-role.local/data: "true"
+          tolerations:
+            - key: node-role.local/data
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: web-smoke
+      namespace: project-platform-smoke
+    spec:
+      selector:
+        app.kubernetes.io/name: web-smoke
+      ports:
+        - name: http
+          port: 80
+          targetPort: http
+  - apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: web-http
+      namespace: project-platform-smoke
+    spec:
+      parentRefs:
+        - name: development
+          namespace: platform-gateway
+          sectionName: http
+          group: gateway.networking.k8s.io
+          kind: Gateway
+      hostnames:
+        - web.atlas.test
+      rules:
+        - filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                port: 8443
+                statusCode: 301
+          matches:
+            - path:
+                type: PathPrefix
+                value: /
+  - apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: web-https
+      namespace: project-platform-smoke
+    spec:
+      parentRefs:
+        - name: development
+          namespace: platform-gateway
+          sectionName: https
+          group: gateway.networking.k8s.io
+          kind: Gateway
+      hostnames:
+        - web.atlas.test
+      rules:
+        - backendRefs:
+            - name: web-smoke
+              port: 80
+              group: ""
+              kind: Service
+              weight: 1
+          matches:
+            - path:
+                type: PathPrefix
+                value: /

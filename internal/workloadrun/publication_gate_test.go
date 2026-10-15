@@ -33,7 +33,7 @@ func TestPublicationRecheckPendingPreservesGateAndUIDHistory(t *testing.T) {
 			if err != nil || session.active {
 				t.Fatal("predecessor recheck must retain closed Gate", err)
 			}
-			const id = "argoproj.io/Application/argocd/foundation"
+			const id = "argoproj.io/Application/platform-argocd/foundation"
 			uid := original.UID[id]
 			if uid == "" {
 				t.Fatal("fixture lacks foundation identity")

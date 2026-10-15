@@ -30,7 +30,7 @@ func TestPublicationPrerequisitesUnderAdversarialReconcileOrder(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			platformProject, err := find(projects, "AppProject", "argocd", "platform-project")
+			platformProject, err := find(projects, "AppProject", "platform-argocd", "platform-project")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -46,11 +46,11 @@ func TestPublicationPrerequisitesUnderAdversarialReconcileOrder(t *testing.T) {
 					}
 					// This includes the new Project Application's destination and the
 					// pre-existing secrets-controller's independently watched RBAC path.
-					usesNamespace := meta(o)["namespace"] == "demo" || o["kind"] == "Application" && val(o, "spec", "destination", "namespace") == "demo"
+					usesNamespace := meta(o)["namespace"] == "project-demo" || o["kind"] == "Application" && val(o, "spec", "destination", "namespace") == "project-demo"
 					if !usesNamespace {
 						continue
 					}
-					permissionProbe := resource("v1", "ServiceAccount", "demo", "probe", nil)
+					permissionProbe := resource("v1", "ServiceAccount", "project-demo", "probe", nil)
 					if err := permits(platformProject, permissionProbe); err != nil {
 						t.Fatalf("%s visible before permission: %v", owned.Identity, err)
 					}
@@ -79,7 +79,7 @@ func TestPublicationPrerequisitesUnderAdversarialReconcileOrder(t *testing.T) {
 				}
 				for _, w := range m.Intent.Workloads {
 					name := "s2-" + ShortID("Workload", w.Project, w.Name) + "-tls"
-					cert, err := find(certs, "Certificate", "gateway", name)
+					cert, err := find(certs, "Certificate", "platform-gateway", name)
 					if err != nil || val(cert, "spec", "secretName") != name {
 						t.Fatal("Project phase must issue TLS prerequisites", name, err)
 					}
@@ -94,7 +94,7 @@ func TestPublicationPrerequisitesUnderAdversarialReconcileOrder(t *testing.T) {
 					}
 				}
 				xs, _ := objects(result.Files["gitops/platform/projects/demo/resources.json"])
-				for _, required := range [][2]string{{"Namespace", "demo"}, {"ResourceQuota", "project-budget"}, {"NetworkPolicy", "default-deny"}, {"ServiceAccount", "web-api"}} {
+				for _, required := range [][2]string{{"Namespace", "project-demo"}, {"ResourceQuota", "project-budget"}, {"NetworkPolicy", "default-deny"}, {"ServiceAccount", "web-api"}} {
 					found := false
 					for _, o := range xs {
 						found = found || o["kind"] == required[0] && meta(o)["name"] == required[1]

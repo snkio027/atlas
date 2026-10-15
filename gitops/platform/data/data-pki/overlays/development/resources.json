@@ -1,16 +1,15 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "cert-manager.io/v1",
       "kind": "Issuer",
       "metadata": {
-        "name": "selfsigned",
-        "namespace": "redis",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "0"
-        }
+        },
+        "name": "selfsigned",
+        "namespace": "service-redis"
       },
       "spec": {
         "selfSigned": {}
@@ -20,44 +19,44 @@
       "apiVersion": "cert-manager.io/v1",
       "kind": "Certificate",
       "metadata": {
-        "name": "service-ca",
-        "namespace": "redis",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "1"
-        }
+        },
+        "name": "service-ca",
+        "namespace": "service-redis"
       },
       "spec": {
-        "isCA": true,
         "commonName": "redis development CA",
-        "usages": [
-          "cert sign",
-          "crl sign"
-        ],
-        "secretName": "service-ca",
+        "duration": "8760h",
+        "isCA": true,
         "issuerRef": {
           "group": "cert-manager.io",
           "kind": "Issuer",
           "name": "selfsigned"
         },
-        "duration": "8760h",
-        "renewBefore": "720h",
         "privateKey": {
           "algorithm": "RSA",
-          "size": 2048,
           "encoding": "PKCS8",
-          "rotationPolicy": "Always"
-        }
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "720h",
+        "secretName": "service-ca",
+        "usages": [
+          "cert sign",
+          "crl sign"
+        ]
       }
     },
     {
       "apiVersion": "cert-manager.io/v1",
       "kind": "Issuer",
       "metadata": {
-        "name": "service-ca",
-        "namespace": "redis",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
-        }
+        },
+        "name": "service-ca",
+        "namespace": "service-redis"
       },
       "spec": {
         "ca": {
@@ -69,38 +68,39 @@
       "apiVersion": "cert-manager.io/v1",
       "kind": "Certificate",
       "metadata": {
-        "name": "server-tls",
-        "namespace": "redis",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "3"
-        }
+        },
+        "name": "server-tls",
+        "namespace": "service-redis"
       },
       "spec": {
         "commonName": "redis",
         "dnsNames": [
           "redis",
-          "redis.redis",
-          "redis.redis.svc",
-          "redis.redis.svc.cluster.local"
+          "redis.service-redis",
+          "redis.service-redis.svc",
+          "redis.service-redis.svc.cluster.local"
         ],
-        "usages": [
-          "server auth"
-        ],
-        "secretName": "server-tls",
+        "duration": "2160h",
         "issuerRef": {
           "group": "cert-manager.io",
           "kind": "Issuer",
           "name": "service-ca"
         },
-        "duration": "2160h",
-        "renewBefore": "360h",
         "privateKey": {
           "algorithm": "RSA",
-          "size": 2048,
           "encoding": "PKCS8",
-          "rotationPolicy": "Always"
-        }
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "360h",
+        "secretName": "server-tls",
+        "usages": [
+          "server auth"
+        ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

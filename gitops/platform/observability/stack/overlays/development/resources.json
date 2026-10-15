@@ -1,31 +1,31 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "monitoring.coreos.com/v1alpha1",
       "kind": "AlertmanagerConfig",
       "metadata": {
         "name": "atlas-local-alerts",
-        "namespace": "monitoring"
+        "namespace": "platform-monitoring"
       },
       "spec": {
-        "route": {
-          "receiver": "local-only",
-          "groupBy": [
-            "namespace",
-            "alertname"
-          ],
-          "groupWait": "30s",
-          "groupInterval": "5m",
-          "repeatInterval": "4h"
-        },
         "receivers": [
           {
             "name": "local-only"
           }
-        ]
+        ],
+        "route": {
+          "groupBy": [
+            "namespace",
+            "alertname"
+          ],
+          "groupInterval": "5m",
+          "groupWait": "30s",
+          "receiver": "local-only",
+          "repeatInterval": "4h"
+        }
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

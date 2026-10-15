@@ -1,8 +1,10 @@
 package workloadrun
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/installation"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"bytes"
 	"context"
@@ -81,10 +83,10 @@ func (w *Workflow) Plan(ctx context.Context) (Plan, error) {
 		return p, e
 	}
 	if len(w.Model.Intent.Bindings) > 0 {
-		p.CredentialTargets = append(p.CredentialTargets, "object-storage/seaweedfs-auth")
+		p.CredentialTargets = append(p.CredentialTargets, platformnames.ObjectStorage+"/seaweedfs-auth")
 	}
 	for _, b := range w.Model.Intent.Bindings {
-		p.CredentialTargets = append(p.CredentialTargets, b.Project+"/"+b.Secret())
+		p.CredentialTargets = append(p.CredentialTargets, b.Namespace()+"/"+b.Secret())
 	}
 	return p, nil
 }
@@ -139,6 +141,16 @@ func (w *Workflow) validatePredecessor(files Files) error {
 	}
 	in := workload.Intent{Workloads: []workload.Workload{}, Bindings: []workload.Binding{}}
 	for name, b := range files {
+		if strings.HasPrefix(name, "platform/projects/") || strings.HasPrefix(name, "platform/workloads/") || strings.HasPrefix(name, "platform/bindings/") {
+			if !strings.HasSuffix(name, ".yaml") {
+				return errors.New("predecessor declarations must use YAML")
+			}
+			var err error
+			b, err = authored.JSON(b)
+			if err != nil {
+				return fmt.Errorf("%s: %w", name, err)
+			}
+		}
 		switch {
 		case strings.HasPrefix(name, "platform/projects/"):
 			if in.Project.Name != "" {

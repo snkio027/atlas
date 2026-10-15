@@ -49,7 +49,7 @@ func (p *Project) hardenDataOperator(release string, o Object) error {
 		}
 		if o["kind"] == "MutatingWebhookConfiguration" || o["kind"] == "ValidatingWebhookConfiguration" {
 			for _, raw := range slice(o["webhooks"]) {
-				mapping(raw)["namespaceSelector"] = Object{"matchLabels": Object{"kubernetes.io/metadata.name": "postgresql"}}
+				mapping(raw)["namespaceSelector"] = Object{"matchLabels": Object{"kubernetes.io/metadata.name": p.namespace("postgresql")}}
 			}
 		}
 	}

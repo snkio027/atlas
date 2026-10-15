@@ -1,0 +1,20 @@
+fullnameOverride: cnpg
+image:
+  tag: 1.30.1
+config:
+  clusterWide: false
+  maxConcurrentReconciles: 2
+  data:
+    WATCH_NAMESPACE: service-postgresql
+    POSTGRES_IMAGE_NAME: ghcr.io/cloudnative-pg/postgresql:18.6@sha256:899d3ed526b659d77935dde0e6bf2d69dbbf17d3d8c6486ca8cfd04bd3c18533
+    OPERATOR_IMAGE_NAME: ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+nodeSelector:
+  node-role.local/compute: "true"
+rbac:
+  aggregateClusterRoles: false

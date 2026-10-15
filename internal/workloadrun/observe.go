@@ -5,6 +5,7 @@ import (
 	"atlas-refactor/internal/installation"
 	"atlas-refactor/internal/observation"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"bytes"
 	"context"
@@ -249,7 +250,7 @@ func (w *Workflow) observe(ctx context.Context, result workload.Result, revision
 			apps[str(at(o, "metadata", "name"))] = o
 		}
 	}
-	raw, e := w.get(ctx, "applications.argoproj.io", "argocd", "")
+	raw, e := w.get(ctx, "applications.argoproj.io", platformnames.Argo, "")
 	if e != nil {
 		return report, e
 	}
@@ -280,7 +281,7 @@ func (w *Workflow) observe(ctx context.Context, result workload.Result, revision
 				expected = observed
 			}
 		}
-		expectedApps = append(expectedApps, observation.ExpectedApplication{Name: name, UID: session.uid[appIdentity(name)], Spec: mapping(want["spec"]), Revision: expected})
+		expectedApps = append(expectedApps, observation.ExpectedApplication{Namespace: platformnames.Argo, Name: name, UID: session.uid[appIdentity(name)], Spec: mapping(want["spec"]), Revision: expected})
 	}
 	var decision GateDecision
 	report.ApplicationFacts, decision = session.applications(expectedApps, liveApps)
@@ -292,7 +293,7 @@ func (w *Workflow) observe(ctx context.Context, result workload.Result, revision
 	first := map[string]Object{}
 	for _, fact := range report.ApplicationFacts {
 		name := fact.Ref.Name
-		key := "argoproj.io/Application/argocd/" + name
+		key := "argoproj.io/Application/" + platformnames.Argo + "/" + name
 		report.Applications[name] = fact.ObservedRevision
 		report.UID[key] = fact.UID
 		first[key] = liveApps[name]
@@ -489,7 +490,7 @@ func (w *Workflow) readBaseline(ctx context.Context, p Plan) (map[string]string,
 		if !matches(o, live) {
 			return nil, fmt.Errorf("baseline content drift: %s", v.Identity)
 		}
-		owner := desired["argoproj.io/Application/argocd/"+v.Owner]
+		owner := desired["argoproj.io/Application/"+platformnames.Argo+"/"+v.Owner]
 		if owner == nil {
 			return nil, fmt.Errorf("baseline owner missing: %s", v.Identity)
 		}

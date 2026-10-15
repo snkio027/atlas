@@ -41,7 +41,7 @@ func TestServiceForwardProcess(t *testing.T) {
 			fmt.Println("Handling connection for 12345")
 		}
 		_ = http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Query().Get("query") != `up{namespace="demo",service="web-api"}` {
+			if r.URL.Query().Get("query") != `up{namespace="project-demo",service="web-api"}` {
 				w.WriteHeader(400)
 				return
 			}

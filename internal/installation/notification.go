@@ -2,6 +2,7 @@ package installation
 
 import (
 	"atlas-refactor/internal/observation"
+	"atlas-refactor/internal/platformnames"
 	"context"
 	"errors"
 	"fmt"
@@ -74,13 +75,13 @@ func (w *Workflow) notify(ctx context.Context, f Files) error {
 	return nil
 }
 func notificationPath(name string) string {
-	return "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/" + name
+	return "/apis/argoproj.io/v1alpha1/namespaces/" + platformnames.Argo + "/applications/" + name
 }
 
 func notificationObject(o, want map[string]any, name, uid string) error {
 	gotUID, _ := nested(o, "metadata", "uid").(string)
 	rv, _ := nested(o, "metadata", "resourceVersion").(string)
-	if o["apiVersion"] != "argoproj.io/v1alpha1" || o["kind"] != "Application" || nested(o, "metadata", "name") != name || nested(o, "metadata", "namespace") != "argocd" || gotUID == "" || rv == "" || (uid != "" && gotUID != uid) || nested(o, "metadata", "deletionTimestamp") != nil {
+	if o["apiVersion"] != "argoproj.io/v1alpha1" || o["kind"] != "Application" || nested(o, "metadata", "name") != name || nested(o, "metadata", "namespace") != platformnames.Argo || gotUID == "" || rv == "" || (uid != "" && gotUID != uid) || nested(o, "metadata", "deletionTimestamp") != nil {
 		return errors.New("notification Application identity/deletion fence failed")
 	}
 	if !reflect.DeepEqual(o["spec"], want["spec"]) {

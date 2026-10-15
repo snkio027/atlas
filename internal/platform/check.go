@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -230,7 +229,7 @@ func (p *Project) Check(ctx context.Context) (int, error) {
 		return 0, e
 	}
 	for path, want := range files {
-		got, e := os.ReadFile(filepath.Join(p.Root, path))
+		got, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return 0, e
 		}
@@ -328,7 +327,7 @@ func (p *Project) Check(ctx context.Context) (int, error) {
 		return 0, errors.New("tenant cluster authority")
 	}
 	dests := slice(field(tenant, "spec", "destinations"))
-	if len(dests) != 1 || mapping(dests[0])["namespace"] != "workload-web" {
+	if len(dests) != 1 || mapping(dests[0])["namespace"] != p.namespace("workload-web") {
 		return 0, errors.New("tenant namespace escape")
 	}
 	for _, kind := range []string{"Application", "AppProject", "ApplicationSet"} {
@@ -387,7 +386,7 @@ func (p *Project) Check(ctx context.Context) (int, error) {
 		return 0, e
 	}
 	// Parse controller configuration rather than overlooking images in YAML strings.
-	cm := inventory["/ConfigMap/envoy-gateway-system/envoy-gateway-config"]
+	cm := inventory["/ConfigMap/"+p.namespace("envoy-gateway-system")+"/envoy-gateway-config"]
 	embedded, e := p.yaml(ctx, []byte(str(field(cm, "data", "envoy-gateway.yaml"))))
 	if e != nil {
 		return 0, e
@@ -462,7 +461,7 @@ func (p *Project) checkNetwork(inv map[string]Object) error {
 	if field(dns, "spec", "dns", "lookupFamily") != "IPv4" {
 		return errors.New("backend DNS must be IPv4 only")
 	}
-	deny := inv["networking.k8s.io/NetworkPolicy/workload-web/default-deny"]
+	deny := inv["networking.k8s.io/NetworkPolicy/"+p.namespace("workload-web")+"/default-deny"]
 	if len(mapping(field(deny, "spec", "podSelector"))) != 0 || !contains(field(deny, "spec", "policyTypes"), "Ingress") || !contains(field(deny, "spec", "policyTypes"), "Egress") || len(slice(field(deny, "spec", "ingress"))) != 0 || len(slice(field(deny, "spec", "egress"))) != 0 {
 		return errors.New("missing tenant default deny")
 	}

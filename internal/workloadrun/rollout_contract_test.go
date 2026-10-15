@@ -29,7 +29,7 @@ func compiledRollout(t *testing.T) (workload.CompileContext, map[string]workload
 			base[name] = b
 		}
 	}
-	base["gitops/platform/management/argocd-self/overlays/development/signal.json"] = workload.JSON(Object{"apiVersion": "v1", "kind": "ConfigMap", "metadata": Object{"name": "atlas-refactor-adoption-signal", "namespace": "argocd"}})
+	base["gitops/platform/management/argocd-self/overlays/development/signal.json"] = workload.JSON(Object{"apiVersion": "v1", "kind": "ConfigMap", "metadata": Object{"name": "atlas-refactor-adoption-signal", "namespace": "platform-argocd"}})
 	model, err := product.ObservationResourceModel()
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func compiledGate(t *testing.T, r workload.Result, receipt Publication) Observat
 		_, live := gateApp(name)
 		live["spec"] = o["spec"]
 		mapping(at(live, "status", "sync"))["revision"] = receipt.Commit
-		fact := observation.ClassifyApplication(observation.ExpectedApplication{Name: name, Spec: mapping(o["spec"]), Revision: receipt.Commit}, live, nil)
+		fact := observation.ClassifyApplication(observation.ExpectedApplication{Namespace: "platform-argocd", Name: name, Spec: mapping(o["spec"]), Revision: receipt.Commit}, live, nil)
 		report.ApplicationFacts = append(report.ApplicationFacts, fact)
 		report.Applications[name] = receipt.Commit
 		report.UID[owned.Identity] = fact.UID

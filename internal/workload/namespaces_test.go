@@ -14,8 +14,8 @@ func renameProject(in *Intent, name string) {
 		in.Bindings[i].Project = name
 	}
 }
-func TestProjectCannotClaimUnprefixedPlatformNamespaces(t *testing.T) {
-	for _, name := range []string{"gateway", "monitoring", "sealed-secrets", "object-storage", "cert-manager", "envoy-gateway-system", "local-path-storage"} {
+func TestProjectCannotClaimPlatformOrPrefixedNamespaces(t *testing.T) {
+	for _, name := range []string{"gateway", "monitoring", "sealed-secrets", "object-storage", "cert-manager", "platform-gateway", "local-path-storage", "platform-smoke", "project-platform-smoke", "service-kafka", "project-demo"} {
 		t.Run(name, func(t *testing.T) {
 			in := fixture(t)
 			renameProject(&in, name)
@@ -33,7 +33,7 @@ func TestFuturePlatformDestinationReservesNamespaceBeforeCreation(t *testing.T) 
 	err := edit(c.Base, ProjectsPath, func(xs []Object) ([]Object, error) {
 		for _, p := range xs {
 			if meta(p)["name"] == "platform-project" {
-				obj(p["spec"])["destinations"] = append(arr(val(p, "spec", "destinations")), Object{"namespace": "database-system", "server": "https://kubernetes.default.svc"})
+				obj(p["spec"])["destinations"] = append(arr(val(p, "spec", "destinations")), Object{"namespace": "project-database-system", "server": "https://kubernetes.default.svc"})
 			}
 		}
 		return xs, nil

@@ -4,6 +4,7 @@
 package workloadrun
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/installation"
 	"atlas-refactor/internal/platform"
 	"atlas-refactor/internal/workload"
@@ -141,7 +142,7 @@ func save(path string, b []byte, immutable bool) error {
 	return os.Rename(f.Name(), path)
 }
 func Load(configPath string) (*Workflow, error) {
-	b, e := regular(configPath, false)
+	b, e := regularAuthored(configPath)
 	if e != nil {
 		return nil, e
 	}
@@ -157,7 +158,7 @@ func Load(configPath string) (*Workflow, error) {
 			return nil, errors.New("S2 paths must be absolute clean paths")
 		}
 	}
-	b, e = regular(w.Config.InstallationConfig, false)
+	b, e = regularAuthored(w.Config.InstallationConfig)
 	if e != nil {
 		return nil, e
 	}
@@ -434,4 +435,19 @@ func (w *Workflow) bind(ctx context.Context) error {
 		return errors.New("cluster UID differs")
 	}
 	return nil
+}
+
+func regularAuthored(path string) ([]byte, error) {
+	p, err := authored.Resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	b, err := regular(p, false)
+	if err != nil {
+		return nil, err
+	}
+	if filepath.Ext(p) == ".yaml" {
+		return authored.JSON(b)
+	}
+	return b, nil
 }

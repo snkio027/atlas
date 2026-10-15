@@ -3,6 +3,7 @@ package workloadrun
 import (
 	"atlas-refactor/internal/observation"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"context"
 	"errors"
@@ -128,7 +129,7 @@ func mergeGateUIDs(uid map[string]string, gate Observation, receipt Publication,
 	}
 	apps := map[string]bool{}
 	for _, f := range gate.ApplicationFacts {
-		if f.Ref.APIVersion != "argoproj.io/v1alpha1" || f.Ref.Kind != "Application" || f.Ref.Namespace != "argocd" || f.Ref.Name == "" || apps[f.Ref.Name] || f.Classification != observation.Verified || f.UID == "" || f.ResourceVersion == "" || !f.ArgoSSA || !fullSHA.MatchString(f.ObservedRevision) || f.ExpectedRevision != f.ObservedRevision || !observation.Hash(f.ObservedSpecSHA256) || f.ExpectedSpecSHA256 != f.ObservedSpecSHA256 || gate.UID[appIdentity(f.Ref.Name)] != f.UID || gate.Applications[f.Ref.Name] != f.ObservedRevision {
+		if f.Ref.APIVersion != "argoproj.io/v1alpha1" || f.Ref.Kind != "Application" || f.Ref.Namespace != platformnames.Argo || f.Ref.Name == "" || apps[f.Ref.Name] || f.Classification != observation.Verified || f.UID == "" || f.ResourceVersion == "" || !f.ArgoSSA || !fullSHA.MatchString(f.ObservedRevision) || f.ExpectedRevision != f.ObservedRevision || !observation.Hash(f.ObservedSpecSHA256) || f.ExpectedSpecSHA256 != f.ObservedSpecSHA256 || gate.UID[appIdentity(f.Ref.Name)] != f.UID || gate.Applications[f.Ref.Name] != f.ObservedRevision {
 			return errors.New("phase Application proof incomplete")
 		}
 		apps[f.Ref.Name] = true

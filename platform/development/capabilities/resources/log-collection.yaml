@@ -1,0 +1,356 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: alloy-config
+      namespace: platform-logging
+    data:
+      config.alloy: |
+        discovery.kubernetes "pods" {
+          role = "pod"
+          namespaces { names = ["service-postgresql", "service-redis", "service-kafka", "service-flink-session", "project-platform-smoke"] }
+        }
+        discovery.relabel "logs" {
+          targets = discovery.kubernetes.pods.targets
+          rule {
+            source_labels = ["__meta_kubernetes_namespace"]
+            target_label = "namespace"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_name"]
+            target_label = "pod"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_container_name"]
+            target_label = "container"
+          }
+        }
+        loki.source.kubernetes "pods" {
+          targets = discovery.relabel.logs.output
+          forward_to = [loki.write.local.receiver]
+        }
+        loki.write "local" {
+          endpoint { url = "http://loki.platform-logging.svc.cluster.local:3100/loki/api/v1/push" }
+        }
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: alloy
+      namespace: platform-logging
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: alloy
+      namespace: platform-logging
+      labels:
+        app.kubernetes.io/name: alloy
+    spec:
+      selector:
+        app.kubernetes.io/name: alloy
+      ports:
+        - name: http
+          port: 12345
+          targetPort: http
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: alloy
+      namespace: platform-logging
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: alloy
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: alloy
+          annotations:
+            checksum/config: 9ff60ba7bb43c6e35e8e8837f6c704a36d067f10237b152cd44cd9d2187031bf
+        spec:
+          automountServiceAccountToken: true
+          nodeSelector:
+            kubernetes.io/os: linux
+            node-role.local/compute: "true"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 473
+            runAsGroup: 473
+            fsGroup: 473
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: alloy
+              image: docker.io/grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 384Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              ports:
+                - name: http
+                  containerPort: 12345
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+                  readOnly: false
+                - name: alloy-config
+                  mountPath: /config
+                  readOnly: true
+                - name: data
+                  mountPath: /data
+                  readOnly: false
+              args:
+                - run
+                - /config/config.alloy
+                - --storage.path=/data
+                - --server.http.listen-addr=0.0.0.0:12345
+                - --disable-reporting
+              startupProbe:
+                httpGet:
+                  path: /-/ready
+                  port: http
+                periodSeconds: 5
+                failureThreshold: 60
+              readinessProbe:
+                httpGet:
+                  path: /-/ready
+                  port: http
+                periodSeconds: 10
+                timeoutSeconds: 3
+                failureThreshold: 3
+              livenessProbe:
+                httpGet:
+                  path: /-/ready
+                  port: http
+                periodSeconds: 20
+                timeoutSeconds: 5
+                failureThreshold: 6
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 128Mi
+            - name: alloy-config
+              configMap:
+                name: alloy-config
+                defaultMode: 292
+            - name: data
+              emptyDir:
+                sizeLimit: 128Mi
+          terminationGracePeriodSeconds: 60
+          serviceAccountName: alloy
+      strategy:
+        type: Recreate
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: alloy-access
+      namespace: platform-logging
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: alloy
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: platform-monitoring
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: prometheus
+          ports:
+            - protocol: TCP
+              port: 12345
+      egress:
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: platform-logging
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: loki
+          ports:
+            - protocol: TCP
+              port: 3100
+        - ports:
+            - protocol: TCP
+              port: 443
+            - protocol: TCP
+              port: 6443
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: alloy-logs
+      namespace: service-postgresql
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: alloy-logs
+      namespace: service-postgresql
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: alloy-logs
+    subjects:
+      - kind: ServiceAccount
+        name: alloy
+        namespace: platform-logging
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: alloy-logs
+      namespace: service-redis
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: alloy-logs
+      namespace: service-redis
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: alloy-logs
+    subjects:
+      - kind: ServiceAccount
+        name: alloy
+        namespace: platform-logging
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: alloy-logs
+      namespace: service-kafka
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: alloy-logs
+      namespace: service-kafka
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: alloy-logs
+    subjects:
+      - kind: ServiceAccount
+        name: alloy
+        namespace: platform-logging
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: alloy-logs
+      namespace: service-flink-session
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: alloy-logs
+      namespace: service-flink-session
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: alloy-logs
+    subjects:
+      - kind: ServiceAccount
+        name: alloy
+        namespace: platform-logging
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: alloy-logs
+      namespace: project-platform-smoke
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: alloy-logs
+      namespace: project-platform-smoke
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: alloy-logs
+    subjects:
+      - kind: ServiceAccount
+        name: alloy
+        namespace: platform-logging

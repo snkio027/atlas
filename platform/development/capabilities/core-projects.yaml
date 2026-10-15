@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: platform-project
+      namespace: platform-argocd
+    spec:
+      sourceRepos:
+        - https://github.com/snkio027/atlas-refactor.git
+      destinations:
+        - server: https://kubernetes.default.svc
+          namespace: platform-argocd
+        - server: https://kubernetes.default.svc
+          namespace: kube-system
+        - server: https://kubernetes.default.svc
+          namespace: platform-cert-manager
+        - server: https://kubernetes.default.svc
+          namespace: platform-gateway
+        - server: https://kubernetes.default.svc
+          namespace: local-path-storage
+        - server: https://kubernetes.default.svc
+          namespace: project-platform-smoke
+      clusterResourceWhitelist:
+        - group: ""
+          kind: Namespace
+        - group: storage.k8s.io
+          kind: StorageClass
+        - group: apiextensions.k8s.io
+          kind: CustomResourceDefinition
+        - group: gateway.networking.k8s.io
+          kind: GatewayClass
+        - group: rbac.authorization.k8s.io
+          kind: ClusterRole
+        - group: rbac.authorization.k8s.io
+          kind: ClusterRoleBinding
+        - group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+        - group: admissionregistration.k8s.io
+          kind: ValidatingWebhookConfiguration
+        - group: admissionregistration.k8s.io
+          kind: ValidatingAdmissionPolicy
+        - group: admissionregistration.k8s.io
+          kind: ValidatingAdmissionPolicyBinding
+      namespaceResourceWhitelist:
+        - group: ""
+          kind: ConfigMap
+        - group: ""
+          kind: Service
+        - group: ""
+          kind: ServiceAccount
+        - group: ""
+          kind: ResourceQuota
+        - group: ""
+          kind: LimitRange
+        - group: apps
+          kind: Deployment
+        - group: apps
+          kind: DaemonSet
+        - group: apps
+          kind: StatefulSet
+        - group: rbac.authorization.k8s.io
+          kind: Role
+        - group: rbac.authorization.k8s.io
+          kind: RoleBinding
+        - group: batch
+          kind: Job
+        - group: policy
+          kind: PodDisruptionBudget
+        - group: networking.k8s.io
+          kind: NetworkPolicy
+        - group: argoproj.io
+          kind: Application
+        - group: cert-manager.io
+          kind: Issuer
+        - group: cert-manager.io
+          kind: Certificate
+        - group: gateway.envoyproxy.io
+          kind: EnvoyProxy
+        - group: gateway.envoyproxy.io
+          kind: BackendTrafficPolicy
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+  - apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: workload-project
+      namespace: platform-argocd
+    spec:
+      sourceRepos:
+        - https://github.com/snkio027/atlas-refactor.git
+      destinations:
+        - server: https://kubernetes.default.svc
+          namespace: project-platform-smoke
+      clusterResourceWhitelist: []
+      namespaceResourceWhitelist:
+        - group: ""
+          kind: ConfigMap
+        - group: ""
+          kind: Service
+        - group: ""
+          kind: PersistentVolumeClaim
+        - group: apps
+          kind: Deployment
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute

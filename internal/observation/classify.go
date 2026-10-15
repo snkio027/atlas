@@ -183,7 +183,7 @@ func ClassifyResource(expected ExpectedResource, o Object, readErr error) Resour
 	return f
 }
 func ClassifyApplication(expected ExpectedApplication, o Object, readErr error) ApplicationFact {
-	ref := Ref{"argoproj.io/v1alpha1", "Application", "argocd", expected.Name}
+	ref := Ref{"argoproj.io/v1alpha1", "Application", expected.ApplicationNamespace(), expected.Name}
 	f := ApplicationFact{ResourceFact: resourceBase(ref, o, readErr), ExpectedRevision: expected.Revision, ExpectedSpecSHA256: Digest(expected.Spec)}
 	if readErr != nil || o == nil || Reference(o) != ref {
 		return f

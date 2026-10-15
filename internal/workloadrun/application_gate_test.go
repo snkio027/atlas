@@ -11,8 +11,8 @@ import (
 func gateApp(name string) (observation.ExpectedApplication, Object) {
 	rev := strings.Repeat("a", 40)
 	spec := Object{"project": "platform-project"}
-	want := observation.ExpectedApplication{Name: name, Spec: spec, Revision: rev}
-	live := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": "argocd", "uid": name + "-uid", "resourceVersion": "1", "generation": float64(1), "annotations": Object{observation.TrackingAnnotation: "platform-control:argoproj.io/Application:argocd/" + name}, "managedFields": []any{Object{"manager": "argocd-controller", "operation": "Apply", "fieldsV1": Object{"f:spec": Object{}}}}}, "spec": spec, "status": Object{"sync": Object{"revision": rev, "status": "Synced"}, "health": Object{"status": "Healthy"}}}
+	want := observation.ExpectedApplication{Namespace: "platform-argocd", Name: name, Spec: spec, Revision: rev}
+	live := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": name, "namespace": "platform-argocd", "uid": name + "-uid", "resourceVersion": "1", "generation": float64(1), "annotations": Object{observation.TrackingAnnotation: "platform-control:argoproj.io/Application:platform-argocd/" + name}, "managedFields": []any{Object{"manager": "argocd-controller", "operation": "Apply", "fieldsV1": Object{"f:spec": Object{}}}}}, "spec": spec, "status": Object{"sync": Object{"revision": rev, "status": "Synced"}, "health": Object{"status": "Healthy"}}}
 	return want, live
 }
 func gateSession(wants []observation.ExpectedApplication, introduced bool) *rolloutSession {
@@ -218,13 +218,13 @@ func TestApplicationGateExactInventory(t *testing.T) {
 }
 func TestResourceConvergenceRejectsThirdContentAndBackwardTransition(t *testing.T) {
 	id := "rbac.authorization.k8s.io/RoleBinding/demo/use"
-	old := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "old", "namespace": "demo"}}}
-	target := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "new", "namespace": "demo"}}}
+	old := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "old", "namespace": "project-demo"}}}
+	target := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "new", "namespace": "project-demo"}}}
 	s := newRolloutSession(true, map[string]Object{id: old}, nil, nil, nil)
 	if _, ok := s.content(id, target, old).(Pending); !ok {
 		t.Fatal("old desired content did not wait")
 	}
-	third := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "foreign", "namespace": "demo"}}}
+	third := Object{"kind": "RoleBinding", "subjects": []any{Object{"kind": "ServiceAccount", "name": "foreign", "namespace": "project-demo"}}}
 	if err := s.content(id, target, third); err == nil {
 		t.Fatal("third content accepted")
 	} else if _, ok := err.(Pending); ok {
@@ -283,8 +283,8 @@ func FuzzRolloutCannotInventApplicationProof(f *testing.F) {
 
 func TestRolloutCannotUseStaleComparisonAfterSourceChange(t *testing.T) {
 	want, app := gateApp("existing")
-	oldSpec := Object{"project": "platform-project", "source": Object{"path": "gitops/old"}, "destination": Object{"namespace": "argocd"}}
-	want.Spec = Object{"project": "platform-project", "source": Object{"path": "gitops/new"}, "destination": Object{"namespace": "argocd"}}
+	oldSpec := Object{"project": "platform-project", "source": Object{"path": "gitops/old"}, "destination": Object{"namespace": "platform-argocd"}}
+	want.Spec = Object{"project": "platform-project", "source": Object{"path": "gitops/new"}, "destination": Object{"namespace": "platform-argocd"}}
 	app["spec"] = want.Spec
 	compared := Object{"source": oldSpec["source"], "destination": oldSpec["destination"]}
 	mapping(at(app, "status", "sync"))["comparedTo"] = compared

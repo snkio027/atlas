@@ -43,7 +43,7 @@ func unsealedCandidate(t *testing.T) *Project {
 			if err != nil {
 				return err
 			}
-			b, err := os.ReadFile(path)
+			b, err := readInput(path)
 			if err != nil {
 				return err
 			}
@@ -57,7 +57,7 @@ func unsealedCandidate(t *testing.T) *Project {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(p.Root, capabilityDir, "resources/platform-credentials.json"), []byte(`{"apiVersion":"v1","kind":"List","items":[]}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(p.Root, capabilityDir, "resources/platform-credentials.yaml"), []byte(`{"apiVersion":"v1","kind":"List","items":[]}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	p.Capabilities.Active = nil
@@ -178,7 +178,7 @@ func TestCatalogJSONRejectsDuplicateKeys(t *testing.T) {
 	}
 }
 func TestCandidateInstantiationSnapshotRemainsFrozen(t *testing.T) {
-	b, e := os.ReadFile(filepath.Join(testRoot(t), inputDir, "bootstrap/baseline-v3.json"))
+	b, e := readInput(filepath.Join(testRoot(t), inputDir, "bootstrap/baseline-v3.json"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -191,7 +191,7 @@ func TestCatalogCannotInjectHelmFlags(t *testing.T) {
 	source := testRoot(t)
 	root := t.TempDir()
 	for _, path := range []string{inputDir + "/config.json", inputDir + "/versions.lock.json", capabilityDir + "/catalog.json", capabilityDir + "/enabled.json", capabilityDir + "/versions.lock.json"} {
-		b, e := os.ReadFile(filepath.Join(source, path))
+		b, e := readInput(filepath.Join(source, path))
 		if e != nil {
 			t.Fatal(e)
 		}

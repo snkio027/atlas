@@ -10,11 +10,11 @@
           "argocd.argoproj.io/sync-wave": "-100"
         },
         "name": "foundation",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "argocd",
+          "namespace": "platform-argocd",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -45,7 +45,7 @@
           "argocd.argoproj.io/sync-wave": "-99"
         },
         "name": "cilium",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
@@ -80,11 +80,11 @@
           "argocd.argoproj.io/sync-wave": "-90"
         },
         "name": "argocd-self",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "argocd",
+          "namespace": "platform-argocd",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -115,11 +115,11 @@
           "argocd.argoproj.io/sync-wave": "-90"
         },
         "name": "cert-manager",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "cert-manager",
+          "namespace": "platform-cert-manager",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -150,11 +150,11 @@
           "argocd.argoproj.io/sync-wave": "-40"
         },
         "name": "gateway-api",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "envoy-gateway-system",
+          "namespace": "platform-gateway",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -185,11 +185,11 @@
           "argocd.argoproj.io/sync-wave": "-40"
         },
         "name": "envoy-crds",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "envoy-gateway-system",
+          "namespace": "platform-gateway",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -220,11 +220,11 @@
           "argocd.argoproj.io/sync-wave": "-30"
         },
         "name": "envoy-gateway",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "envoy-gateway-system",
+          "namespace": "platform-gateway",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -255,7 +255,7 @@
           "argocd.argoproj.io/sync-wave": "-30"
         },
         "name": "local-storage",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
@@ -290,11 +290,11 @@
           "argocd.argoproj.io/sync-wave": "-20"
         },
         "name": "local-pki",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "gateway",
+          "namespace": "platform-gateway",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -325,11 +325,11 @@
           "argocd.argoproj.io/sync-wave": "-10"
         },
         "name": "edge",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "gateway",
+          "namespace": "platform-gateway",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -360,11 +360,11 @@
           "argocd.argoproj.io/sync-wave": "-100"
         },
         "name": "observability-foundation",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -395,11 +395,11 @@
           "argocd.argoproj.io/sync-wave": "-100"
         },
         "name": "secrets-foundation",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "sealed-secrets",
+          "namespace": "platform-sealed-secrets",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -430,11 +430,11 @@
           "argocd.argoproj.io/sync-wave": "-100"
         },
         "name": "storage-foundation",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "object-storage",
+          "namespace": "service-object-storage",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -465,11 +465,11 @@
           "argocd.argoproj.io/sync-wave": "-95"
         },
         "name": "secrets-crds",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "sealed-secrets",
+          "namespace": "platform-sealed-secrets",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -500,11 +500,11 @@
           "argocd.argoproj.io/sync-wave": "-90"
         },
         "name": "secrets-controller",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "sealed-secrets",
+          "namespace": "platform-sealed-secrets",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -535,11 +535,11 @@
           "argocd.argoproj.io/sync-wave": "-80"
         },
         "name": "platform-credentials",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -570,11 +570,11 @@
           "argocd.argoproj.io/sync-wave": "-40"
         },
         "name": "monitoring-crds",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -605,11 +605,11 @@
           "argocd.argoproj.io/sync-wave": "-30"
         },
         "name": "monitoring-operator",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -640,11 +640,11 @@
           "argocd.argoproj.io/sync-wave": "-10"
         },
         "name": "monitoring",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -675,11 +675,11 @@
           "argocd.argoproj.io/sync-wave": "-10"
         },
         "name": "object-storage",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "object-storage",
+          "namespace": "service-object-storage",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",
@@ -710,11 +710,11 @@
           "argocd.argoproj.io/sync-wave": "0"
         },
         "name": "storage-monitoring",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "destination": {
-          "namespace": "monitoring",
+          "namespace": "platform-monitoring",
           "server": "https://kubernetes.default.svc"
         },
         "project": "platform-project",

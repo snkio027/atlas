@@ -2,6 +2,7 @@ package workload
 
 import (
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -12,10 +13,10 @@ import (
 )
 
 func projectPermissions(files Files, m *Model) error {
-	ns := m.Intent.Project.Name
+	ns := m.Intent.Project.Namespace()
 	return edit(files, ProjectsPath, func(xs []Object) ([]Object, error) {
 		for _, name := range []string{"platform-project", "workload-project"} {
-			p, e := find(xs, "AppProject", "argocd", name)
+			p, e := find(xs, "AppProject", platformnames.Argo, name)
 			if e != nil {
 				return nil, e
 			}
@@ -30,7 +31,7 @@ func projectPermissions(files Files, m *Model) error {
 // in infrastructure. Separate owners may reconcile in any order.
 func certificatePrerequisites(files Files, m *Model) error {
 	return edit(files, PKIPath, func(xs []Object) ([]Object, error) {
-		template, e := find(xs, "Certificate", "gateway", "web-tls")
+		template, e := find(xs, "Certificate", platformnames.Gateway, "web-tls")
 		if e != nil {
 			return nil, e
 		}
@@ -47,9 +48,9 @@ func certificatePrerequisites(files Files, m *Model) error {
 }
 
 func platformAdapters(files Files, m *Model) error {
-	ns := m.Intent.Project.Name
+	ns := m.Intent.Project.Namespace()
 	if e := edit(files, EdgePath, func(xs []Object) ([]Object, error) {
-		g, e := find(xs, "Gateway", "gateway", "development")
+		g, e := find(xs, "Gateway", platformnames.Gateway, "development")
 		if e != nil {
 			return nil, e
 		}
@@ -57,7 +58,7 @@ func platformAdapters(files Files, m *Model) error {
 		for _, w := range m.Intent.Workloads {
 			h := ShortID("Workload", w.Project, w.Name)
 			for _, secure := range []bool{false, true} {
-				l := Object{"name": "s2-" + h + "-http", "hostname": w.Exposure.Hostname, "port": 80, "protocol": "HTTP", "allowedRoutes": Object{"namespaces": Object{"from": "Selector", "selector": Object{"matchLabels": Object{"kubernetes.io/metadata.name": ns, "atlas.io/project": ns}}}, "kinds": []any{Object{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute"}}}}
+				l := Object{"name": "s2-" + h + "-http", "hostname": w.Exposure.Hostname, "port": 80, "protocol": "HTTP", "allowedRoutes": Object{"namespaces": Object{"from": "Selector", "selector": Object{"matchLabels": Object{"kubernetes.io/metadata.name": ns, "atlas.io/project": m.Intent.Project.Name}}}, "kinds": []any{Object{"group": "gateway.networking.k8s.io", "kind": "HTTPRoute"}}}}
 				if secure {
 					l["name"] = "s2-" + h + "-https"
 					l["port"] = 443
@@ -75,7 +76,7 @@ func platformAdapters(files Files, m *Model) error {
 		extra := []Object{}
 		changed := false
 		for _, o := range xs {
-			if meta(o)["namespace"] == "workload-web" && (o["kind"] == "Role" || o["kind"] == "RoleBinding") {
+			if meta(o)["namespace"] == platformnames.Smoke && (o["kind"] == "Role" || o["kind"] == "RoleBinding") {
 				n := clone(o)
 				meta(n)["namespace"] = ns
 				extra = append(extra, n)
@@ -163,11 +164,11 @@ func validateArtifacts(c CompileContext, m *Model, a *Artifacts) error {
 	if a == nil || a.Schema != 1 || a.InstallID != c.InstallID || a.CertificateSHA256 != c.CertificateSHA256 || a.IntentSHA256 != Digest(JSON(m.Intent)) || len(a.Clients) != len(m.Intent.Bindings) {
 		return errors.New("missing or mismatched registered credentials")
 	}
-	if e := sealedObject(a.Provider, "object-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}); e != nil {
+	if e := sealedObject(a.Provider, platformnames.ObjectStorage, "seaweedfs-auth", []string{"seaweedfs_s3_config"}); e != nil {
 		return e
 	}
 	for _, b := range m.Intent.Bindings {
-		if e := sealedObject(a.Clients[b.ID()], b.Project, b.Secret(), []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}); e != nil {
+		if e := sealedObject(a.Clients[b.ID()], b.Namespace(), b.Secret(), []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}); e != nil {
 			return e
 		}
 	}
