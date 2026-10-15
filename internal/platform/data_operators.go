@@ -75,11 +75,11 @@ func (p *Project) hardenDataOperator(release string, o Object) error {
 				env := mapping(item)
 				switch env["name"] {
 				case "STRIMZI_KAFKA_IMAGES", "STRIMZI_KAFKA_CONNECT_IMAGES", "STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES":
-					image := p.Capabilities.Lock.Images["quay.io/strimzi/kafka:1.3.0-kafka-4.3.1"]
-					if image == "" || !strings.Contains(str(env["value"]), "4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1") {
-						return fmt.Errorf("Strimzi supported image map changed: %s", env["name"])
+					images, err := p.pinStrimziImages(str(env["value"]))
+					if err != nil {
+						return fmt.Errorf("%s: %w", env["name"], err)
 					}
-					env["value"] = "4.3.1=" + image
+					env["value"] = images
 				}
 			}
 		}
@@ -93,4 +93,34 @@ func (p *Project) hardenDataOperator(release string, o Object) error {
 		pod["volumes"] = append(slice(pod["volumes"]), Object{"name": "operator-tmp", "emptyDir": Object{}}, Object{"name": "operator-logs", "emptyDir": Object{}})
 	}
 	return nil
+}
+
+// Strimzi validates its complete supported-version catalog at startup, even
+// when the only authored Kafka CR explicitly selects 4.3.1. Pin each genuine
+// version image; narrowing the catalog, or aliasing old versions to a newer
+// binary, does not restrict runtime authority and breaks the upstream contract.
+func (p *Project) pinStrimziImages(value string) (string, error) {
+	versions := []string{"4.2.0", "4.2.1", "4.2.2", "4.3.0", "4.3.1"}
+	entries := strings.Fields(value)
+	if len(entries) != len(versions) {
+		return "", fmt.Errorf("Strimzi 1.3.0 requires its complete supported image map")
+	}
+	seen := map[string]string{}
+	for _, entry := range entries {
+		version, image, ok := strings.Cut(entry, "=")
+		if !ok || seen[version] != "" {
+			return "", fmt.Errorf("invalid or duplicate Strimzi image entry")
+		}
+		seen[version] = image
+	}
+	result := make([]string, 0, len(versions))
+	for _, version := range versions {
+		source := "quay.io/strimzi/kafka:1.3.0-kafka-" + version
+		locked := p.Capabilities.Lock.Images[source]
+		if locked == "" || !pinnedImage.MatchString(locked) || !strings.HasPrefix(locked, source+"@sha256:") || (seen[version] != source && seen[version] != locked) {
+			return "", fmt.Errorf("Strimzi image missing, changed or unpinned for version %s", version)
+		}
+		result = append(result, version+"="+locked)
+	}
+	return strings.Join(result, "\n"), nil
 }

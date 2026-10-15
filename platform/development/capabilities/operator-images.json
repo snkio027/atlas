@@ -1,5 +1,5 @@
 {
-  "checkedOn": "2026-10-14",
+  "checkedOn": "2026-10-16",
   "images": {
     "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": {
       "digest": "sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
@@ -295,6 +295,154 @@
             "JBOSS_IMAGE_VERSION=1.24",
             "LANG=C.utf8",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/s2i"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0": {
+      "digest": "sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:dff4a6d6e7f750ff3304c255516c46bdf63b076c4a5a4b871a39ce0bb3a24c9e",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:343385814ebffbb4bfd64f1023195f399311355fb28f7d523abf1fa49cc996c7",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1": {
+      "digest": "sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:a8335462b905900f6e0a06f12abe5aa72145b4152758ea4ef6c27d49d8940dd0",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:3b637a509e3a29696589eb60868a05934aae0cffaa03745d784d96324bdae951",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2": {
+      "digest": "sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:631b69b3ccb10f166432d759f93f846770f92da521df79fc5cc0a637f42cc320",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.2",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:f282c34458f44c348f0017b7c24f59305ad2047104b3f0c2545f9b6c4ab99ffc",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.2",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0": {
+      "digest": "sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:9d71f51e5aa1f79eafe2cf47e3d0a01fbe3f9cba3331af9d463dad33cb6881d5",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:fb816169faccea4aefd9b00defed1debda6c0687a080b4c514dcc0e4c6893b1a",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
           ]
         }
       }

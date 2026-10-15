@@ -33,8 +33,11 @@ Bridge 或 Cruise Control；Flink 不创建业务 Job 或自动回滚。新 name
 ## 供应链与兼容性
 
 三个官方 Helm 包 vendored 并验证上游发布摘要；Helm 只是离线 renderer，没有 release 状态。
-Operator 与动态运行镜像都锁定版本和 index SHA-256，核验 ARM64/AMD64。Strimzi 镜像映射
-仅保留 4.3.1，辅助镜像同样固定；CNPG 的默认 PostgreSQL 和 init/bootstrap Operator 镜像均固定。
+Operator 与动态运行镜像都锁定版本和 index SHA-256，核验 ARM64/AMD64。Strimzi 1.3.0
+启动时校验完整支持目录，因此保留 4.2.0、4.2.1、4.2.2、4.3.0、4.3.1 与各自真实镜像
+的固定映射；当前 Kafka CR 只声明 4.3.1。首次运行证明裁成单项会使 Operator 立即退出，
+完整目录不代表启用其他版本实例或 Connect/MirrorMaker2。辅助镜像同样固定；
+CNPG 的默认 PostgreSQL 和 init/bootstrap Operator 镜像均固定。
 Flink CR 明确指定运行镜像。版本/来源见 capabilities/versions.lock.json、operator-images.json。
 
 CNPG 1.30 的 Kubernetes 正式支持范围为 1.34–1.36，1.37 为 tested；本仓库的 1.37.0

@@ -3,6 +3,11 @@
 实现候选、默认未启用、运行时未验收。参见 [ADR-0021](adr/0021-local-data-platform.md)
 与 [本地验证](data-platform-validation.md)。迁移发生在未部署的源码候选中，不接管旧 r3 的资源。
 
+Strimzi 1.3.0 的启动配置必须保留官方支持的 4.2.0、4.2.1、4.2.2、4.3.0、4.3.1
+完整镜像目录，分别固定真实 digest。当前 Kafka CR 仍明确选择 4.3.1；目录完整性不等于
+启用 Connect、MirrorMaker2 或其他 Kafka 实例。离线制品准备沿用现有规则，包含已激活
+清单引用的全部固定镜像。上游支持目录变化需要重新核验渲染与真实配置解析器。
+
 | 能力 | 管理方式 / 版本 | 内部地址 | 数据 |
 | --- | --- | --- | --- |
 | PostgreSQL | CloudNativePG 1.30.1 / PostgreSQL 18.6 | postgresql-rw.postgresql.svc.cluster.local:5432 | 8Gi，TLS/SCRAM |

@@ -1,8 +1,8 @@
 # 数据基础设施候选：本地验证
 
 日期：2026-10-15。基于 namespace 候选 `d046c7b`，分支 `codex/data-platform-foundations`。
-本记录对应 Operator 迁移后的源码候选。首次新集群执行已完成 D1，数据扩展停在
-foundation/CRD 阶段，尚无数据组件 Runtime PASS；原因与修复见
+本记录对应 Operator 迁移后的源码候选。首次新集群执行已完成 D1，`660b96e` 修正后
+CRD Gate 已通过；数据扩展停在 Strimzi Operator 启动配置错误，尚无数据组件 Runtime PASS；原因与修复见
 [失败记录](data-platform-failures.md)。下表是本地验证，不能替代运行验收。
 
 | 验证 | 结果与范围 |
@@ -13,6 +13,7 @@ foundation/CRD 阶段，尚无数据组件 Runtime PASS；原因与修复见
 | Capability inventory | 20 个新增可选能力，138 个资源（空密文占位，不含平台 Application/权限增量）；全选闭包31项 |
 | 默认安装 | 仍启用原345个资源；新增领域 health 同时进入新产品 Seed/自管理清单，未声称字节不变 |
 | Supply chain | 三个Chart验证发布摘要；镜像固定index SHA-256，核验ARM64/AMD64，来源记录进入仓库 |
+| Strimzi 支持目录 | 五个版本逐项固定真实镜像；真实上游解析器离线验证：单版本配置拒绝、完整目录通过。无 Kubernetes 访问，不作为控制器就绪证明 |
 | 凭据 | 真实离线kubeseal验证三个data-services目标；basic-auth类型、独立profile、重复不轮换、明文/宽scope拒绝 |
 | RBAC / namespace | 五个无atlas前缀的保留namespace；默认deny；operator固定watch范围，global权限仅经审查的发现/自身webhook |
 | Runtime ownership | PostgreSQL/Kafka/Flink由领域CR定义；Argo不同时声明其Deployment/StatefulSet；Flink runtime无API RBAC/token |
@@ -37,7 +38,7 @@ foundation/CRD 阶段，尚无数据组件 Runtime PASS；原因与修复见
 - Redis探针保留 `redis-cli -e`，避免错误认证/命令返回成功。
 
 此前手写PostgreSQL/Kafka清单的进程启动结果不作为Operator候选的运行证据。
-当前尚未验证：Operator启动、admission/webhook、真实生成Pod、PVC持久化、NetworkPolicy执行、
+当前尚未完整验证：Operator启动 Gate、admission/webhook、真实生成Pod、PVC持久化、NetworkPolicy执行、
 SQL/Redis/Kafka协议负例、Flink作业与checkpoint、Loki查询链路，以及原D1服务不回归。
 CRD静态默认值检查不模拟mutating webhook或API Server。没有Runtime PASS、HA/DR或生产声明。
 

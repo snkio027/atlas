@@ -26,7 +26,11 @@
     "docker.io/apache/flink-kubernetes-operator:1.16.0": "docker.io/apache/flink-kubernetes-operator:1.16.0@sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
     "quay.io/strimzi/kafka-bridge:1.2.0": "quay.io/strimzi/kafka-bridge:1.2.0@sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6",
     "quay.io/strimzi/buildah:1.3.0": "quay.io/strimzi/buildah:1.3.0@sha256:3ac4d8fde6eca2ad837dc5258390f5ea704949b0539c77a394eb33a63c806b97",
-    "quay.io/strimzi/maven-builder:1.3.0": "quay.io/strimzi/maven-builder:1.3.0@sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba"
+    "quay.io/strimzi/maven-builder:1.3.0": "quay.io/strimzi/maven-builder:1.3.0@sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4"
   },
   "artifacts": {
     "vendor/platform/sealed-secrets-2.20.0.tgz": {
