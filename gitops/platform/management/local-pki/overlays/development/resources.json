@@ -1,0 +1,93 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "0"
+        },
+        "name": "local-selfsigned",
+        "namespace": "gateway"
+      },
+      "spec": {
+        "selfSigned": {}
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "1"
+        },
+        "name": "development-ca",
+        "namespace": "gateway"
+      },
+      "spec": {
+        "commonName": "Atlas Development CA",
+        "duration": "8760h",
+        "isCA": true,
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "local-selfsigned"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "development-ca"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "2"
+        },
+        "name": "development-ca",
+        "namespace": "gateway"
+      },
+      "spec": {
+        "ca": {
+          "secretName": "development-ca"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "web-tls",
+        "namespace": "gateway"
+      },
+      "spec": {
+        "dnsNames": [
+          "web.atlas.test"
+        ],
+        "duration": "720h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "168h",
+        "secretName": "web-tls"
+      }
+    }
+  ],
+  "kind": "List"
+}

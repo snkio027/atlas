@@ -1,0 +1,106 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "0"
+        },
+        "name": "selfsigned",
+        "namespace": "redis"
+      },
+      "spec": {
+        "selfSigned": {}
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "1"
+        },
+        "name": "service-ca",
+        "namespace": "redis"
+      },
+      "spec": {
+        "commonName": "redis development CA",
+        "duration": "8760h",
+        "isCA": true,
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "selfsigned"
+        },
+        "privateKey": {
+          "algorithm": "RSA",
+          "encoding": "PKCS8",
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "720h",
+        "secretName": "service-ca",
+        "usages": [
+          "cert sign",
+          "crl sign"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "2"
+        },
+        "name": "service-ca",
+        "namespace": "redis"
+      },
+      "spec": {
+        "ca": {
+          "secretName": "service-ca"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "server-tls",
+        "namespace": "redis"
+      },
+      "spec": {
+        "commonName": "redis",
+        "dnsNames": [
+          "redis",
+          "redis.redis",
+          "redis.redis.svc",
+          "redis.redis.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "service-ca"
+        },
+        "privateKey": {
+          "algorithm": "RSA",
+          "encoding": "PKCS8",
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "360h",
+        "secretName": "server-tls",
+        "usages": [
+          "server auth"
+        ]
+      }
+    }
+  ],
+  "kind": "List"
+}

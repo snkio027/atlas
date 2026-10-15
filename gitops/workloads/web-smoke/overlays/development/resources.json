@@ -1,0 +1,286 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "web-data",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        },
+        "storageClassName": "atlas-local-retain"
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "web-smoke",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "web-smoke"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "web-smoke"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "command": [
+                  "httpd",
+                  "-f",
+                  "-p",
+                  "8080",
+                  "-h",
+                  "/data"
+                ],
+                "image": "docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e",
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/",
+                    "port": "http"
+                  },
+                  "initialDelaySeconds": 5
+                },
+                "name": "web",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http"
+                  }
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/",
+                    "port": "http"
+                  }
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "25m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  }
+                ]
+              }
+            ],
+            "initContainers": [
+              {
+                "command": [
+                  "sh",
+                  "-ec",
+                  "if [ ! -e /data/index.html ]; then printf \"Atlas development web: %s\\n\" \"$HOSTNAME\" \u003e /data/index.html; fi"
+                ],
+                "image": "docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e",
+                "name": "initialize-once",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "25m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  }
+                ]
+              }
+            ],
+            "nodeSelector": {
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "fsGroup": 10001,
+              "runAsGroup": 10001,
+              "runAsNonRoot": true,
+              "runAsUser": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "web-data"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "web-smoke",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "port": 80,
+            "targetPort": "http"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "web-smoke"
+        }
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "name": "web-http",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "hostnames": [
+          "web.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "gateway",
+            "sectionName": "http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 18443,
+                  "scheme": "https",
+                  "statusCode": 301
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "name": "web-https",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "hostnames": [
+          "web.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "gateway",
+            "sectionName": "https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "web-smoke",
+                "port": 80,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List"
+}

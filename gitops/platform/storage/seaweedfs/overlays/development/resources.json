@@ -1,0 +1,215 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        },
+        "name": "seaweedfs-data",
+        "namespace": "object-storage"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "16Gi"
+          }
+        },
+        "storageClassName": "atlas-local-retain"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/name": "seaweedfs"
+        },
+        "name": "seaweedfs",
+        "namespace": "object-storage"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "s3",
+            "port": 8333,
+            "targetPort": "s3"
+          },
+          {
+            "name": "metrics",
+            "port": 9324,
+            "targetPort": "metrics"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "seaweedfs"
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "seaweedfs",
+        "namespace": "object-storage"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "seaweedfs"
+          }
+        },
+        "serviceName": "seaweedfs",
+        "template": {
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "seaweedfs"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "args": [
+                  "mini",
+                  "-dir=/data",
+                  "-ip=127.0.0.1",
+                  "-ip.bind=0.0.0.0",
+                  "-webdav=false",
+                  "-admin.ui=false",
+                  "-s3.iam=false",
+                  "-s3.config=/etc/seaweedfs/seaweedfs_s3_config",
+                  "-bucket=uploads",
+                  "-s3.autoCreateBucket=false",
+                  "-s3.allowDeleteBucketNotEmpty=false",
+                  "-s3.concurrentUploadLimitMB=128",
+                  "-metricsPort=9324",
+                  "-s3.port.iceberg=0",
+                  "-s3.port.lance=0",
+                  "-master.volumeSizeLimitMB=128",
+                  "-volume.max=96"
+                ],
+                "command": [
+                  "weed"
+                ],
+                "image": "docker.io/chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d",
+                "livenessProbe": {
+                  "failureThreshold": 6,
+                  "periodSeconds": 20,
+                  "tcpSocket": {
+                    "port": "s3"
+                  }
+                },
+                "name": "seaweedfs",
+                "ports": [
+                  {
+                    "containerPort": 8333,
+                    "name": "s3"
+                  },
+                  {
+                    "containerPort": 9324,
+                    "name": "metrics"
+                  }
+                ],
+                "readinessProbe": {
+                  "periodSeconds": 10,
+                  "tcpSocket": {
+                    "port": "s3"
+                  }
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "768Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "startupProbe": {
+                  "failureThreshold": 60,
+                  "periodSeconds": 5,
+                  "tcpSocket": {
+                    "port": "s3"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/etc/seaweedfs",
+                    "name": "auth",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "nodeSelector": {
+              "kubernetes.io/os": "linux",
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "fsGroup": 1000,
+              "runAsGroup": 1000,
+              "runAsNonRoot": true,
+              "runAsUser": 1000,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "seaweedfs-data"
+                }
+              },
+              {
+                "name": "auth",
+                "secret": {
+                  "secretName": "seaweedfs-auth"
+                }
+              },
+              {
+                "emptyDir": {
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "kind": "List"
+}

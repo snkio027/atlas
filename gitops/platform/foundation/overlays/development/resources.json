@@ -1,0 +1,204 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "cert-manager"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "envoy-gateway-system"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "gateway"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "local-path-storage"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "labels": {
+          "atlas.io/gateway-access": "development",
+          "pod-security.kubernetes.io/enforce": "restricted",
+          "pod-security.kubernetes.io/enforce-version": "v1.36"
+        },
+        "name": "workload-web"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ResourceQuota",
+      "metadata": {
+        "name": "web-budget",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "hard": {
+          "limits.cpu": "4",
+          "limits.memory": "4Gi",
+          "persistentvolumeclaims": "5",
+          "pods": "12",
+          "requests.cpu": "2",
+          "requests.memory": "2Gi",
+          "requests.storage": "10Gi",
+          "services": "10"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "LimitRange",
+      "metadata": {
+        "name": "web-defaults",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "limits": [
+          {
+            "default": {
+              "cpu": "500m",
+              "memory": "256Mi"
+            },
+            "defaultRequest": {
+              "cpu": "50m",
+              "memory": "64Mi"
+            },
+            "type": "Container"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "default-deny",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "podSelector": {},
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "allow-dns",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "kube-system"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "k8s-app": "kube-dns"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "gateway-to-web",
+        "namespace": "workload-web"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "envoy-gateway-system"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8080,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "web-smoke"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    }
+  ],
+  "kind": "List"
+}
