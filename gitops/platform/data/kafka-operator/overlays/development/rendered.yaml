@@ -918,15 +918,15 @@
               },
               {
                 "name": "STRIMZI_KAFKA_IMAGES",
-                "value": "4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
               },
               {
                 "name": "STRIMZI_KAFKA_CONNECT_IMAGES",
-                "value": "4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
               },
               {
                 "name": "STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES",
-                "value": "4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
               },
               {
                 "name": "STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE",
