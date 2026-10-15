@@ -24,7 +24,6 @@
           {
             "jsonPath": ".status.jobStatus.state",
             "name": "Job Status",
-            "priority": 0,
             "type": "string"
           }
         ],
@@ -18618,13 +18617,11 @@
           {
             "jsonPath": ".status.jobStatus.state",
             "name": "Job Status",
-            "priority": 0,
             "type": "string"
           },
           {
             "jsonPath": ".status.lifecycleState",
             "name": "Lifecycle State",
-            "priority": 0,
             "type": "string"
           }
         ],
@@ -37126,19 +37123,16 @@
           {
             "jsonPath": ".status.path",
             "name": "Path",
-            "priority": 0,
             "type": "string"
           },
           {
             "jsonPath": ".status.resultTimestamp",
             "name": "Result Timestamp",
-            "priority": 0,
             "type": "string"
           },
           {
             "jsonPath": ".status.state",
             "name": "Snapshot State",
-            "priority": 0,
             "type": "string"
           }
         ],
@@ -37267,13 +37261,11 @@
           {
             "jsonPath": ".status.jobStatus.state",
             "name": "Job Status",
-            "priority": 0,
             "type": "string"
           },
           {
             "jsonPath": ".status.lifecycleState",
             "name": "Lifecycle State",
-            "priority": 0,
             "type": "string"
           }
         ],
