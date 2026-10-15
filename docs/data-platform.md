@@ -30,7 +30,9 @@ plan 列出依赖、权限增量和缺失密文；没有密文时 readyToEnable=
 新实例先从默认能力构建并完成 D1；数据能力是 post-install 扩展，提前选择它们会阻止 D1 打包。
 新产品携带领域 CR health 定义；冻结 S1 catalog 不添加这些定义或重写历史输入。
 
-1. 在新 D1 实例完成交接后，发布五个 foundation：postgresql/redis/kafka/flink/logging。
+1. 在新 D1 实例完成交接后，先单独发布本阶段的 AppProject 权限增量，并核验
+   project-bootstrap 的当前 Git revision、同步完成及 live AppProject 精确 spec。
+   再发布五个 foundation：postgresql/redis/kafka/flink/logging。
    保留既有 enabled 集合；Sealed Secrets 按 consumer namespace 投影有限 watch/RoleBinding。
 2. 发布 CNPG/Strimzi/Flink CRDs，等待 Established。CRD 与原 canonical AppProject 分工不变。
 3. 核验并备份新实例 Trust Root 后，离线生成三个独立扩展凭据：
@@ -48,6 +50,15 @@ atlas-platform prepare-credentials --credential-profile data-services \
    与 Grafana datasource、ServiceMonitor、Pod/PVC 告警。Strimzi/Flink health 核对当前 generation；
    CNPG 1.30.1 只提供 readiness，另核对子对象的配置与运行结果。
 6. 执行协议、权限负例、持久化与幂等验收。未知、漂移、timeout、Gate failure 即 STOP。
+
+后续阶段若增加 namespace 或资源 kind 权限，同样先提交并核验权限，再提交消费者。
+不能用同一 commit 中的文件顺序或 External Root 的首次 sync wave 保证后续更新顺序：
+project-bootstrap 与 platform-control 会独立观察 Git。权限尚未落地时，新 Application
+可能已经被创建并报 InvalidSpecError。已记录的 STOP 不因随后自主收敛而改写为历史 PASS。
+
+新数据 CRD 的打印列按 API 表示投影：省略 additionalPrinterColumns.priority 的数值零，
+保留非零值及 CR schema 内的 default。Flink 固定 Chart 中的显式零会被 API 省略，导致
+Argo SSA 比较持续 OutOfSync；修复发生在 renderer，不使用 ignoreDifferences。
 
 deployment branch 不带完整 authored/catalog/vendor 输入。执行计划须先生成源清单，再沿用 D1
 repository/revision projection 写入实例分支；不能把源码 development branch 当部署目标。

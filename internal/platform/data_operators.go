@@ -24,6 +24,19 @@ func (p *Project) hardenDataOperator(release string, o Object) error {
 	name := str(metadata(o)["name"])
 	if o["kind"] == "CustomResourceDefinition" {
 		metadata(o)["annotations"] = Object{"argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"}
+		// CustomResourceColumnDefinition.priority is an omitempty int32 in
+		// the API. The locked Flink chart emits explicit zeroes; Argo's SSA
+		// comparison retains those zeroes while the API response omits them,
+		// causing an endless OutOfSync/self-heal loop. Canonicalize only this
+		// field on these new data CRDs, never defaults inside their schemas.
+		for _, version := range slice(field(o, "spec", "versions")) {
+			for _, raw := range slice(field(mapping(version), "additionalPrinterColumns")) {
+				column := mapping(raw)
+				if priority, ok := column["priority"].(float64); ok && priority == 0 {
+					delete(column, "priority")
+				}
+			}
+		}
 	}
 	if release == "cnpg" {
 		if o["kind"] == "ClusterRole" && name == "cnpg" {

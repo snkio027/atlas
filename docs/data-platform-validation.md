@@ -1,7 +1,9 @@
 # 数据基础设施候选：本地验证
 
 日期：2026-10-15。基于 namespace 候选 `d046c7b`，分支 `codex/data-platform-foundations`。
-本记录对应 Operator 迁移后的源码候选；新集群运行验收尚未执行。
+本记录对应 Operator 迁移后的源码候选。首次新集群执行已完成 D1，数据扩展停在
+foundation/CRD 阶段，尚无数据组件 Runtime PASS；原因与修复见
+[失败记录](data-platform-failures.md)。下表是本地验证，不能替代运行验收。
 
 | 验证 | 结果与范围 |
 | --- | --- |
