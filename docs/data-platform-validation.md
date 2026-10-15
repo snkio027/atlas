@@ -2,7 +2,8 @@
 
 日期：2026-10-15。基于 namespace 候选 `d046c7b`，分支 `codex/data-platform-foundations`。
 本记录对应 Operator 迁移后的源码候选。首次新集群执行已完成 D1，`660b96e` 修正后
-CRD Gate 已通过；数据扩展停在 Strimzi Operator 启动配置错误，尚无数据组件 Runtime PASS；原因与修复见
+CRD Gate 已通过；`adcaf5d`的Strimzi修正及权限Gate也已通过。运行实例已发布，
+但初始化健康判断触发STOP，另发现Redis探针参数错误及CNPG admission默认值差异；尚无数据组件Runtime PASS。原因与修复见
 [失败记录](data-platform-failures.md)。下表是本地验证，不能替代运行验收。
 
 | 验证 | 结果与范围 |
@@ -20,7 +21,8 @@ CRD Gate 已通过；数据扩展停在 Strimzi Operator 启动配置错误，�
 | CRD 默认值 | CNPG/Strimzi/Flink、Certificate、ServiceMonitor、PrometheusRule通过schema/default-stability校验 |
 | Operator health | 真实Lua验证Strimzi/Flink当前generation；CNPG锁定版本readiness及过期/缺失/矛盾负例 |
 | 数据节点调度 | 三个Operator的Pod模板显式容忍D1 data节点污点，回归防止仅nodeSelector导致永久Pending |
-| Redis | 既有锁定镜像的隔离进程验证通过TLS/ACL/AOF启动与认证PING；本轮未改变该运行配置 |
+| Redis | 锁定镜像、无网络的 `scripts/check-redis-probes.py` 执行清单中的三个真实TLS/认证探针；旧参数顺序与错误密码负例均拒绝。旧简化PING测试未覆盖实际argv，不能作为此前探针正确性的证据 |
+| CNPG admission | 脱敏真实admitted spec固定30项额外默认值；显式声明后保持完整spec比较，不将未知live字段视为等价 |
 | Loki / Alloy | 锁定镜像执行verify-config / validate，无网络；脚本见scripts/check-logging-configs.py |
 
 本地证据索引：`.state/latest/data-platform/operators/{quality.log,quality.exit,render.log,plan.json,inventory.json}`。
@@ -38,7 +40,7 @@ CRD Gate 已通过；数据扩展停在 Strimzi Operator 启动配置错误，�
 - Redis探针保留 `redis-cli -e`，避免错误认证/命令返回成功。
 
 此前手写PostgreSQL/Kafka清单的进程启动结果不作为Operator候选的运行证据。
-当前尚未完整验证：Operator启动 Gate、admission/webhook、真实生成Pod、PVC持久化、NetworkPolicy执行、
+当前Operator启动Gate已通过；仍未完整验证：修正后的运行资源Gate、真实生成Pod完整审计、PVC持久化、NetworkPolicy执行、
 SQL/Redis/Kafka协议负例、Flink作业与checkpoint、Loki查询链路，以及原D1服务不回归。
 CRD静态默认值检查不模拟mutating webhook或API Server。没有Runtime PASS、HA/DR或生产声明。
 

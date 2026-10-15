@@ -203,9 +203,9 @@
                       "127.0.0.1",
                       "--user",
                       "platform-admin",
-                      "ping",
                       "--sni",
-                      "redis.redis.svc.cluster.local"
+                      "redis.redis.svc.cluster.local",
+                      "ping"
                     ]
                   },
                   "periodSeconds": 5,
@@ -223,9 +223,9 @@
                       "127.0.0.1",
                       "--user",
                       "platform-admin",
-                      "ping",
                       "--sni",
-                      "redis.redis.svc.cluster.local"
+                      "redis.redis.svc.cluster.local",
+                      "ping"
                     ]
                   },
                   "periodSeconds": 10,
@@ -244,9 +244,9 @@
                       "127.0.0.1",
                       "--user",
                       "platform-admin",
-                      "ping",
                       "--sni",
-                      "redis.redis.svc.cluster.local"
+                      "redis.redis.svc.cluster.local",
+                      "ping"
                     ]
                   },
                   "periodSeconds": 20,

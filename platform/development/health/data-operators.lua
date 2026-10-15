@@ -37,6 +37,13 @@ if obj.apiVersion == "postgresql.cnpg.io/v1" and obj.kind == "Cluster" then
     return {status = "Progressing", message = "Stale CNPG Ready condition"}
   end
   if ready.status == "False" then
+    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including
+    -- normal first-primary setup. Only these known startup phases may wait;
+    -- a negative condition is never sufficient evidence of readiness.
+    if ready.reason == "ClusterIsNotReady" and
+       (s.phase == "Setting up primary" or s.phase == "Waiting for the instances to become active") then
+      return {status = "Progressing", message = s.phase}
+    end
     return {status = "Degraded", message = ready.message or ready.reason or "CNPG not ready"}
   end
   local spec = obj.spec or {}

@@ -216,8 +216,45 @@ func TestRedisProbeRejectsAuthErrors(t *testing.T) {
 			if !contains(field(c, probe, "exec", "command"), "-e") {
 				t.Fatal("redis auth error may return success", probe)
 			}
+			args := slice(field(c, probe, "exec", "command"))
+			// redis-cli stops parsing options at the command. Trailing --sni
+			// becomes a PING argument and makes every otherwise valid probe fail.
+			if len(args) < 4 || args[len(args)-1] != "ping" ||
+				args[len(args)-3] != "--sni" || args[len(args)-2] != "redis.redis.svc.cluster.local" {
+				t.Fatal("Redis TLS options must precede the PING command", probe, args)
+			}
 		}
 	}
+}
+
+func TestCNPGSpecMatchesAdmittedReleaseDefaults(t *testing.T) {
+	// Spec captured after actual CNPG 1.30.1 admission, stripped of all
+	// metadata/status. Structural CRD validation alone cannot predict these
+	// webhook defaults. Keep them explicit rather than ignoring live extras.
+	fixture, err := os.ReadFile(filepath.Join(testRoot(t), "internal/platform/testdata/cnpg-1.30.1-admitted-spec.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected Object
+	if err := json.Unmarshal(fixture, &expected); err != nil {
+		t.Fatal(err)
+	}
+	p := candidate(t)
+	objects, err := p.capabilityObjects("postgresql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range objects {
+		if o["kind"] == "Cluster" {
+			got, _ := json.Marshal(o["spec"])
+			want, _ := json.Marshal(expected)
+			if !bytes.Equal(got, want) {
+				t.Fatal("CNPG desired spec differs from the locked admission representation")
+			}
+			return
+		}
+	}
+	t.Fatal("CNPG Cluster not rendered")
 }
 
 func TestOperatorHealthRequiresCurrentGeneration(t *testing.T) {
@@ -287,6 +324,26 @@ func TestCNPGHealthMatchesLockedReleaseReadiness(t *testing.T) {
 			mapping(o["status"])["conditions"] = append(slice(field(o, "status", "conditions")), Object{"type": "Ready", "status": "True"})
 		}},
 		{"not ready", "Degraded", func(o Object) { mapping(slice(field(o, "status", "conditions"))[0])["status"] = "False" }},
+		{"first primary initializing", "Progressing", func(o Object) {
+			mapping(o["status"])["phase"] = "Setting up primary"
+			mapping(o["status"])["conditions"] = []any{Object{"type": "Ready", "status": "False", "reason": "ClusterIsNotReady"}}
+		}},
+		{"waiting for instance", "Progressing", func(o Object) {
+			mapping(o["status"])["phase"] = "Waiting for the instances to become active"
+			mapping(o["status"])["conditions"] = []any{Object{"type": "Ready", "status": "False", "reason": "ClusterIsNotReady"}}
+		}},
+		{"startup with different failure", "Degraded", func(o Object) {
+			mapping(o["status"])["phase"] = "Setting up primary"
+			mapping(o["status"])["conditions"] = []any{Object{"type": "Ready", "status": "False", "reason": "InvalidConfiguration"}}
+		}},
+		{"unrecoverable", "Degraded", func(o Object) {
+			mapping(o["status"])["phase"] = "Cluster is unrecoverable and needs manual intervention"
+			mapping(o["status"])["conditions"] = []any{Object{"type": "Ready", "status": "False", "reason": "ClusterIsNotReady"}}
+		}},
+		{"unknown phase not ready", "Degraded", func(o Object) {
+			mapping(o["status"])["phase"] = "Unexpected upstream state"
+			mapping(o["status"])["conditions"] = []any{Object{"type": "Ready", "status": "False", "reason": "ClusterIsNotReady"}}
+		}},
 		{"unknown ready", "Progressing", func(o Object) { mapping(slice(field(o, "status", "conditions"))[0])["status"] = "Unknown" }},
 		{"rolling phase", "Progressing", func(o Object) { mapping(o["status"])["phase"] = "Rolling update in progress" }},
 		{"changed image", "Progressing", func(o Object) { mapping(o["spec"])["imageName"] = "new-locked-image" }},
