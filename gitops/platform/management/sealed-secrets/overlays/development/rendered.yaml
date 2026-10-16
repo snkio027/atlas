@@ -1,0 +1,864 @@
+{
+  "apiVersion": "v1",
+  "kind": "ServiceAccount",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "platform-sealed-secrets"
+  }
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets-key-admin",
+    "namespace": "platform-sealed-secrets"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "sealed-secrets-key"
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "create",
+        "list"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets-service-proxier",
+    "namespace": "platform-sealed-secrets"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "sealed-secrets"
+      ],
+      "resources": [
+        "services"
+      ],
+      "verbs": [
+        "get"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "http:sealed-secrets:",
+        "http:sealed-secrets:http",
+        "sealed-secrets"
+      ],
+      "resources": [
+        "services/proxy"
+      ],
+      "verbs": [
+        "create",
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "platform-sealed-secrets"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "platform-sealed-secrets",
+        "platform-monitoring",
+        "project-platform-smoke",
+        "service-object-storage"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "platform-monitoring"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "platform-sealed-secrets",
+        "platform-monitoring",
+        "project-platform-smoke",
+        "service-object-storage"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "project-platform-smoke"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "platform-sealed-secrets",
+        "platform-monitoring",
+        "project-platform-smoke",
+        "service-object-storage"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "secrets-unsealer",
+    "namespace": "service-object-storage"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "bitnami.com"
+      ],
+      "resources": [
+        "sealedsecrets/status"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "create",
+        "update",
+        "delete",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resourceNames": [
+        "platform-sealed-secrets",
+        "platform-monitoring",
+        "project-platform-smoke",
+        "service-object-storage"
+      ],
+      "resources": [
+        "namespaces"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets-key-admin",
+    "namespace": "platform-sealed-secrets"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "sealed-secrets-key-admin"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "platform-sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets-service-proxier",
+    "namespace": "platform-sealed-secrets"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "sealed-secrets-service-proxier"
+  },
+  "subjects": [
+    {
+      "apiGroup": "rbac.authorization.k8s.io",
+      "kind": "Group",
+      "name": "system:authenticated"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "platform-sealed-secrets"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "platform-sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "platform-monitoring"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "platform-sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "project-platform-smoke"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "platform-sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "service-object-storage"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "secrets-unsealer"
+  },
+  "subjects": [
+    {
+      "apiGroup": "",
+      "kind": "ServiceAccount",
+      "name": "sealed-secrets",
+      "namespace": "platform-sealed-secrets"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "platform-sealed-secrets"
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "http",
+        "nodePort": null,
+        "port": 8080,
+        "protocol": "TCP",
+        "targetPort": "http"
+      }
+    ],
+    "selector": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/name": "sealed-secrets"
+    },
+    "type": "ClusterIP"
+  }
+}
+---
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/component": "metrics",
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets-metrics",
+    "namespace": "platform-sealed-secrets"
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "metrics",
+        "nodePort": null,
+        "port": 8081,
+        "protocol": "TCP",
+        "targetPort": "metrics"
+      }
+    ],
+    "selector": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/name": "sealed-secrets"
+    },
+    "type": "ClusterIP"
+  }
+}
+---
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "annotations": null,
+    "labels": {
+      "app.kubernetes.io/instance": "sealed-secrets",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "sealed-secrets",
+      "app.kubernetes.io/part-of": "sealed-secrets",
+      "app.kubernetes.io/version": "0.40.0",
+      "helm.sh/chart": "sealed-secrets-2.20.0"
+    },
+    "name": "sealed-secrets",
+    "namespace": "platform-sealed-secrets"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app.kubernetes.io/instance": "sealed-secrets",
+        "app.kubernetes.io/name": "sealed-secrets"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/instance": "sealed-secrets",
+          "app.kubernetes.io/name": "sealed-secrets"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "args": [
+              "--update-status",
+              "--key-renew-period",
+              "0",
+              "--key-prefix",
+              "sealed-secrets-key",
+              "--additional-namespaces",
+              "platform-sealed-secrets,platform-monitoring,project-platform-smoke,service-object-storage",
+              "--listen-addr",
+              ":8080",
+              "--listen-metrics-addr",
+              ":8081"
+            ],
+            "command": [
+              "controller"
+            ],
+            "env": [
+              {
+                "name": "GOMEMLIMIT",
+                "valueFrom": {
+                  "resourceFieldRef": {
+                    "divisor": "1",
+                    "resource": "limits.memory"
+                  }
+                }
+              }
+            ],
+            "image": "docker.io/bitnami/sealed-secrets-controller:0.40.0@sha256:b1ff382e9300dc9e74991f3177b18cafc06ce43b5c21349c86adbdd1d1c177d3",
+            "imagePullPolicy": "IfNotPresent",
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/healthz",
+                "port": "http"
+              },
+              "initialDelaySeconds": 0,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "name": "controller",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http",
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8081,
+                "name": "metrics",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "httpGet": {
+                "path": "/healthz",
+                "port": "http"
+              },
+              "initialDelaySeconds": 0,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 1
+            },
+            "resources": {
+              "limits": {
+                "memory": "192Mi"
+              },
+              "requests": {
+                "cpu": "20m",
+                "memory": "64Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsNonRoot": true,
+              "runAsUser": 1001
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp",
+                "name": "tmp"
+              }
+            ]
+          }
+        ],
+        "nodeSelector": {
+          "kubernetes.io/os": "linux",
+          "node-role.local/compute": "true"
+        },
+        "securityContext": {
+          "fsGroup": 65534,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccountName": "sealed-secrets",
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "tmp"
+          }
+        ]
+      }
+    }
+  }
+}
