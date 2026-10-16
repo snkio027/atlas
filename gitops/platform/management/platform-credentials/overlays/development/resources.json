@@ -1,5 +1,77 @@
 {
   "apiVersion": "v1",
-  "items": [],
+  "items": [
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "grafana-admin",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "encryptedData": {
+          "admin-password": "AgDYWgvaXRffyR+1r50Exkgr6E3Z/KzLPRrLxT/WW/6FAZQvWBR/VxT3ylEn7bdjd3EfXSKJZ30JpwEW/C3INkP5SIX7eX55u5QC2uwKpjlebdUlV6Nyl4zIoGCafXFHANk8+T2kmTkSy+EOhdu+oGAkIvliFiO6eLqXvYE/JS2wzNGcdnBTRnFKajB1DlHiKMq+vIHl4nrJ/MUG2wMb+WgCMPplM1qKiV6dUwa0Q/5EBN4eT/ddT5wuV5XNavcTwWANvFsSgcApuh54n3u7xI1TUw3x1nR6uxz/rvnNoXfPOKNlJBbTJDcnNC0OUAOw9jYMydtWct9c8HRUalX2ryEhDbebqSCTFoR/QnYNhKGVzrydDYPQbWyagcEmKcnF1PsbHKpIH5srZyw19nLY1FI8/3Lj5hAkzF5TN19yfDEcjfqNAxMf9k868KQMslAO10GNB0PJKO7z1bJkv4bmau4oPZh981azDv/Z0s4EnuBqoshr3Hrdg6rEFLg7lJFJVwtRmG0ZKNLPBengYPtbMnLHQ/GUgrcfBI6SMaN9raHrYiojKq4aAntahMwS5/CzY0/OrEkt6uISwGrfsKHtawtGD+9YfgrvzgHPuzS7Kv3/Jvyr1KbqYJIiAbvUqbLvre1wdMaqPUpcTMjaFnF6pfJqYKlgZJpl1AdL+4Au6YQdSGzcK9nZUMRxMrwpFnD4iYiNUJ503L46NCPXEmYzkiCoAAw5CN7NN0B7IxErAIivkBZpcXwYeKNIcovA",
+          "admin-user": "AgA3vWW6yddGAhnKxE7mZGiP3MqauJJZv+4nAdcXkbywsENd1UOMHor31CDb8gIUVHkFmd7HQaQHJmXpgKAgTV4J2Ya3DjziC31+NjvVaLqYNXWGAJ6R9EdOP+1/g5I0aIvOxVwGH8yPUMM8fO5mBKRPt9j5b0Y3esBNToLhoUEZvpf9aVkgzMr05V95K1WfVJ7sibLNtjWTk+usjhi3uZJkW4WlyIJjXVTh689+0yPBQeQjkKZKNNXrY0V+4GWK4BgkpXbo+L5uBUxey+AewNQdc7dxdu8vO39LEZ3dsPLBVIH5LcuQZKS2Xx7A8BVZyFdxLcrQSlvLRMdyWg2SsBlPAqSUxJwsR7KZLsee0g538zEjzeqIi1B9KWrFMJQjkE+pDHRZ/5YZLJgwcMpPxASF1OuP6EW0WPVfHGtjAWQCCv3t0/LlRTbkC0WYh5nmilxoM9hufK1BFlH2FmQM5RBzo2ccQ64+/Zo1uQKIvawpjP2m6Dx76sZ0+5lduUUhN1WQCybB2wKCl7vGZPgEX+SmHH4ZP2Bpr3qSbYsQcVAEKbuAZA1hycEDgNzB5j0Bcd9vCadU/pvYcoSKUOJ56MCQAcEW/rQ+cFJz8w2llqI90hQ89JH8BO3S0zHwsC+Rqec3MBIJP55QkGB3z36xNR+cj5lE/fVtgO0L1iJeKhHdc0/UQ3ZKBvls0lL1F5OjZorn0quLPg=="
+        },
+        "template": {
+          "metadata": {
+            "name": "grafana-admin",
+            "namespace": "platform-monitoring"
+          },
+          "type": "Opaque"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "seaweedfs-auth",
+        "namespace": "service-object-storage"
+      },
+      "spec": {
+        "encryptedData": {
+          "seaweedfs_s3_config": "AgDOjVHHdxPZllHivTqknO6mo68aWh6Fv45ROw4jWP9fvwFN1KXcIw+NEFDwHV0iY3rXlWkoLH/mPKhuRMIYLtPeLe6/SH97nwLdnUDBbE62nchefABTa0P/Jdxq+luL5dX7rfDk8UbvKG3TgHwVxeBb2z19O0tpiLKhgqw1BQL+x8NkmzwqMbcFxZ+b8u792BO02D12uXC5lJ1qwjVMPx/WRLjwBBLESFX37MwiFhBFspdfz5RzTF+3XCoUEgdOhjUOcGTR4+byFAVHa8LCp8WFrLwJu5xlCCjVlWwKEv1jS6sy1YJLSstcWAtRNersQ/wVDV2/S7oZopmOfAlgHfODfsKh1HuXh2HN3aL2gILDfUKCyUjQFQpQ3XFYYtK2S2pHy7QzEL3f3YU7+yK/TdUZfE4qQG+yzZVCQeavZQzWD3GsPi4S8AogDOUIer3CSqBINdZyUEnUpXxCs6YcS5fgI1ITORA1S0S0IFopuSg4luviL5XHRKjIcKmX3Ia0OLefpqzVn9o8aPlPC9cRLdnEeosOmpBb5DRmQ21kQYQTRR8rWgwYgyZKD1KdcJDT/BQ6dMs9fhpf5GcXsmK6X2SyV0PmR1NpChAEzTEIJjoA/PqBcA4XIGisIw3Ru/nFqSWWY9Gc8xu27BWYU9aatFTYnVrhTHhWIEGPmZia9GYA1ngF84LZlLEP28a7qTcMrRWZ4GlXt1oaD3rSxlqnmEFyoo1z1omd1KTkb3mxy2IiWyIMcQak47h9t7+KPm7g6fUtjlKpJtaFBUoOkcawuueTTNq4e13qlMHlpJOo+Sx/freYkrHkK1nAeRcWikR+/9WQXRYB5RWFdq+GC7aoxgyfMZL6NQEfgOA/chYtQWwsKaNPfQ14PkhHEcVOkXpDH7Aa4o/F7T37CV6gIK2VzeklCR1rEWafUzyliTBZIelInA23XrWy6VjaU7ypS/R8haNC28TwTq8e9fTwLpgMGY7W3aWR4+0kOjYS+vGMn4DSVRiqSv1J5kVYzl+EK8+oelFzn/67K3N27WzI80IYyK/AoFj91XHmokzcLC+tY8S5g4ealIkwsjGxS5CBB9K030cKKmULxwWDrV63ecAvXEMhtifqpLucIlu5RrWUZAnFfxi+vov6b7ubLl8FSpuDoUWsOSoyT3BLA3x8INu9QOk9r1YSX3jmOlE8Kvd5cc+ojhDncfGE4IsVdjpvR56Rv2w="
+        },
+        "template": {
+          "metadata": {
+            "name": "seaweedfs-auth",
+            "namespace": "service-object-storage"
+          },
+          "type": "Opaque"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "s3-client",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "encryptedData": {
+          "AWS_ACCESS_KEY_ID": "AgBO1LKVNmMzd+aGLsJpzpMLY4BJgVKkR+uKzxSlqtZSOcD2sMKk5woCSyPHGGWCdeonPs5ptQEqBKxSOIJvR9O2cs9E2VkSLo5D54bwZx0g9H/YhCPEVkR8Q3t8hbt2Al3CX6jm0fLQDmEDb2f1QYiOKLEkiOax6YTcs8FexZvKiKz16mGXw54XaFjm78H5oJ7q90S+ap8JHiiB8nKqgvG0tSaZjO2QUze7uQa2G138/8w/AXepR9Cke6Ew+vfw+dDYOrh3i//pT45LSThn6I03sViwImJ8Vuf8Lh1+mxtMqROoapUg1Wmxv8R8AOo9mw+buG9Pmo/UeK7IiIvrLu8cgfhN+ixOCq5zqzWwcwqyaL7QdWKCvHMGcVnjQAROGwejqE+Z0/2Z5dnzdDvTJaYt2gpwmzanseLofRMX/kywu0BOkxdi0oeqcn7EgUTPgswPQ+2qJ4+2BW0OoS3GwhkmTYoLo54meJrLr69bp/zR+wAd56DMexasG6feFWaSWQdOlhYi+EkKiwn1tz5ke3mxeY38omoPKZinmcMpIyhIYOQvOMweRL7O2OhkgUhyhlsrqgxMSbKryS46IYpZLIEgRc0mHS2ewNf+BmlBfkusuI+lqASwLJ9o/TXIkeaU/8bLCV9EB1FnDxB2nI23BYdudCNhbYHR3DwE1tdwVbnc1czKj2lwDk2QHjVjK21fhaEKyx8cx13RE/DVhMqCnEYLmkAH6CsKdPXVNpPNj252lMXGOzSs12VT5seu",
+          "AWS_SECRET_ACCESS_KEY": "AgBIAhcBHJquT7s+I0CIxQaWA3SpaMPMU5xGyY/0VdYgZGNYq+VWQZq+0wMz3AW6TIb3ARbTRHFTnh9nIM6vMJ3GJh5DYXe1ovBEvhNkxbTjJqTB9O1ktMo9vSoQg/fFDMT2NVpTaeVRX8zXjeBKJFRHyvZtLNNkDGru0mPzvNP54c5X08Icfs1fPIyD2OBEoHFe3U7zVOPLZsGpvkx64VVmyqbCxRpRI5SZXULOYZz67Uo17dmUWs1YEYTybIYAbsdPeSBdhcmDs38A2tbzACV2pk3A76Qt/C0bEzLe1G7Ch84z/XFNDIgt1l2mY/nChl5a4SoQbDaF9Sp+thIzdmuXJR4VLumYEQ0CR4jhl1OqTVWcYfHPh4u4H0vGomO2VaDqWwkgsVv70avqqMRdUakllkitWFTf2+at79voaYr+eqUNVrhNFXsAS36o2bDYEppff9QXj8eZs6OiyWMf/s40C3opriRqaVV+59o8zRuXjHcp+aqCzE70PYeCRxXItgXuwvtjwrWokBjDJLfXoOQU80zhpOKLWmYuLz9AUjzlaAaR6kd5rLuYpIQcPrALeSc4v/xoDTD6SRQK9GlQMeO9jHLOaVfV9JWKfi5qtIkc9vwQ/4VMzEV0N/uKUUySw1DFwey+DHmjEB79eC22rI5fJbIFru2SqSRYj3eAEXbeYafK3nv6TaHG/e+/dy4ffblpBM917t+fnqqFhzJ+lWlR0OOuQBHRNxIoLhu8yNQVlIS4ADD3/yhTrzjy"
+        },
+        "template": {
+          "metadata": {
+            "name": "s3-client",
+            "namespace": "project-platform-smoke"
+          },
+          "type": "Opaque"
+        }
+      }
+    }
+  ],
   "kind": "List"
 }
