@@ -139,8 +139,8 @@ func TestPlanApprovalBindsTargetBeforeAnyIO(t *testing.T) {
 }
 
 func TestAbsentAuthoredAnnotationsPermitArgoTracking(t *testing.T) {
-	want := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "monitoring", "annotations": nil}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
-	got := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "monitoring", "annotations": Object{"argocd.argoproj.io/tracking-id": "monitoring:/Service:monitoring/metrics"}}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
+	want := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "platform-monitoring", "annotations": nil}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
+	got := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "platform-monitoring", "annotations": Object{"argocd.argoproj.io/tracking-id": "monitoring:/Service:monitoring/metrics"}}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
 	if !matches(want, got) {
 		t.Fatal("null authored annotations are not an instruction to remove Argo tracking")
 	}

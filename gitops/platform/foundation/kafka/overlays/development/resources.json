@@ -1,19 +1,21 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
-        "name": "kafka",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
         "labels": {
+          "atlas.local/class": "service",
+          "atlas.local/domain": "streaming",
           "atlas.local/owner": "platform",
+          "kubernetes.io/metadata.name": "service-kafka",
           "pod-security.kubernetes.io/enforce": "restricted"
         },
-        "annotations": {
-          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        "name": "service-kafka"
       }
     },
     {
@@ -21,16 +23,16 @@
       "kind": "ResourceQuota",
       "metadata": {
         "name": "platform-budget",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "spec": {
         "hard": {
-          "requests.cpu": "3",
-          "requests.memory": "6Gi",
-          "limits.memory": "8Gi",
-          "requests.storage": "32Gi",
+          "limits.memory": "7Gi",
           "persistentvolumeclaims": "8",
-          "pods": "16"
+          "pods": "12",
+          "requests.cpu": "2500m",
+          "requests.memory": "5Gi",
+          "requests.storage": "32Gi"
         }
       }
     },
@@ -39,19 +41,19 @@
       "kind": "LimitRange",
       "metadata": {
         "name": "defaults",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "spec": {
         "limits": [
           {
-            "type": "Container",
             "default": {
               "memory": "256Mi"
             },
             "defaultRequest": {
               "cpu": "10m",
               "memory": "32Mi"
-            }
+            },
+            "type": "Container"
           }
         ]
       }
@@ -61,16 +63,16 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "default-deny",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "spec": {
+        "egress": [],
+        "ingress": [],
         "podSelector": {},
         "policyTypes": [
           "Ingress",
           "Egress"
-        ],
-        "ingress": [],
-        "egress": []
+        ]
       }
     },
     {
@@ -78,15 +80,21 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "dns",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "spec": {
-        "podSelector": {},
-        "policyTypes": [
-          "Egress"
-        ],
         "egress": [
           {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              }
+            ],
             "to": [
               {
                 "namespaceSelector": {
@@ -100,20 +108,15 @@
                   }
                 }
               }
-            ],
-            "ports": [
-              {
-                "protocol": "UDP",
-                "port": 53
-              },
-              {
-                "protocol": "TCP",
-                "port": 53
-              }
             ]
           }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

@@ -195,23 +195,23 @@ func (a *App) seedAndHandoff(ctx context.Context, files map[string][]byte) error
 			}
 		}
 	}
-	ns, e := a.get(ctx, "namespace", "", "argocd")
+	ns, e := a.get(ctx, "namespace", "", a.argoNamespace())
 	if e != nil {
 		return e
 	}
 	if ns == nil {
-		if e = a.create(ctx, object("Namespace", "", "argocd")); e != nil {
+		if e = a.create(ctx, object("Namespace", "", a.argoNamespace())); e != nil {
 			return e
 		}
 	}
 	// Only an empty Secret is created. Values are initialized by Argo at runtime,
 	// are never rendered into Git, and are never read back by this program.
-	secret, e := a.kube(ctx, nil, "get", "secret", "argocd-secret", "-n", "argocd", "--ignore-not-found=true", "-o", "name")
+	secret, e := a.kube(ctx, nil, "get", "secret", "argocd-secret", "-n", a.argoNamespace(), "--ignore-not-found=true", "-o", "name")
 	if e != nil {
 		return e
 	}
 	if strings.TrimSpace(string(secret)) == "" {
-		if e = a.create(ctx, object("Secret", "argocd", "argocd-secret")); e != nil {
+		if e = a.create(ctx, object("Secret", a.argoNamespace(), "argocd-secret")); e != nil {
 			return e
 		}
 	}
@@ -221,10 +221,10 @@ func (a *App) seedAndHandoff(ctx context.Context, files map[string][]byte) error
 	if _, e = a.kube(ctx, nil, "wait", "--for=condition=Established", "crd/applications.argoproj.io", "crd/appprojects.argoproj.io", "--timeout=120s"); e != nil {
 		return e
 	}
-	if _, e = a.kube(ctx, nil, "rollout", "status", "deployment/atlas-refactor-argocd-server", "-n", "argocd", "--timeout=180s"); e != nil {
+	if _, e = a.kube(ctx, nil, "rollout", "status", "deployment/atlas-refactor-argocd-server", "-n", a.argoNamespace(), "--timeout=180s"); e != nil {
 		return e
 	}
-	project, e := a.get(ctx, "appproject", "argocd", "atlas-bootstrap")
+	project, e := a.get(ctx, "appproject", a.argoNamespace(), "atlas-bootstrap")
 	if e != nil {
 		return e
 	}

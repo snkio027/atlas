@@ -3,7 +3,6 @@ package platform
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,7 +17,7 @@ func (p *Project) removedCapabilities(names []string) ([]string, error) {
 	for _, name := range p.Capabilities.Active {
 		current[name] = true
 	}
-	coreBytes, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "core-applications.json"))
+	coreBytes, e := readInput(filepath.Join(p.Root, capabilityDir, "core-applications.json"))
 	if e != nil {
 		return nil, e
 	}
@@ -30,7 +29,7 @@ func (p *Project) removedCapabilities(names []string) ([]string, error) {
 	for _, o := range core {
 		coreNames[str(metadata(o)["name"])] = true
 	}
-	b, e := os.ReadFile(filepath.Join(p.Root, platformApplications))
+	b, e := readInput(filepath.Join(p.Root, platformApplications))
 	if e != nil {
 		return nil, e
 	}
@@ -44,7 +43,7 @@ func (p *Project) removedCapabilities(names []string) ([]string, error) {
 	seen := map[string]bool{}
 	for _, o := range previous {
 		name := str(metadata(o)["name"])
-		if o["apiVersion"] != "argoproj.io/v1alpha1" || o["kind"] != "Application" || name == "" || metadata(o)["namespace"] != "argocd" || seen[name] {
+		if o["apiVersion"] != "argoproj.io/v1alpha1" || o["kind"] != "Application" || name == "" || metadata(o)["namespace"] != p.namespace("argocd") || seen[name] {
 			return nil, errors.New("invalid previous Application projection")
 		}
 		seen[name] = true

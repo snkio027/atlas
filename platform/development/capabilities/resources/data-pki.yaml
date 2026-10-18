@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: selfsigned
+      namespace: service-redis
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      selfSigned: {}
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: service-ca
+      namespace: service-redis
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      isCA: true
+      commonName: redis development CA
+      usages:
+        - cert sign
+        - crl sign
+      secretName: service-ca
+      issuerRef:
+        group: cert-manager.io
+        kind: Issuer
+        name: selfsigned
+      duration: 8760h
+      renewBefore: 720h
+      privateKey:
+        algorithm: RSA
+        size: 2048
+        encoding: PKCS8
+        rotationPolicy: Always
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: service-ca
+      namespace: service-redis
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      ca:
+        secretName: service-ca
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: server-tls
+      namespace: service-redis
+      annotations:
+        argocd.argoproj.io/sync-wave: "3"
+    spec:
+      commonName: redis
+      dnsNames:
+        - redis
+        - redis.service-redis
+        - redis.service-redis.svc
+        - redis.service-redis.svc.cluster.local
+      usages:
+        - server auth
+      secretName: server-tls
+      issuerRef:
+        group: cert-manager.io
+        kind: Issuer
+        name: service-ca
+      duration: 2160h
+      renewBefore: 360h
+      privateKey:
+        algorithm: RSA
+        size: 2048
+        encoding: PKCS8
+        rotationPolicy: Always

@@ -55,7 +55,7 @@ func runApp(args []string) error {
 	}
 	f := flag.NewFlagSet("app "+verb, flag.ContinueOnError)
 	workspace := f.String("workspace", ".", "managed app workspace")
-	instance := f.String("instance", "", "completed D1 directory (installation.json; runtime.json at root or package/)")
+	instance := f.String("instance", "", "completed D1 directory (installation.yaml; runtime.json at root or package/)")
 	product := f.String("product-source", "", "matching Atlas product source (P0 source-build requirement)")
 	artifact := f.String("artifact", "", "verified image.json from app image")
 	project := f.String("project", "archive", "Project name")

@@ -19,7 +19,7 @@ func notificationFixture(t *testing.T) (*Workflow, map[string]any, notificationI
 		t.Fatal(err)
 	}
 	w := &Workflow{Config: Config{StateDirectory: dir}, Record: Record{FullCommit: strings.Repeat("a", 40), ClusterUID: "cluster"}}
-	live := map[string]any{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": map[string]any{"name": "test", "namespace": "argocd", "uid": "app", "resourceVersion": "1", "annotations": map[string]any{"argocd.argoproj.io/tracking-id": "root:app"}}, "spec": map[string]any{"source": map[string]any{"targetRevision": "deployment"}}, "status": map[string]any{"sync": map[string]any{"revision": strings.Repeat("b", 40)}}}
+	live := map[string]any{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": map[string]any{"name": "test", "namespace": "platform-argocd", "uid": "app", "resourceVersion": "1", "annotations": map[string]any{"argocd.argoproj.io/tracking-id": "root:app"}}, "spec": map[string]any{"source": map[string]any{"targetRevision": "deployment"}}, "status": map[string]any{"sync": map[string]any{"revision": strings.Repeat("b", 40)}}}
 	calls := new(int)
 	io := notificationIO{
 		fence: func(context.Context) error { return nil },
@@ -61,7 +61,7 @@ func TestNotificationStatusRaceReobservesGuardedRequest(t *testing.T) {
 				requests++
 				if requests == 1 {
 					mapping(live["metadata"])["resourceVersion"] = "2"
-					mapping(live["metadata"])["managedFields"] = []any{map[string]any{"manager": "argocd"}}
+					mapping(live["metadata"])["managedFields"] = []any{map[string]any{"manager": "platform-argocd"}}
 					live["status"] = map[string]any{"health": map[string]any{"status": "Progressing"}}
 					return nil, notificationRejection{code, map[int]string{409: "Conflict", 422: "Invalid"}[code]}
 				}

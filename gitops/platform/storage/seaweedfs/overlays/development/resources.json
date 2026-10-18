@@ -1,19 +1,17 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "v1",
       "kind": "PersistentVolumeClaim",
       "metadata": {
-        "name": "seaweedfs-data",
-        "namespace": "object-storage",
         "annotations": {
           "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        },
+        "name": "seaweedfs-data",
+        "namespace": "service-object-storage"
       },
       "spec": {
-        "storageClassName": "atlas-local-retain",
         "accessModes": [
           "ReadWriteOnce"
         ],
@@ -21,23 +19,21 @@
           "requests": {
             "storage": "16Gi"
           }
-        }
+        },
+        "storageClassName": "atlas-local-retain"
       }
     },
     {
       "apiVersion": "v1",
       "kind": "Service",
       "metadata": {
-        "name": "seaweedfs",
-        "namespace": "object-storage",
         "labels": {
           "app.kubernetes.io/name": "seaweedfs"
-        }
+        },
+        "name": "seaweedfs",
+        "namespace": "service-object-storage"
       },
       "spec": {
-        "selector": {
-          "app.kubernetes.io/name": "seaweedfs"
-        },
         "ports": [
           {
             "name": "s3",
@@ -49,7 +45,10 @@
             "port": 9324,
             "targetPort": "metrics"
           }
-        ]
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "seaweedfs"
+        }
       }
     },
     {
@@ -57,16 +56,16 @@
       "kind": "StatefulSet",
       "metadata": {
         "name": "seaweedfs",
-        "namespace": "object-storage"
+        "namespace": "service-object-storage"
       },
       "spec": {
-        "serviceName": "seaweedfs",
         "replicas": 1,
         "selector": {
           "matchLabels": {
             "app.kubernetes.io/name": "seaweedfs"
           }
         },
+        "serviceName": "seaweedfs",
         "template": {
           "metadata": {
             "labels": {
@@ -75,34 +74,8 @@
           },
           "spec": {
             "automountServiceAccountToken": false,
-            "nodeSelector": {
-              "kubernetes.io/os": "linux",
-              "node-role.local/data": "true"
-            },
-            "tolerations": [
-              {
-                "key": "node-role.local/data",
-                "operator": "Equal",
-                "value": "true",
-                "effect": "NoSchedule"
-              }
-            ],
-            "securityContext": {
-              "runAsNonRoot": true,
-              "runAsUser": 1000,
-              "runAsGroup": 1000,
-              "fsGroup": 1000,
-              "seccompProfile": {
-                "type": "RuntimeDefault"
-              }
-            },
             "containers": [
               {
-                "name": "seaweedfs",
-                "image": "docker.io/chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d",
-                "command": [
-                  "weed"
-                ],
                 "args": [
                   "mini",
                   "-dir=/data",
@@ -122,69 +95,95 @@
                   "-master.volumeSizeLimitMB=128",
                   "-volume.max=96"
                 ],
+                "command": [
+                  "weed"
+                ],
+                "image": "docker.io/chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d",
+                "livenessProbe": {
+                  "failureThreshold": 6,
+                  "periodSeconds": 20,
+                  "tcpSocket": {
+                    "port": "s3"
+                  }
+                },
+                "name": "seaweedfs",
                 "ports": [
                   {
-                    "name": "s3",
-                    "containerPort": 8333
+                    "containerPort": 8333,
+                    "name": "s3"
                   },
                   {
-                    "name": "metrics",
-                    "containerPort": 9324
+                    "containerPort": 9324,
+                    "name": "metrics"
                   }
                 ],
+                "readinessProbe": {
+                  "periodSeconds": 10,
+                  "tcpSocket": {
+                    "port": "s3"
+                  }
+                },
                 "resources": {
+                  "limits": {
+                    "memory": "768Mi"
+                  },
                   "requests": {
                     "cpu": "100m",
                     "memory": "256Mi"
-                  },
-                  "limits": {
-                    "memory": "768Mi"
                   }
                 },
                 "securityContext": {
                   "allowPrivilegeEscalation": false,
-                  "readOnlyRootFilesystem": true,
                   "capabilities": {
                     "drop": [
                       "ALL"
                     ]
-                  }
+                  },
+                  "readOnlyRootFilesystem": true
                 },
                 "startupProbe": {
-                  "tcpSocket": {
-                    "port": "s3"
-                  },
+                  "failureThreshold": 60,
                   "periodSeconds": 5,
-                  "failureThreshold": 60
-                },
-                "readinessProbe": {
                   "tcpSocket": {
                     "port": "s3"
-                  },
-                  "periodSeconds": 10
-                },
-                "livenessProbe": {
-                  "tcpSocket": {
-                    "port": "s3"
-                  },
-                  "periodSeconds": 20,
-                  "failureThreshold": 6
+                  }
                 },
                 "volumeMounts": [
                   {
-                    "name": "data",
-                    "mountPath": "/data"
+                    "mountPath": "/data",
+                    "name": "data"
                   },
                   {
-                    "name": "auth",
                     "mountPath": "/etc/seaweedfs",
+                    "name": "auth",
                     "readOnly": true
                   },
                   {
-                    "name": "tmp",
-                    "mountPath": "/tmp"
+                    "mountPath": "/tmp",
+                    "name": "tmp"
                   }
                 ]
+              }
+            ],
+            "nodeSelector": {
+              "kubernetes.io/os": "linux",
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "fsGroup": 1000,
+              "runAsGroup": 1000,
+              "runAsNonRoot": true,
+              "runAsUser": 1000,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true"
               }
             ],
             "volumes": [
@@ -201,15 +200,16 @@
                 }
               },
               {
-                "name": "tmp",
                 "emptyDir": {
                   "sizeLimit": "128Mi"
-                }
+                },
+                "name": "tmp"
               }
             ]
           }
         }
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

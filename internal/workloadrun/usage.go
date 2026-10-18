@@ -306,7 +306,7 @@ func (w *Workflow) ApplicationLogs(ctx context.Context, name string, out io.Writ
 		}
 		// Logs must remain available for a non-ready/crashing workload. Select
 		// only this authored workload's Pods; no exec or broad namespace read.
-		raw, err := w.kube(ctx, "get", "pods", "-n", v.Project, "-l", "atlas.io/project="+v.Project+",atlas.io/workload="+v.Name, "-o", "json")
+		raw, err := w.kube(ctx, "get", "pods", "-n", v.Namespace(), "-l", "atlas.io/project="+v.Project+",atlas.io/workload="+v.Name, "-o", "json")
 		if err != nil {
 			return err
 		}
@@ -315,7 +315,7 @@ func (w *Workflow) ApplicationLogs(ctx context.Context, name string, out io.Writ
 			return err
 		}
 
-		tool, args, err := w.kubeCommand("logs", "-n", v.Project, str(at(pod, "metadata", "name")), "--tail=100", "--timestamps=true")
+		tool, args, err := w.kubeCommand("logs", "-n", v.Namespace(), str(at(pod, "metadata", "name")), "--tail=100", "--timestamps=true")
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ func logPod(raw []byte, v workload.Workload) (Object, error) {
 	var pod Object
 	for _, item := range pods {
 		o := mapping(item)
-		if at(o, "metadata", "namespace") != v.Project || str(at(o, "metadata", "uid")) == "" || at(o, "spec", "serviceAccountName") != v.Name {
+		if at(o, "metadata", "namespace") != v.Namespace() || str(at(o, "metadata", "uid")) == "" || at(o, "spec", "serviceAccountName") != v.Name {
 			return nil, errors.New("log Pod identity differs")
 		}
 		if pod == nil || str(at(o, "metadata", "name")) < str(at(pod, "metadata", "name")) {

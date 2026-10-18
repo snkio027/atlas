@@ -1,9 +1,0 @@
-{
-  "lua": "5.5.1",
-  "egctl": {
-    "version": "1.9.2",
-    "archive": "https://github.com/envoyproxy/gateway/releases/download/v1.9.2/egctl_v1.9.2_darwin_arm64.tar.gz",
-    "archiveSHA256": "1ced0512cc6c51048ff8e0f08e59b1f03e4a0ff80c674814136fd6bdb08728e3",
-    "binarySHA256": "e1700b8712ac2dbdf1deaeb431deee8156227ccfa8fc02df0a938f58cc28dfb3"
-  }
-}

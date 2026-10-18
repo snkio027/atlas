@@ -10,6 +10,6 @@
       "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
     },
     "name": "atlas-refactor-adoption-signal",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }

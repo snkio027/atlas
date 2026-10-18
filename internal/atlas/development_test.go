@@ -1,9 +1,12 @@
 package atlas
 
 import (
+	"archive/zip"
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/platform"
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +41,38 @@ func developmentFixture(t *testing.T) (*App, *simulator) {
 			return os.WriteFile(dst, b, 0600)
 		})
 		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	// Historical tests use immutable old inputs, never the new product layout.
+	for _, dir := range []string{"platform/development", "gitops"} {
+		if e := os.RemoveAll(filepath.Join(a.Root, dir)); e != nil {
+			t.Fatal(e)
+		}
+	}
+	z, e := zip.OpenReader("testdata/development-legacy.zip")
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer z.Close()
+	for _, f := range z.File {
+		if !filepath.IsLocal(f.Name) {
+			t.Fatal("unsafe fixture path")
+		}
+		in, e := f.Open()
+		if e != nil {
+			t.Fatal(e)
+		}
+		b, e := io.ReadAll(in)
+		in.Close()
+		if e != nil {
+			t.Fatal(e)
+		}
+		dest := filepath.Join(a.Root, f.Name)
+		if e = os.MkdirAll(filepath.Dir(dest), 0700); e != nil {
+			t.Fatal(e)
+		}
+		if e = os.WriteFile(dest, b, 0600); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -215,13 +250,13 @@ func TestHistoricalDevelopmentProfileRejectsUpgradedDependencies(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e := a.validateDevelopmentBaseline(files, c.Schema); e == nil || !strings.Contains(e.Error(), "frozen instantiation contract changed: platform/development/versions.lock.json") {
+	if _, e := a.validateDevelopmentBaseline(files, c.Schema); e == nil || !strings.Contains(e.Error(), "frozen instantiation contract changed: platform/development/") {
 		t.Fatalf("upgraded inputs must not reuse the historical schema-3 identity: %v", e)
 	}
 }
 
 func TestDevelopmentKindExposureFailsClosed(t *testing.T) {
-	data, err := os.ReadFile("../../platform/development/bootstrap/kind.json")
+	data, err := authored.Read("../../platform/development/bootstrap/kind.json")
 	if err != nil {
 		t.Fatal(err)
 	}

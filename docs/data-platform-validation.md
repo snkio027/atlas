@@ -1,5 +1,7 @@
 # 数据基础设施候选：本地验证
 
+> 最新结果：组合候选已完成[运行验收 PASS](namespace-layout-runtime-validation.md)。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
+
 日期：2026-10-15。基于 namespace 候选 `d046c7b`，分支 `codex/data-platform-foundations`。
 本记录对应 Operator 迁移后的源码候选。首次新集群执行已完成 D1，`660b96e` 修正后
 CRD Gate 已通过；`adcaf5d`的Strimzi修正及权限Gate也已通过。运行实例已发布，

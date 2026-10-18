@@ -29,7 +29,7 @@ func Collect(ctx context.Context, reader Reader, expect Expectation) (Envelope, 
 	proofs := map[Ref]Object{}
 	rules := map[Ref]string{}
 	for _, a := range apps {
-		ref := Ref{"argoproj.io/v1alpha1", "Application", "argocd", a.Name}
+		ref := Ref{"argoproj.io/v1alpha1", "Application", a.ApplicationNamespace(), a.Name}
 		o, e := reader.Read(ctx, ref)
 		fact := ClassifyApplication(a, o, e)
 		out.Applications = append(out.Applications, fact)

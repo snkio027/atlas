@@ -29,7 +29,7 @@ func TestDefaultStabilityRejectsRegressedRoutes(t *testing.T) {
 			}
 			path := "gitops/workloads/projects/demo/web-api/resources.json"
 			err := edit(files, path, func(xs []Object) ([]Object, error) {
-				route, e := find(xs, "HTTPRoute", "demo", tc.route)
+				route, e := find(xs, "HTTPRoute", "project-demo", tc.route)
 				if e != nil {
 					return nil, e
 				}

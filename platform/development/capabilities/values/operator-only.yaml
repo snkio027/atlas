@@ -1,0 +1,21 @@
+prometheus:
+  enabled: false
+alertmanager:
+  enabled: false
+grafana:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+nodeExporter:
+  enabled: false
+defaultRules:
+  create: false
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+coreDns:
+  enabled: false
+prometheusOperator:
+  serviceMonitor:
+    selfMonitor: false

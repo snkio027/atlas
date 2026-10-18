@@ -26,22 +26,32 @@ func (p *Project) gatewayNamespace() string {
 	if p.Config.Revision == developmentprofile.OT1Revision {
 		return "atlas-gateway"
 	}
-	return platformnames.Gateway
+	if p.currentLayout() {
+		return platformnames.Gateway
+	}
+	return "gateway"
 }
 
 func checkRoutes(inv map[string]Object, gatewayNamespace string) error {
 	gw := inv["gateway.networking.k8s.io/Gateway/"+gatewayNamespace+"/development"]
-	ns := inv["/Namespace//workload-web"]
+	smoke := "workload-web"
+	if gatewayNamespace == platformnames.Gateway {
+		smoke = platformnames.Smoke
+	}
+	ns := inv["/Namespace//"+smoke]
 	listeners := map[string]Object{}
 	for _, v := range slice(field(gw, "spec", "listeners")) {
 		l := mapping(v)
 		listeners[str(l["name"])] = l
 		namespaces := mapping(field(l, "allowedRoutes", "namespaces"))
+		if gatewayNamespace == platformnames.Gateway && field(namespaces, "selector", "matchLabels", "kubernetes.io/metadata.name") != smoke {
+			return errors.New("Gateway must bind the exact smoke project, not a shared access label alone")
+		}
 		if namespaces["from"] != "Selector" || !labelMatch(mapping(namespaces["selector"]), mapping(metadata(ns)["labels"])) {
 			return errors.New("Gateway must select the authorized workload namespace")
 		}
 		for _, o := range inv {
-			if o["kind"] == "Namespace" && metadata(o)["name"] != "workload-web" && labelMatch(mapping(namespaces["selector"]), mapping(metadata(o)["labels"])) {
+			if o["kind"] == "Namespace" && metadata(o)["name"] != smoke && labelMatch(mapping(namespaces["selector"]), mapping(metadata(o)["labels"])) {
 				return errors.New("Gateway selector admits a platform namespace")
 			}
 		}

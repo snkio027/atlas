@@ -1,16 +1,15 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "cert-manager.io/v1",
       "kind": "Issuer",
       "metadata": {
-        "name": "local-selfsigned",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "0"
-        }
+        },
+        "name": "local-selfsigned",
+        "namespace": "platform-gateway"
       },
       "spec": {
         "selfSigned": {}
@@ -20,39 +19,39 @@
       "apiVersion": "cert-manager.io/v1",
       "kind": "Certificate",
       "metadata": {
-        "name": "development-ca",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "1"
-        }
+        },
+        "name": "development-ca",
+        "namespace": "platform-gateway"
       },
       "spec": {
-        "isCA": true,
         "commonName": "Atlas Development CA",
-        "secretName": "development-ca",
         "duration": "8760h",
-        "renewBefore": "720h",
+        "isCA": true,
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "local-selfsigned"
+        },
         "privateKey": {
           "algorithm": "ECDSA",
-          "size": 256,
-          "rotationPolicy": "Always"
+          "rotationPolicy": "Always",
+          "size": 256
         },
-        "issuerRef": {
-          "name": "local-selfsigned",
-          "kind": "Issuer",
-          "group": "cert-manager.io"
-        }
+        "renewBefore": "720h",
+        "secretName": "development-ca"
       }
     },
     {
       "apiVersion": "cert-manager.io/v1",
       "kind": "Issuer",
       "metadata": {
-        "name": "development-ca",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
-        }
+        },
+        "name": "development-ca",
+        "namespace": "platform-gateway"
       },
       "spec": {
         "ca": {
@@ -64,30 +63,31 @@
       "apiVersion": "cert-manager.io/v1",
       "kind": "Certificate",
       "metadata": {
-        "name": "web-tls",
-        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "3"
-        }
+        },
+        "name": "web-tls",
+        "namespace": "platform-gateway"
       },
       "spec": {
-        "secretName": "web-tls",
         "dnsNames": [
           "web.atlas.test"
         ],
         "duration": "720h",
-        "renewBefore": "168h",
+        "issuerRef": {
+          "group": "cert-manager.io",
+          "kind": "Issuer",
+          "name": "development-ca"
+        },
         "privateKey": {
           "algorithm": "ECDSA",
-          "size": 256,
-          "rotationPolicy": "Always"
+          "rotationPolicy": "Always",
+          "size": 256
         },
-        "issuerRef": {
-          "name": "development-ca",
-          "kind": "Issuer",
-          "group": "cert-manager.io"
-        }
+        "renewBefore": "168h",
+        "secretName": "web-tls"
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

@@ -1,0 +1,241 @@
+fullnameOverride: atlas-monitoring
+crds:
+  upgradeJob:
+    enabled: false
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+prometheusOperator:
+  nodeSelector:
+    kubernetes.io/os: linux
+    node-role.local/compute: "true"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+  admissionWebhooks:
+    certManager:
+      enabled: true
+    patch:
+      enabled: false
+  prometheusConfigReloader:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
+  thanosImage:
+    registry: quay.io
+    repository: thanos/thanos
+    tag: v0.42.4
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      kubernetes.io/os: linux
+      node-role.local/data: "true"
+    tolerations:
+      - key: node-role.local/data
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    replicas: 1
+    retention: 24h
+    retentionSize: 4GB
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    resources:
+      requests:
+        cpu: 300m
+        memory: 768Mi
+      limits:
+        memory: 1536Mi
+    storageSpec:
+      volumeClaimTemplate:
+        metadata:
+          annotations:
+            argocd.argoproj.io/sync-options: Delete=false,Prune=confirm
+        spec:
+          storageClassName: atlas-local-retain
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 8Gi
+    serviceMonitorNamespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - platform-monitoring
+            - service-object-storage
+            - sealed-secrets
+            - kube-system
+    serviceMonitorSelector:
+      matchLabels:
+        release: atlas-monitoring
+    podMonitorNamespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - platform-monitoring
+            - service-object-storage
+            - sealed-secrets
+            - kube-system
+    podMonitorSelector:
+      matchLabels:
+        release: atlas-monitoring
+    ruleNamespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - platform-monitoring
+            - service-object-storage
+            - sealed-secrets
+            - kube-system
+    ruleSelector:
+      matchLabels:
+        release: atlas-monitoring
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: true
+    createTokenSecret: false
+alertmanager:
+  alertmanagerSpec:
+    useExistingSecret: true
+    alertmanagerConfiguration:
+      name: atlas-local-alerts
+    nodeSelector:
+      kubernetes.io/os: linux
+      node-role.local/data: "true"
+    tolerations:
+      - key: node-role.local/data
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    replicas: 1
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 192Mi
+    storage:
+      volumeClaimTemplate:
+        metadata:
+          annotations:
+            argocd.argoproj.io/sync-options: Delete=false,Prune=confirm
+        spec:
+          storageClassName: atlas-local-retain
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+grafana:
+  admin:
+    existingSecret: grafana-admin
+  nodeSelector:
+    kubernetes.io/os: linux
+    node-role.local/data: "true"
+  tolerations:
+    - key: node-role.local/data
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 100m
+      memory: 192Mi
+    limits:
+      memory: 512Mi
+  deploymentStrategy:
+    type: Recreate
+  persistence:
+    enabled: true
+    storageClassName: atlas-local-retain
+    size: 2Gi
+    annotations:
+      argocd.argoproj.io/sync-options: Delete=false,Prune=confirm
+  initChownData:
+    enabled: false
+  testFramework:
+    enabled: false
+  rbac:
+    namespaced: true
+  sidecar:
+    dashboards:
+      searchNamespace: platform-monitoring
+      resource: configmap
+    datasources:
+      searchNamespace: platform-monitoring
+      resource: configmap
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
+    image:
+      tag: 2.14.1
+  grafana.ini:
+    auth.anonymous:
+      enabled: false
+    users:
+      allow_sign_up: false
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+    plugins:
+      plugin_admin_enabled: false
+  image:
+    tag: 13.2.3-distroless
+kube-state-metrics:
+  nodeSelector:
+    kubernetes.io/os: linux
+    node-role.local/compute: "true"
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      memory: 192Mi
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 96Mi
+  tolerations:
+    - operator: Exists
+  hostNetwork: false
+  hostPID: true
+  service:
+    port: 9100
+    targetPort: 9100
+kubelet:
+  serviceMonitor:
+    authorization: null
+kubeApiServer:
+  serviceMonitor:
+    authorization: null
+coreDns:
+  serviceMonitor:
+    authorization: null

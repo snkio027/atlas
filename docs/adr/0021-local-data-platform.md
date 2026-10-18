@@ -4,6 +4,9 @@
 - 范围：单所有者、四节点 Kind 开发实例；Tier-1 capability 扩展
 - 前置：ADR-0006/0007 的目录与权限投影、ADR-0020 的 namespace 约定
 
+后续 [ADR-0022](0022-role-scoped-namespace-layout.md) 已替代本文的旧命名与 Operator/实例共域决定。
+当前组合实现的[运行验收摘要](../namespace-layout-runtime-validation.md)不改写本记录的历史布局。
+
 ## 决策与原因
 
 PostgreSQL 采用 CloudNativePG，Kafka 采用 Strimzi，Flink 采用 Apache Flink Kubernetes

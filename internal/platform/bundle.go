@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -50,7 +49,7 @@ func (p *Project) BundleFiles() (map[string][]byte, error) {
 	}
 	files := map[string][]byte{}
 	for _, path := range paths {
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return nil, e
 		}

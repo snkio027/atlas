@@ -12,7 +12,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-application-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ingress": [
@@ -55,7 +55,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ingress": [
@@ -132,7 +132,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ingress": [
@@ -164,7 +164,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ingress": [
@@ -230,7 +230,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-application-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -249,7 +249,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-applicationset-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -268,7 +268,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -287,7 +287,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -326,7 +326,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-cmd-params-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -343,7 +343,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-gpg-keys-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -367,7 +367,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-rbac-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -387,7 +387,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-ssh-known-hosts-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -404,7 +404,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "argocd-tls-certs-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -426,7 +426,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis-health-configmap",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -44628,7 +44628,7 @@
     {
       "kind": "ServiceAccount",
       "name": "argocd-application-controller",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -44657,7 +44657,7 @@
     {
       "kind": "ServiceAccount",
       "name": "argocd-server",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -44676,7 +44676,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-application-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "rules": [
     {
@@ -44754,7 +44754,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "rules": [
     {
@@ -44905,7 +44905,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "rules": null
 }
@@ -44924,7 +44924,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "rules": [
     {
@@ -44993,7 +44993,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-application-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -45004,7 +45004,7 @@
     {
       "kind": "ServiceAccount",
       "name": "argocd-application-controller",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -45023,7 +45023,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -45034,7 +45034,7 @@
     {
       "kind": "ServiceAccount",
       "name": "argocd-applicationset-controller",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -45053,7 +45053,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -45064,7 +45064,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-refactor-argocd-repo-server",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -45083,7 +45083,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -45094,7 +45094,7 @@
     {
       "kind": "ServiceAccount",
       "name": "argocd-server",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -45113,7 +45113,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ports": [
@@ -45145,7 +45145,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ports": [
@@ -45177,7 +45177,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ports": [
@@ -45217,7 +45217,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "ports": [
@@ -45248,7 +45248,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "replicas": 0,
@@ -45746,7 +45746,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-repo-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "replicas": 1,
@@ -46473,7 +46473,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-server",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "replicas": 1,
@@ -47254,7 +47254,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "replicas": 1,
@@ -47394,7 +47394,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-application-controller",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "replicas": 1,
@@ -48070,7 +48070,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }
 ---
@@ -48092,7 +48092,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "rules": [
     {
@@ -48141,7 +48141,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -48152,7 +48152,7 @@
     {
       "kind": "ServiceAccount",
       "name": "atlas-refactor-argocd-redis-secret-init",
-      "namespace": "argocd"
+      "namespace": "platform-argocd"
     }
   ]
 }
@@ -48175,7 +48175,7 @@
       "helm.sh/chart": "argo-cd-10.10.2"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   },
   "spec": {
     "template": {
@@ -48249,6 +48249,23 @@
 ---
 {
   "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+    },
+    "labels": {
+      "atlas.local/class": "platform",
+      "atlas.local/domain": "delivery",
+      "atlas.local/owner": "platform",
+      "kubernetes.io/metadata.name": "platform-argocd"
+    },
+    "name": "platform-argocd"
+  }
+}
+---
+{
+  "apiVersion": "v1",
   "data": {
     "application.resourceTrackingMethod": "annotation",
     "resource.customizations.health.argoproj.io_Application": "local health = {\n  status = \"Progressing\",\n  message = \"Waiting for child Application to become idle, Synced, and Healthy\"\n}\n\nlocal sync_status = nil\nif obj.status ~= nil and obj.status.sync ~= nil then\n  sync_status = obj.status.sync.status\nend\n\nlocal operation_active = obj.operation ~= nil\nif obj.status ~= nil and obj.status.operationState ~= nil then\n  local phase = obj.status.operationState.phase\n  operation_active = operation_active or phase == \"Running\" or phase == \"Terminating\"\nend\n\nif sync_status == \"Synced\" and not operation_active and\n   obj.status ~= nil and obj.status.health ~= nil then\n  health.status = obj.status.health.status or health.status\n  health.message = obj.status.health.message or health.message\nend\n\nreturn health\n",
@@ -48271,6 +48288,6 @@
       "app.kubernetes.io/part-of": "argocd"
     },
     "name": "argocd-cm",
-    "namespace": "argocd"
+    "namespace": "platform-argocd"
   }
 }

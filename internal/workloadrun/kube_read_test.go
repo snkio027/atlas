@@ -24,8 +24,8 @@ func TestKubectlCollectionAndNamedReads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const collection = "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications"
-	item := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": "probe", "namespace": "argocd", "uid": "fixture", "managedFields": []any{Object{"manager": "argocd-controller", "operation": "Apply"}}}}
+	const collection = "/apis/argoproj.io/v1alpha1/namespaces/platform-argocd/applications"
+	item := Object{"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", "metadata": Object{"name": "probe", "namespace": "platform-argocd", "uid": "fixture", "managedFields": []any{Object{"manager": "argocd-controller", "operation": "Apply"}}}}
 	var mode atomic.Int32
 	var reads atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +97,7 @@ func TestKubectlCollectionAndNamedReads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	for _, name := range []string{"", "probe"} {
-		got, err := w.get(ctx, "applications.argoproj.io", "argocd", name)
+		got, err := w.get(ctx, "applications.argoproj.io", "platform-argocd", name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -114,7 +114,7 @@ func TestKubectlCollectionAndNamedReads(t *testing.T) {
 	}
 	for _, failure := range []int32{1, 2} {
 		mode.Store(failure)
-		if _, err = w.get(ctx, "applications.argoproj.io", "argocd", ""); err == nil {
+		if _, err = w.get(ctx, "applications.argoproj.io", "platform-argocd", ""); err == nil {
 			t.Fatal("failed collection read accepted")
 		}
 	}

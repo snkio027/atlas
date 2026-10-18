@@ -29,7 +29,7 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 		t.Fatal(e)
 	}
 	for _, rel := range []string{"kubeseal.lock.json"} {
-		b, e := os.ReadFile(filepath.Join(sourceRoot, capabilityDir, rel))
+		b, e := readInput(filepath.Join(sourceRoot, capabilityDir, rel))
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -67,7 +67,7 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 		t.Fatal(e)
 	}
 	path := filepath.Join(p.Root, capabilityDir, "resources/platform-credentials.json")
-	before, e := os.ReadFile(path)
+	before, e := readInput(path)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -83,7 +83,7 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 	if e = p.PrepareCredentials(context.Background(), cert, tool); e != nil {
 		t.Fatal(e)
 	}
-	after, _ := os.ReadFile(path)
+	after, _ := readInput(path)
 	if !bytes.Equal(before, after) {
 		t.Fatal("repeat preparation rotated ciphertext")
 	}
@@ -108,7 +108,7 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 	if e = p.PrepareCredentialProfile(context.Background(), cert, tool, "data-services"); e != nil {
 		t.Fatal(e)
 	}
-	dataBefore, e := os.ReadFile(dataPath)
+	dataBefore, e := readInput(dataPath)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -136,8 +136,8 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 	if e = p.PrepareCredentialProfile(context.Background(), cert, tool, "data-services"); e != nil {
 		t.Fatal(e)
 	}
-	dataAfter, _ := os.ReadFile(dataPath)
-	platformAfter, _ := os.ReadFile(path)
+	dataAfter, _ := readInput(dataPath)
+	platformAfter, _ := readInput(path)
 	if !bytes.Equal(dataBefore, dataAfter) || !bytes.Equal(platformAfter, before) {
 		t.Fatal("credential preparation rewrote prior output")
 	}

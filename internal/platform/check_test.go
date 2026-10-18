@@ -20,7 +20,7 @@ func testRoot(t *testing.T) string {
 }
 func resourceFile(t *testing.T, path string) []Object {
 	t.Helper()
-	b, e := os.ReadFile(filepath.Join(testRoot(t), path))
+	b, e := readInput(filepath.Join(testRoot(t), path))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -48,13 +48,13 @@ func TestTenantBoundary(t *testing.T) {
 		name, api, kind, ns string
 		allowed             bool
 	}{
-		{"own service", "v1", "Service", "workload-web", true},
+		{"own service", "v1", "Service", "project-platform-smoke", true},
 		{"platform service", "v1", "Service", "argocd", false},
-		{"root application", "argoproj.io/v1alpha1", "Application", "workload-web", false},
-		{"role escalation", "rbac.authorization.k8s.io/v1", "RoleBinding", "workload-web", false},
+		{"root application", "argoproj.io/v1alpha1", "Application", "project-platform-smoke", false},
+		{"role escalation", "rbac.authorization.k8s.io/v1", "RoleBinding", "project-platform-smoke", false},
 		{"cluster role", "rbac.authorization.k8s.io/v1", "ClusterRole", "", false},
 		{"namespace", "v1", "Namespace", "", false},
-		{"network exception", "networking.k8s.io/v1", "NetworkPolicy", "workload-web", false},
+		{"network exception", "networking.k8s.io/v1", "NetworkPolicy", "project-platform-smoke", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			o := Object{"apiVersion": tc.api, "kind": tc.kind, "metadata": Object{"name": "test", "namespace": tc.ns}}
@@ -166,7 +166,7 @@ func TestCurrentHealth(t *testing.T) {
 	unknown := clone(cert)
 	mapping(slice(field(unknown, "status", "conditions"))[0])["status"] = "Unknown"
 	ref := Object{"name": "development", "namespace": "gateway", "sectionName": "https"}
-	route := Object{"kind": "HTTPRoute", "metadata": Object{"generation": 2, "namespace": "workload-web"}, "spec": Object{"parentRefs": []any{ref}}, "status": Object{"parents": []any{Object{"parentRef": ref, "controllerName": "gateway.envoyproxy.io/gatewayclass-controller", "conditions": []any{condition("Accepted", 2, "True"), condition("ResolvedRefs", 2, "True")}}}}}
+	route := Object{"kind": "HTTPRoute", "metadata": Object{"generation": 2, "namespace": "project-platform-smoke"}, "spec": Object{"parentRefs": []any{ref}}, "status": Object{"parents": []any{Object{"parentRef": ref, "controllerName": "gateway.envoyproxy.io/gatewayclass-controller", "conditions": []any{condition("Accepted", 2, "True"), condition("ResolvedRefs", 2, "True")}}}}}
 	otherParent := clone(route)
 	mapping(slice(field(otherParent, "status", "parents"))[0])["parentRef"] = Object{"name": "other", "namespace": "gateway", "sectionName": "https"}
 	foreign := clone(route)

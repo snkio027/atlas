@@ -1,0 +1,15 @@
+schema: 2
+repositoryURL: https://github.com/snkio027/atlas-refactor.git
+revision: codex/development-platform
+rootPath: gitops/root/overlays/development
+components:
+  foundation: gitops/platform/foundation/overlays/development
+  cilium: gitops/platform/networking/cilium/overlays/development
+  argocd-self: gitops/platform/management/argocd-self/overlays/development
+  cert-manager: gitops/platform/management/cert-manager/overlays/development
+  gateway-api: gitops/platform/networking/gateway-api/overlays/development
+  envoy-crds: gitops/platform/networking/envoy-crds/overlays/development
+  envoy-gateway: gitops/platform/networking/envoy-gateway/overlays/development
+  local-storage: gitops/platform/storage/local-path/overlays/development
+  local-pki: gitops/platform/management/local-pki/overlays/development
+  edge: gitops/platform/networking/edge/overlays/development

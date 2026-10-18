@@ -1,0 +1,210 @@
+package platform
+
+import (
+	"atlas-refactor/internal/platformnames"
+	"fmt"
+	"strings"
+)
+
+// ValidateOperatorPermissions evaluates additive Role/ClusterRole bindings for
+// the three reviewed operator accounts. It is a static preflight, not a claim
+// about live admission or RBAC. Unknown/aggregated role references fail closed.
+func ValidateOperatorPermissions(objects []Object) error {
+	roles := map[string]Object{}
+	for _, o := range objects {
+		if o["kind"] == "Role" || o["kind"] == "ClusterRole" {
+			roles[str(o["kind"])+"/"+str(metadata(o)["namespace"])+"/"+str(metadata(o)["name"])] = o
+		}
+	}
+	for _, op := range []struct {
+		ns, sa, runtime, group, resource string
+		ownSecrets                       bool
+	}{
+		{platformnames.CNPGOperator, "cnpg", platformnames.PostgreSQL, "postgresql.cnpg.io", "clusters", true},
+		{platformnames.StrimziOperator, "strimzi-cluster-operator", platformnames.Kafka, "kafka.strimzi.io", "kafkas", false},
+		{platformnames.FlinkOperator, "flink-operator", platformnames.Flink, "flink.apache.org", "flinkdeployments", false},
+	} {
+		present := false
+		for _, o := range objects {
+			present = present || o["kind"] == "ServiceAccount" && metadata(o)["namespace"] == op.ns && metadata(o)["name"] == op.sa
+		}
+		if !present {
+			continue
+		}
+		type grant struct {
+			ns   string
+			rule Object
+		}
+		grants := []grant{}
+		for _, b := range objects {
+			if b["kind"] != "RoleBinding" && b["kind"] != "ClusterRoleBinding" {
+				continue
+			}
+			member := false
+			for _, raw := range slice(b["subjects"]) {
+				sub := mapping(raw)
+				name := str(sub["name"])
+				member = member || sub["kind"] == "ServiceAccount" && sub["namespace"] == op.ns && name == op.sa || sub["kind"] == "User" && name == "system:serviceaccount:"+op.ns+":"+op.sa || sub["kind"] == "Group" && (name == "system:authenticated" || name == "system:serviceaccounts" || name == "system:serviceaccounts:"+op.ns)
+			}
+			if !member {
+				continue
+			}
+			ns := str(metadata(b)["namespace"])
+			ref := mapping(b["roleRef"])
+			roleNS := ns
+			if ref["kind"] == "ClusterRole" {
+				roleNS = ""
+			}
+			role := roles[str(ref["kind"])+"/"+roleNS+"/"+str(ref["name"])]
+			if role == nil || role["aggregationRule"] != nil {
+				return fmt.Errorf("unresolved/aggregated effective role for %s", op.sa)
+			}
+			if b["kind"] == "ClusterRoleBinding" {
+				ns = "*"
+			}
+			for _, r := range slice(role["rules"]) {
+				grants = append(grants, grant{ns, mapping(r)})
+			}
+		}
+		allowed := func(ns, group, resource, verb, name string) bool {
+			for _, g := range grants {
+				r := g.rule
+				if (g.ns == ns || g.ns == "*") && (contains(r["apiGroups"], group) || contains(r["apiGroups"], "*")) && (contains(r["resources"], resource) || contains(r["resources"], "*")) && (contains(r["verbs"], verb) || contains(r["verbs"], "*")) && (len(slice(r["resourceNames"])) == 0 || contains(r["resourceNames"], name)) {
+					return true
+				}
+			}
+			return false
+		}
+		if op.ns == platformnames.CNPGOperator {
+			// The installation domain is a control plane of its own. WATCH_NAMESPACE
+			// scopes instance reconciliation; it does not remove leader election,
+			// configuration/PKI management, event publication or cached API reads.
+			// Verify the entire known installation closure, including permissions
+			// that do not happen to be exercised by a healthy current process.
+			for _, required := range []struct {
+				group, resource string
+				verbs           []string
+			}{
+				{"coordination.k8s.io", "leases", []string{"create", "get", "list", "update", "watch"}},
+				{"", "configmaps", []string{"create", "delete", "get", "list", "patch", "update", "watch"}},
+				{"", "secrets", []string{"create", "delete", "get", "list", "patch", "update", "watch"}},
+				{"", "events", []string{"create", "patch"}},
+			} {
+				for _, verb := range required.verbs {
+					if !allowed(op.ns, required.group, required.resource, verb, "") {
+						return fmt.Errorf("operator %s requires installation %s %s", op.sa, required.resource, verb)
+					}
+				}
+			}
+			// EndpointSlice mapping performs a cached Service GET in the
+			// installation domain before it can filter non-plugin Services.
+			// Both informers require unrestricted LIST/WATCH in that domain.
+			for _, informer := range []struct {
+				group, resource, label string
+				runtimeWrites          bool
+			}{
+				{"discovery.k8s.io", "endpointslices", "EndpointSlice", false},
+				{"", "services", "Service", true},
+			} {
+				for _, verb := range []string{"get", "list", "watch"} {
+					if !allowed(op.ns, informer.group, informer.resource, verb, "") {
+						return fmt.Errorf("operator %s requires installation %s %s for its informer", op.sa, informer.label, verb)
+					}
+				}
+				for _, g := range grants {
+					r := g.rule
+					if !(contains(r["apiGroups"], informer.group) || contains(r["apiGroups"], "*")) || !(contains(r["resources"], informer.resource) || contains(r["resources"], "*")) {
+						continue
+					}
+					if g.ns != op.ns && g.ns != op.runtime {
+						// Sealed Secrets already exposes this one Service name to
+						// system:authenticated for public certificate discovery.
+						// Preserve that GET without permitting foreign enumeration.
+						if informer.resource == "services" && g.ns == platformnames.Secrets &&
+							len(slice(r["apiGroups"])) == 1 && contains(r["apiGroups"], "") &&
+							len(slice(r["resources"])) == 1 && contains(r["resources"], "services") &&
+							len(slice(r["verbs"])) == 1 && contains(r["verbs"], "get") &&
+							len(slice(r["resourceNames"])) == 1 && contains(r["resourceNames"], "sealed-secrets") {
+							continue
+						}
+						return fmt.Errorf("operator %s has foreign %s access in %s", op.sa, informer.label, g.ns)
+					}
+					if g.ns == op.runtime && informer.runtimeWrites {
+						continue // CNPG still owns instance Services in its runtime domain.
+					}
+					for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
+						if contains(r["verbs"], verb) {
+							return fmt.Errorf("operator %s has %s mutation in %s", op.sa, informer.label, g.ns)
+						}
+					}
+				}
+			}
+			// CNPG 1.30.1 discovers its own Deployment by label before creating
+			// its CA/webhook Secrets. RBAC cannot narrow that LIST by object name.
+			if !allowed(op.ns, "apps", "deployments", "list", "") {
+				return fmt.Errorf("operator %s requires deployment discovery in %s for PKI", op.sa, op.ns)
+			}
+			for _, g := range grants {
+				r := g.rule
+				if (g.ns != op.ns && g.ns != "*") || !(contains(r["apiGroups"], "apps") || contains(r["apiGroups"], "*")) || !(contains(r["resources"], "deployments") || contains(r["resources"], "*")) {
+					continue
+				}
+				// Check every additive grant, including resourceNames-restricted
+				// writes: discovering the certificate owner must not permit edits.
+				for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
+					if contains(r["verbs"], verb) {
+						return fmt.Errorf("operator %s has installation Deployment mutation", op.sa)
+					}
+				}
+			}
+		}
+		// Check the whole grant, not a sample Secret/CR name. A binding in an
+		// unlisted namespace or a resourceNames-restricted grant is still access.
+		for _, g := range grants {
+			if g.ns == op.runtime || g.ns == op.ns {
+				continue
+			}
+			r := g.rule
+			secret := (contains(r["apiGroups"], "") || contains(r["apiGroups"], "*")) && (contains(r["resources"], "secrets") || contains(r["resources"], "*"))
+			instance := false
+			if contains(r["apiGroups"], op.group) || contains(r["apiGroups"], "*") {
+				for _, raw := range slice(r["resources"]) {
+					resource := str(raw)
+					instance = instance || resource == "*" || resource == op.resource || strings.HasPrefix(resource, op.resource+"/")
+				}
+			}
+			if (secret || instance) && len(slice(r["verbs"])) != 0 {
+				return fmt.Errorf("operator %s has foreign sensitive grant in %s", op.sa, g.ns)
+			}
+		}
+		for _, q := range []struct {
+			ns, group, resource, verb, name string
+			want                            bool
+		}{
+			{op.runtime, "", "secrets", "get", "fixture", true}, {op.runtime, "", "pods", "create", "", true},
+			{op.runtime, op.group, op.resource + "/status", "update", "fixture", true},
+			{op.ns, "coordination.k8s.io", "leases", "create", "", true},
+			{op.ns, "", "secrets", "get", "fixture", op.ownSecrets},
+			{op.ns, op.group, op.resource, "create", "", false},
+		} {
+			if allowed(q.ns, q.group, q.resource, q.verb, q.name) != q.want {
+				return fmt.Errorf("operator %s effective permission mismatch: %s %s/%s in %s (want %v)", op.sa, q.verb, q.group, q.resource, q.ns, q.want)
+			}
+		}
+		for _, ns := range []string{platformnames.Argo, platformnames.Monitoring, platformnames.Secrets, platformnames.Gateway, "project-foreign", "default"} {
+			for _, verb := range []string{"get", "list", "watch", "create", "update", "patch", "delete"} {
+				if allowed(ns, "", "secrets", verb, "fixture") || allowed(ns, op.group, op.resource, verb, "fixture") {
+					return fmt.Errorf("operator %s has foreign access in %s", op.sa, ns)
+				}
+			}
+		}
+		for _, resource := range []string{"clusterroles", "clusterrolebindings"} {
+			for _, verb := range []string{"create", "update", "patch", "delete", "bind", "escalate"} {
+				if allowed("", "rbac.authorization.k8s.io", resource, verb, "") {
+					return fmt.Errorf("operator %s has global RBAC mutation", op.sa)
+				}
+			}
+		}
+	}
+	return nil
+}

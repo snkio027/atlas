@@ -1,6 +1,10 @@
-# D1 first installation — current-host validation passed
+# D1 first installation — role-scoped layout candidate
 
-The owner-selected same-host runtime acceptance passed for `v0.1.0-d1.4`;
+This guide now describes product schema 2, role-scoped-v1 namespaces and YAML configuration.
+The new layout has local validation only; its Runtime acceptance has not run.
+Use a matching reviewed package. Older products and instance evidence are not upgraded by these commands.
+
+Historical context: the owner-selected same-host runtime acceptance passed for `v0.1.0-d1.4`;
 review and release promotion remain pending. Do not describe a draft as a public
 release. The measured host was Apple Silicon macOS 26.7 (25G229), OrbStack
 2.2.3, 32 GiB host RAM, with Docker reporting 10 CPUs and about 15.66 GiB VM
@@ -46,7 +50,7 @@ or incomplete package is rejected before preparing or applying resources.
 
 ## Configure, prepare, review, install
 
-Copy `installation.example.json` to `installation.json`. Set your new `atlas-…`
+Copy `installation.example.yaml` to `installation.yaml`. Set your new `atlas-…`
 cluster name, repository and new deployment branch, distinct ports, canonical absolute
 private state path and backup path. The fixed path inside Git is
 `gitops/root/overlays/development`; topology and platform components are fixed.
@@ -58,10 +62,10 @@ The backup filesystem must support Unix permissions and atomic hard links
 (such as an appropriately permissioned APFS volume).
 
 ```sh
-./atlas-install prepare --config installation.json
-./atlas-install plan --config installation.json
-./atlas-install install --config installation.json --approve-plan PLAN_SHA256
-./atlas-install verify --config installation.json
+./atlas-install prepare --config installation.yaml
+./atlas-install plan --config installation.yaml
+./atlas-install install --config installation.yaml --approve-plan PLAN_SHA256
+./atlas-install verify --config installation.yaml
 ```
 
 `prepare` is the online dependency phase. Missing/corrupt dependencies during
@@ -78,10 +82,10 @@ CA, backup and supported access commands without printing passwords.
 ## Access and repeat verification
 
 ```sh
-./atlas-install access --config installation.json --service web
-./atlas-install access --config installation.json --service grafana
-./atlas-install access --config installation.json --service prometheus
-./atlas-install access --config installation.json --service s3
+./atlas-install access --config installation.yaml --service web
+./atlas-install access --config installation.yaml --service grafana
+./atlas-install access --config installation.yaml --service prometheus
+./atlas-install access --config installation.yaml --service s3
 ```
 
 Each command stays in the foreground, prints a loopback URL, and closes on
@@ -113,7 +117,7 @@ missing/invalid backup, or a Bootstrap contradiction stops the installation.
 Preserve the reported state for review; never delete files to bypass a failure.
 This release does not provide automatic recovery or a general resume interface.
 
-## Acceptance status
+## Historical acceptance (before role-scoped-v1)
 
 The actual attested `v0.1.0-d1.4` package passed the selected current-host run:
 17m28s for installation, 5.62s for independent verification and 4.17s for a

@@ -1,81 +1,20 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "kafka.strimzi.io/v1",
       "kind": "Kafka",
       "metadata": {
-        "name": "kafka",
-        "namespace": "kafka",
         "annotations": {
           "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        },
+        "name": "kafka",
+        "namespace": "service-kafka"
       },
       "spec": {
-        "kafka": {
-          "version": "4.3.1",
-          "metadataVersion": "4.3-IV0",
-          "image": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
-          "listeners": [
-            {
-              "name": "tls",
-              "port": 9093,
-              "type": "internal",
-              "tls": true,
-              "authentication": {
-                "type": "tls"
-              },
-              "networkPolicyPeers": [
-                {
-                  "podSelector": {
-                    "matchLabels": {
-                      "atlas.local/data-admin": "kafka"
-                    }
-                  }
-                }
-              ]
-            }
-          ],
-          "authorization": {
-            "type": "simple"
-          },
-          "config": {
-            "offsets.topic.replication.factor": 1,
-            "transaction.state.log.replication.factor": 1,
-            "transaction.state.log.min.isr": 1,
-            "default.replication.factor": 1,
-            "min.insync.replicas": 1,
-            "auto.create.topics.enable": false,
-            "log.retention.hours": 24,
-            "log.retention.bytes": 1073741824
-          },
-          "jvmOptions": {
-            "-Xms": "256m",
-            "-Xmx": "512m"
-          }
-        },
         "entityOperator": {
-          "userOperator": {
-            "image": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
-            "resources": {
-              "requests": {
-                "cpu": "100m",
-                "memory": "128Mi"
-              },
-              "limits": {
-                "memory": "256Mi"
-              }
-            }
-          },
           "template": {
             "pod": {
-              "securityContext": {
-                "runAsNonRoot": true,
-                "seccompProfile": {
-                  "type": "RuntimeDefault"
-                }
-              },
               "affinity": {
                 "nodeAffinity": {
                   "requiredDuringSchedulingIgnoredDuringExecution": {
@@ -94,24 +33,84 @@
                     ]
                   }
                 }
+              },
+              "securityContext": {
+                "runAsNonRoot": true,
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
               }
             },
             "userOperatorContainer": {
               "securityContext": {
                 "allowPrivilegeEscalation": false,
-                "readOnlyRootFilesystem": true,
                 "capabilities": {
                   "drop": [
                     "ALL"
                   ]
                 },
+                "readOnlyRootFilesystem": true,
                 "runAsNonRoot": true,
                 "seccompProfile": {
                   "type": "RuntimeDefault"
                 }
               }
             }
+          },
+          "userOperator": {
+            "image": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
+            "resources": {
+              "limits": {
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            }
           }
+        },
+        "kafka": {
+          "authorization": {
+            "type": "simple"
+          },
+          "config": {
+            "auto.create.topics.enable": false,
+            "default.replication.factor": 1,
+            "log.retention.bytes": 1073741824,
+            "log.retention.hours": 24,
+            "min.insync.replicas": 1,
+            "offsets.topic.replication.factor": 1,
+            "transaction.state.log.min.isr": 1,
+            "transaction.state.log.replication.factor": 1
+          },
+          "image": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
+          "jvmOptions": {
+            "-Xms": "256m",
+            "-Xmx": "512m"
+          },
+          "listeners": [
+            {
+              "authentication": {
+                "type": "tls"
+              },
+              "name": "tls",
+              "networkPolicyPeers": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "atlas.local/data-admin": "kafka"
+                    }
+                  }
+                }
+              ],
+              "port": 9093,
+              "tls": true,
+              "type": "internal"
+            }
+          ],
+          "metadataVersion": "4.3-IV0",
+          "version": "4.3.1"
         }
       }
     },
@@ -119,17 +118,26 @@
       "apiVersion": "kafka.strimzi.io/v1",
       "kind": "KafkaNodePool",
       "metadata": {
-        "name": "single",
-        "namespace": "kafka",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        },
         "labels": {
           "strimzi.io/cluster": "kafka"
         },
-        "annotations": {
-          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        "name": "single",
+        "namespace": "service-kafka"
       },
       "spec": {
         "replicas": 1,
+        "resources": {
+          "limits": {
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "512Mi"
+          }
+        },
         "roles": [
           "controller",
           "broker"
@@ -138,33 +146,32 @@
           "type": "jbod",
           "volumes": [
             {
-              "id": 0,
-              "type": "persistent-claim",
-              "size": "8Gi",
               "class": "atlas-local-retain",
               "deleteClaim": false,
-              "kraftMetadata": "shared"
+              "id": 0,
+              "kraftMetadata": "shared",
+              "size": "8Gi",
+              "type": "persistent-claim"
             }
           ]
         },
-        "resources": {
-          "requests": {
-            "cpu": "100m",
-            "memory": "512Mi"
-          },
-          "limits": {
-            "memory": "1Gi"
-          }
-        },
         "template": {
-          "pod": {
+          "kafkaContainer": {
             "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "readOnlyRootFilesystem": true,
               "runAsNonRoot": true,
-              "fsGroup": 1001,
               "seccompProfile": {
                 "type": "RuntimeDefault"
               }
-            },
+            }
+          },
+          "pod": {
             "affinity": {
               "nodeAffinity": {
                 "requiredDuringSchedulingIgnoredDuringExecution": {
@@ -184,29 +191,21 @@
                 }
               }
             },
-            "tolerations": [
-              {
-                "key": "node-role.local/data",
-                "operator": "Equal",
-                "value": "true",
-                "effect": "NoSchedule"
-              }
-            ]
-          },
-          "kafkaContainer": {
             "securityContext": {
-              "allowPrivilegeEscalation": false,
-              "readOnlyRootFilesystem": true,
-              "capabilities": {
-                "drop": [
-                  "ALL"
-                ]
-              },
+              "fsGroup": 1001,
               "runAsNonRoot": true,
               "seccompProfile": {
                 "type": "RuntimeDefault"
               }
-            }
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ]
           }
         }
       }
@@ -215,51 +214,51 @@
       "apiVersion": "kafka.strimzi.io/v1",
       "kind": "KafkaUser",
       "metadata": {
-        "name": "platform-admin",
-        "namespace": "kafka",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        },
         "labels": {
           "strimzi.io/cluster": "kafka"
         },
-        "annotations": {
-          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        "name": "platform-admin",
+        "namespace": "service-kafka"
       },
       "spec": {
         "authentication": {
           "type": "tls"
         },
         "authorization": {
-          "type": "simple",
           "acls": [
             {
+              "operations": [
+                "All"
+              ],
               "resource": {
                 "type": "cluster"
-              },
-              "operations": [
-                "All"
-              ]
+              }
             },
             {
-              "resource": {
-                "type": "topic",
-                "name": "*",
-                "patternType": "literal"
-              },
               "operations": [
                 "All"
-              ]
+              ],
+              "resource": {
+                "name": "*",
+                "patternType": "literal",
+                "type": "topic"
+              }
             },
             {
-              "resource": {
-                "type": "group",
-                "name": "*",
-                "patternType": "literal"
-              },
               "operations": [
                 "All"
-              ]
+              ],
+              "resource": {
+                "name": "*",
+                "patternType": "literal",
+                "type": "group"
+              }
             }
-          ]
+          ],
+          "type": "simple"
         }
       }
     },
@@ -268,19 +267,25 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "runtime-egress",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "spec": {
-        "podSelector": {
-          "matchLabels": {
-            "strimzi.io/cluster": "kafka"
-          }
-        },
-        "policyTypes": [
-          "Egress"
-        ],
         "egress": [
           {
+            "ports": [
+              {
+                "port": 9090,
+                "protocol": "TCP"
+              },
+              {
+                "port": 9091,
+                "protocol": "TCP"
+              },
+              {
+                "port": 9093,
+                "protocol": "TCP"
+              }
+            ],
             "to": [
               {
                 "podSelector": {
@@ -289,36 +294,31 @@
                   }
                 }
               }
-            ],
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 9090
-              },
-              {
-                "protocol": "TCP",
-                "port": 9091
-              },
-              {
-                "protocol": "TCP",
-                "port": 9093
-              }
             ]
           },
           {
             "ports": [
               {
-                "protocol": "TCP",
-                "port": 443
+                "port": 443,
+                "protocol": "TCP"
               },
               {
-                "protocol": "TCP",
-                "port": 6443
+                "port": 6443,
+                "protocol": "TCP"
               }
             ]
           }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "strimzi.io/cluster": "kafka"
+          }
+        },
+        "policyTypes": [
+          "Egress"
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

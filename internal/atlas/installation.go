@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"context"
 	"errors"
 	"fmt"
@@ -54,6 +55,9 @@ func (a *App) prepareInstallation() error {
 			name, _ := meta["name"].(string)
 			if o["kind"] != "Application" || name == "" || d.apps[name] != nil {
 				return errors.New("invalid installation control graph")
+			}
+			if meta["namespace"] != platformnames.Argo {
+				return errors.New("installation Application namespace differs from current product layout")
 			}
 			spec, _ := o["spec"].(map[string]any)
 			source, _ := spec["source"].(map[string]any)
@@ -108,7 +112,7 @@ func (a *App) checkInstallationHandoffFailure(ctx context.Context) error {
 	if a.installation == nil {
 		return nil // Preserve the frozen schema 1–3 observation contract.
 	}
-	b, e := a.kube(ctx, nil, "get", "applications", "-n", "argocd", "-o", "json")
+	b, e := a.kube(ctx, nil, "get", "applications", "-n", a.argoNamespace(), "-o", "json")
 	if e != nil {
 		return e
 	}
@@ -123,7 +127,7 @@ func (a *App) checkInstallationHandoffFailure(ctx context.Context) error {
 		return errors.New("invalid installation Application list")
 	}
 	for _, app := range list.Items {
-		if app.Metadata.Name == "" || app.Metadata.Namespace != "argocd" || app.Metadata.UID == "" {
+		if app.Metadata.Name == "" || app.Metadata.Namespace != a.argoNamespace() || app.Metadata.UID == "" {
 			return errors.New("invalid installation Application identity")
 		}
 		op := app.Status.OperationState
@@ -132,4 +136,13 @@ func (a *App) checkInstallationHandoffFailure(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// Historical CLI schemas are frozen; only authenticated D1 products use the
+// current layout. This is not a user-configurable namespace override.
+func (a *App) argoNamespace() string {
+	if a.Config.Schema == 4 {
+		return platformnames.Argo
+	}
+	return "argocd"
 }

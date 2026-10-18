@@ -1,6 +1,7 @@
 package workloadrun
 
 import (
+	"atlas-refactor/internal/platformnames"
 	"atlas-refactor/internal/workload"
 	"bytes"
 	"context"
@@ -37,7 +38,7 @@ func (w *Workflow) httpsClient(host string) (*http.Client, error) {
 	return &http.Client{Transport: tr, Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, nil
 }
 func (w *Workflow) readyPod(ctx context.Context, v workload.Workload) (Object, error) {
-	b, e := w.kube(ctx, "get", "pods", "-n", v.Project, "-l", "atlas.io/project="+v.Project+",atlas.io/workload="+v.Name, "-o", "json")
+	b, e := w.kube(ctx, "get", "pods", "-n", v.Namespace(), "-l", "atlas.io/project="+v.Project+",atlas.io/workload="+v.Name, "-o", "json")
 	if e != nil {
 		return nil, e
 	}
@@ -262,7 +263,7 @@ func (w *Workflow) probeFunctional(ctx context.Context) (Object, error) {
 		}
 		// SubjectAccessReview is a finite diagnostic request, not a grant or a
 		// Secret read. It is included in the approved probe's API operations.
-		b, e := w.kube(ctx, "auth", "can-i", "get", "secrets", "-n", "workload-web", "--as=system:serviceaccount:"+v.Project+":"+v.Name)
+		b, e := w.kube(ctx, "auth", "can-i", "get", "secrets", "-n", platformnames.Smoke, "--as=system:serviceaccount:"+v.Namespace()+":"+v.Name)
 		// kubectl exits 1 for the expected denial; never accept another failure.
 		if strings.TrimSpace(string(b)) != "no" {
 			if e != nil {
@@ -294,7 +295,7 @@ func (w *Workflow) VerifyMaterialized(ctx context.Context) error {
 		return e
 	}
 	for _, v := range w.Model.Intent.Bindings {
-		s, e := w.get(ctx, "secret", v.Project, v.Secret())
+		s, e := w.get(ctx, "secret", v.Namespace(), v.Secret())
 		if e != nil {
 			return e
 		}
@@ -303,7 +304,7 @@ func (w *Workflow) VerifyMaterialized(ctx context.Context) error {
 			return errors.New("materialized client credential differs")
 		}
 	}
-	s, e := w.get(ctx, "secret", "object-storage", "seaweedfs-auth")
+	s, e := w.get(ctx, "secret", platformnames.ObjectStorage, "seaweedfs-auth")
 	if e != nil {
 		return e
 	}
@@ -334,7 +335,7 @@ func (w *Workflow) metric(ctx context.Context, v workload.Workload) error {
 }
 
 func queryMetric(ctx context.Context, client *http.Client, address string, v workload.Workload) error {
-	q := "up{namespace=\"" + v.Project + "\",service=\"" + v.Name + "\"}"
+	q := "up{namespace=\"" + v.Namespace() + "\",service=\"" + v.Name + "\"}"
 	req, e := http.NewRequestWithContext(ctx, "GET", address+"/api/v1/query?query="+url.QueryEscape(q), nil)
 	if e != nil {
 		return e

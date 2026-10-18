@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: atlas-refactor-root
+  namespace: platform-argocd
+spec:
+  project: atlas-bootstrap
+  source:
+    repoURL: https://github.com/snkio027/atlas-refactor.git
+    targetRevision: codex/development-platform
+    path: gitops/root/overlays/development
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-argocd
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - FailOnSharedResource=true

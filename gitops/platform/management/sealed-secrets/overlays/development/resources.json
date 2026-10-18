@@ -1,6 +1,5 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "rbac.authorization.k8s.io/v1",
@@ -13,13 +12,14 @@
           "apiGroups": [
             ""
           ],
+          "resourceNames": [
+            "platform-sealed-secrets",
+            "platform-monitoring",
+            "project-platform-smoke",
+            "service-object-storage"
+          ],
           "resources": [
             "namespaces"
-          ],
-          "resourceNames": [
-            "monitoring",
-            "object-storage",
-            "workload-web"
           ],
           "verbs": [
             "get"
@@ -42,9 +42,10 @@
         {
           "kind": "ServiceAccount",
           "name": "sealed-secrets",
-          "namespace": "sealed-secrets"
+          "namespace": "platform-sealed-secrets"
         }
       ]
     }
-  ]
+  ],
+  "kind": "List"
 }

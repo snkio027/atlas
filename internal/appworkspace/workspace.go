@@ -3,6 +3,7 @@
 package appworkspace
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/oci"
 	"atlas-refactor/internal/workload"
 	"atlas-refactor/internal/workloadrun"
@@ -206,15 +207,19 @@ func Init(o InitOptions) error {
 	if err = os.Mkdir(o.Root, 0700); err != nil {
 		return fmt.Errorf("choose a new workspace directory: %w", err)
 	}
-	for n, b := range m.Authored() {
+	human, err := m.HumanAuthored()
+	if err != nil {
+		return err
+	}
+	for n, b := range human {
 		if err = writeFile(filepath.Join(o.Root, n), b, true, false); err != nil {
 			return err
 		}
 	}
-	if err = Write(filepath.Join(o.Root, ".gitignore"), []byte("/.atlas/\n/app.json\n"), true); err != nil {
+	if err = Write(filepath.Join(o.Root, ".gitignore"), []byte("/.atlas/\n/app.yaml\n"), true); err != nil {
 		return err
 	}
-	if err = Write(filepath.Join(o.Root, "app.json"), workload.JSON(c), true); err != nil {
+	if err = writeConfig(filepath.Join(o.Root, "app.yaml"), c, true); err != nil {
 		return err
 	}
 	_, _, err = Load(o.Root)
@@ -222,7 +227,7 @@ func Init(o InitOptions) error {
 }
 func ConfigAt(root string) (Config, error) {
 	var c Config
-	b, err := Read(filepath.Join(root, "app.json"), true)
+	b, err := readAuthored(filepath.Join(root, "app.yaml"), true)
 	if err != nil {
 		return c, err
 	}
@@ -265,7 +270,7 @@ func Load(root string) (*workloadrun.Workflow, string, error) {
 	}
 	for _, v := range m.Intent.Workloads {
 		if v.Image != a.Reference {
-			return nil, "", fmt.Errorf("platform/workloads/%s/%s.json image differs from registered artifact; select the matching artifact", v.Project, v.Name)
+			return nil, "", fmt.Errorf("platform/workloads/%s/%s.yaml image differs from registered artifact; select the matching artifact", v.Project, v.Name)
 		}
 	}
 	snapshot := filepath.Join(root, ".atlas", "inputs", workload.Digest(workload.JSON(m.Intent)))
@@ -436,20 +441,27 @@ func SelectArtifact(root, path string) error {
 	if err != nil {
 		return err
 	}
-	for n, b := range m.Authored() {
+	human, err := m.HumanAuthored()
+	if err != nil {
+		return err
+	}
+	for n, b := range human {
 		if err = writeFile(filepath.Join(root, n), b, false, false); err != nil {
 			return err
 		}
 	}
 	c.Artifact = path
-	return Write(filepath.Join(root, "app.json"), workload.JSON(c), false)
+	return writeConfig(filepath.Join(root, "app.yaml"), c, false)
 }
 
 // Public D1 instructions extract directly into the instance directory. Keep
 // the historical nested package/ layout usable without assuming author state.
 func instancePaths(instance string) (string, string, error) {
-	config := filepath.Join(instance, "installation.json")
-	if _, err := Read(config, false); err != nil {
+	config, err := authored.Resolve(filepath.Join(instance, "installation.yaml"))
+	if err != nil {
+		return "", "", err
+	}
+	if _, err := readAuthored(config, false); err != nil {
 		return "", "", err
 	}
 	packageDir := ""
@@ -467,4 +479,29 @@ func instancePaths(instance string) (string, string, error) {
 		return "", "", errors.New("D1 runtime.json missing at instance root or package/")
 	}
 	return config, packageDir, nil
+}
+
+func readAuthored(path string, private bool) ([]byte, error) {
+	p, err := authored.Resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	if filepath.Ext(p) != ".yaml" {
+		return nil, errors.New("user configuration must use .yaml; JSON is reserved for machine records")
+	}
+	b, err := Read(p, private)
+	if err != nil {
+		return nil, err
+	}
+	if filepath.Ext(p) == ".yaml" {
+		return authored.JSON(b)
+	}
+	return b, nil
+}
+func writeConfig(path string, c Config, exclusive bool) error {
+	b, err := authored.YAML(c)
+	if err != nil {
+		return err
+	}
+	return Write(path, b, exclusive)
 }

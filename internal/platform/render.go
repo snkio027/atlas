@@ -3,7 +3,9 @@
 package platform
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/developmentprofile"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -55,7 +57,7 @@ type Project struct {
 const inputDir = "platform/development"
 
 func readJSON(path string, v any) error {
-	b, e := os.ReadFile(path)
+	b, e := readInput(path)
 	if e != nil {
 		return e
 	}
@@ -80,7 +82,7 @@ func Load(root string, t Tools) (*Project, error) {
 	if e := readJSON(filepath.Join(root, inputDir, "versions.lock.json"), &p.Lock); e != nil {
 		return nil, e
 	}
-	if p.Config.Schema != 1 || p.Lock.Schema != 1 {
+	if (p.Config.Schema != 1 && p.Config.Schema != 2) || p.Lock.Schema != 1 {
 		return nil, errors.New("unsupported platform schema")
 	}
 	if p.Config.RootPath != "gitops/root/overlays/development" || p.Config.RepositoryURL != "https://github.com/snkio027/atlas-refactor.git" || !reviewedDevelopmentRevision(p.Config.Revision) {
@@ -136,7 +138,7 @@ func (p *Project) VerifyArtifacts() error {
 		if filepath.IsAbs(path) || strings.Contains(path, "..") || !(strings.HasPrefix(path, "vendor/") || strings.HasPrefix(path, "assets/")) {
 			return fmt.Errorf("unsafe artifact path: %s", path)
 		}
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return e
 		}
@@ -256,15 +258,29 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 		{"argocd-self", "atlas-refactor-argocd", "vendor/charts/argo-cd-", "argocd", "assets/argocd-values.yaml"},
 	}
 	for _, job := range jobs {
+		if p.currentLayout() && job.name != "cilium" {
+			if job.name == "envoy-gateway" {
+				job.ns = platformnames.Gateway
+			} else if job.name == "argocd-self" {
+				job.ns = platformnames.Argo
+			} else {
+				job.ns = platformnames.CertManager
+			}
+		}
 		chart, e := p.artifactPath(job.chartPrefix, ".tgz")
 		if e != nil {
 			return nil, e
 		}
 		args := []string{"template", job.release, chart, "--namespace", job.ns, "--include-crds", "--skip-tests", "--kube-version", p.Lock.Kubernetes, "--values", job.values}
+		valuePath, e := p.inputPath(job.values)
+		if e != nil {
+			return nil, e
+		}
+		args[len(args)-1] = valuePath
 		if job.name == "argocd-self" {
 			args = append(args, "--set", "configs.secret.createSecret=false")
 		}
-		b, e := p.run(ctx, nil, p.Tools.Helm, args...)
+		b, e := p.helmTemplate(ctx, args)
 		if e != nil {
 			return nil, e
 		}
@@ -273,7 +289,7 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 			return nil, e
 		}
 		if job.name == "argocd-self" {
-			cmBytes, e := os.ReadFile(filepath.Join(p.Root, "assets/argocd-cm.yaml"))
+			cmBytes, e := readInput(filepath.Join(p.Root, "assets/argocd-cm.yaml"))
 			if e != nil {
 				return nil, e
 			}
@@ -281,7 +297,7 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 			if e != nil {
 				return nil, e
 			}
-			health, e := os.ReadFile(filepath.Join(p.Root, inputDir, "health/ready.lua"))
+			health, e := readInput(filepath.Join(p.Root, inputDir, "health/ready.lua"))
 			if e != nil {
 				return nil, e
 			}
@@ -294,13 +310,17 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 			// Frozen S1 catalogs have no data operators. Do not introduce new
 			// inputs or Seed bytes into those historical projections.
 			if p.hasDataOperators() {
-				operatorHealth, e := os.ReadFile(filepath.Join(p.Root, inputDir, "health/data-operators.lua"))
+				operatorHealth, e := readInput(filepath.Join(p.Root, inputDir, "health/data-operators.lua"))
 				if e != nil {
 					return nil, e
 				}
 				for _, k := range []string{"postgresql.cnpg.io_Cluster", "kafka.strimzi.io_Kafka", "kafka.strimzi.io_KafkaUser", "flink.apache.org_FlinkDeployment"} {
 					data["resource.customizations.health."+k] = string(operatorHealth)
 				}
+			}
+			if p.currentLayout() {
+				metadata(cms[0])["namespace"] = platformnames.Argo
+				objs = append(objs, namespaceObject(platformnames.Get("argocd")))
 			}
 			objs = append(objs, cms[0])
 		}
@@ -320,7 +340,7 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 		if e != nil {
 			return nil, e
 		}
-		b, e := os.ReadFile(filepath.Join(p.Root, path))
+		b, e := readInput(filepath.Join(p.Root, path))
 		if e != nil {
 			return nil, e
 		}
@@ -348,7 +368,7 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 		}
 		files[p.Config.Components[job.name]+"/rendered.yaml"] = encoded(objs)
 	}
-	b, e := os.ReadFile(filepath.Join(p.Root, "vendor/platform/kind-storage.go"))
+	b, e := readInput(filepath.Join(p.Root, "vendor/platform/kind-storage.go"))
 	if e != nil {
 		return nil, e
 	}
@@ -390,6 +410,11 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 	for path, b := range caps {
 		files[path] = b
 	}
+	if p.currentLayout() {
+		if e = p.renderCoreInputs(files); e != nil {
+			return nil, e
+		}
+	}
 	return files, nil
 }
 func (p *Project) Write(files map[string][]byte) error {
@@ -400,6 +425,22 @@ func (p *Project) Write(files map[string][]byte) error {
 	sort.Strings(keys)
 	for _, path := range keys {
 		full := filepath.Join(p.Root, path)
+		data := files[path]
+		if strings.HasPrefix(path, inputDir+"/") && strings.HasSuffix(path, ".json") {
+			if resolved, err := authored.Resolve(full); err == nil && strings.HasSuffix(resolved, ".yaml") {
+				var v any
+				if err = json.Unmarshal(data, &v); err != nil {
+					return err
+				}
+				data, err = authored.YAML(v)
+				if err != nil {
+					return err
+				}
+				full = resolved
+			} else if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
 		if e := os.MkdirAll(filepath.Dir(full), 0755); e != nil {
 			return e
 		}
@@ -408,7 +449,7 @@ func (p *Project) Write(files map[string][]byte) error {
 			return e
 		}
 		name := f.Name()
-		_, e = f.Write(files[path])
+		_, e = f.Write(data)
 		if e == nil {
 			e = f.Chmod(0644)
 		}

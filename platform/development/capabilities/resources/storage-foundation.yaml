@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: service-object-storage
+      labels:
+        atlas.local/owner: platform
+        pod-security.kubernetes.io/enforce: restricted
+        atlas.local/class: service
+        atlas.local/domain: storage
+      annotations:
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: platform-budget
+      namespace: service-object-storage
+    spec:
+      hard:
+        requests.cpu: "3"
+        requests.memory: 4Gi
+        limits.memory: 8Gi
+        requests.storage: 32Gi
+        persistentvolumeclaims: "8"
+        pods: "32"
+  - apiVersion: v1
+    kind: LimitRange
+    metadata:
+      name: defaults
+      namespace: service-object-storage
+    spec:
+      limits:
+        - type: Container
+          default:
+            memory: 256Mi
+          defaultRequest:
+            cpu: 10m
+            memory: 32Mi
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: s3-default-deny
+      namespace: service-object-storage
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Ingress
+        - Egress
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: s3-clients
+      namespace: service-object-storage
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: seaweedfs
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: project-platform-smoke
+              podSelector:
+                matchLabels:
+                  atlas.local/s3-client: "true"
+          ports:
+            - protocol: TCP
+              port: 8333
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: platform-monitoring
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: prometheus
+          ports:
+            - protocol: TCP
+              port: 9324
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: s3-client-egress
+      namespace: project-platform-smoke
+    spec:
+      podSelector:
+        matchLabels:
+          atlas.local/s3-client: "true"
+      policyTypes:
+        - Egress
+      egress:
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: service-object-storage
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: seaweedfs
+          ports:
+            - protocol: TCP
+              port: 8333

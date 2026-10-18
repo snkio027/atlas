@@ -1,19 +1,21 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
-        "name": "monitoring",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
         "labels": {
+          "atlas.local/class": "platform",
+          "atlas.local/domain": "observability",
           "atlas.local/owner": "platform",
+          "kubernetes.io/metadata.name": "platform-monitoring",
           "pod-security.kubernetes.io/enforce": "privileged"
         },
-        "annotations": {
-          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
-        }
+        "name": "platform-monitoring"
       }
     },
     {
@@ -21,16 +23,16 @@
       "kind": "ResourceQuota",
       "metadata": {
         "name": "platform-budget",
-        "namespace": "monitoring"
+        "namespace": "platform-monitoring"
       },
       "spec": {
         "hard": {
+          "limits.memory": "8Gi",
+          "persistentvolumeclaims": "8",
+          "pods": "32",
           "requests.cpu": "3",
           "requests.memory": "4Gi",
-          "limits.memory": "8Gi",
-          "requests.storage": "32Gi",
-          "persistentvolumeclaims": "8",
-          "pods": "32"
+          "requests.storage": "32Gi"
         }
       }
     },
@@ -39,19 +41,19 @@
       "kind": "LimitRange",
       "metadata": {
         "name": "defaults",
-        "namespace": "monitoring"
+        "namespace": "platform-monitoring"
       },
       "spec": {
         "limits": [
           {
-            "type": "Container",
             "default": {
               "memory": "256Mi"
             },
             "defaultRequest": {
               "cpu": "10m",
               "memory": "32Mi"
-            }
+            },
+            "type": "Container"
           }
         ]
       }
@@ -61,9 +63,25 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "monitoring-ingress",
-        "namespace": "monitoring"
+        "namespace": "platform-monitoring"
       },
       "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {}
+                }
+              }
+            ]
+          }
+        ],
         "podSelector": {
           "matchExpressions": [
             {
@@ -81,24 +99,9 @@
         },
         "policyTypes": [
           "Ingress"
-        ],
-        "ingress": [
-          {
-            "from": [
-              {
-                "namespaceSelector": {
-                  "matchLabels": {
-                    "kubernetes.io/metadata.name": "monitoring"
-                  }
-                },
-                "podSelector": {
-                  "matchLabels": {}
-                }
-              }
-            ]
-          }
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

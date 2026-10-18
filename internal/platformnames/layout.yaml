@@ -1,0 +1,138 @@
+# Product-owned namespace layout. Changes require a reviewed layout identity.
+version: role-scoped-v1
+namespaces:
+  - unit: argocd
+    name: platform-argocd
+    class: platform
+    domain: delivery
+    declarativeOwner: argocd-self
+    lifecycle: controller
+    owner: platform
+    podSecurity: unchanged
+    deletion: explicit-retirement-only
+  - unit: cert-manager
+    name: platform-cert-manager
+    class: platform
+    domain: security
+    declarativeOwner: foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: unchanged
+    deletion: explicit-retirement-only
+  - unit: sealed-secrets
+    name: platform-sealed-secrets
+    class: platform
+    domain: security
+    declarativeOwner: secrets-foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: gateway
+    name: platform-gateway
+    class: platform
+    domain: networking
+    declarativeOwner: foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: unchanged
+    deletion: explicit-retirement-only
+  - unit: monitoring
+    name: platform-monitoring
+    class: platform
+    domain: observability
+    declarativeOwner: observability-foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: privileged
+    deletion: explicit-retirement-only
+  - unit: logging
+    name: platform-logging
+    class: platform
+    domain: observability
+    declarativeOwner: logging-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: cnpg-operator
+    name: platform-cnpg-operator
+    class: platform
+    domain: database
+    declarativeOwner: postgresql-operator-foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: strimzi-operator
+    name: platform-strimzi-operator
+    class: platform
+    domain: streaming
+    declarativeOwner: kafka-operator-foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: flink-operator
+    name: platform-flink-operator
+    class: platform
+    domain: processing
+    declarativeOwner: flink-operator-foundation
+    lifecycle: controller
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: postgresql
+    name: service-postgresql
+    class: service
+    domain: database
+    declarativeOwner: postgresql-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: kafka
+    name: service-kafka
+    class: service
+    domain: streaming
+    declarativeOwner: kafka-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: flink
+    name: service-flink-session
+    class: service
+    domain: processing
+    declarativeOwner: flink-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: redis
+    name: service-redis
+    class: service
+    domain: cache
+    declarativeOwner: redis-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: object-storage
+    name: service-object-storage
+    class: service
+    domain: storage
+    declarativeOwner: storage-foundation
+    lifecycle: shared-data
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only
+  - unit: workload-web
+    name: project-platform-smoke
+    class: project
+    domain: platform-validation
+    declarativeOwner: foundation
+    lifecycle: project
+    owner: platform
+    podSecurity: restricted
+    deletion: explicit-retirement-only

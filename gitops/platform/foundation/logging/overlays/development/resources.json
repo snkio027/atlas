@@ -1,19 +1,21 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
-        "name": "logging",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
         "labels": {
+          "atlas.local/class": "platform",
+          "atlas.local/domain": "observability",
           "atlas.local/owner": "platform",
+          "kubernetes.io/metadata.name": "platform-logging",
           "pod-security.kubernetes.io/enforce": "restricted"
         },
-        "annotations": {
-          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        "name": "platform-logging"
       }
     },
     {
@@ -21,16 +23,16 @@
       "kind": "ResourceQuota",
       "metadata": {
         "name": "platform-budget",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
         "hard": {
+          "limits.memory": "8Gi",
+          "persistentvolumeclaims": "8",
+          "pods": "16",
           "requests.cpu": "3",
           "requests.memory": "6Gi",
-          "limits.memory": "8Gi",
-          "requests.storage": "32Gi",
-          "persistentvolumeclaims": "8",
-          "pods": "16"
+          "requests.storage": "32Gi"
         }
       }
     },
@@ -39,19 +41,19 @@
       "kind": "LimitRange",
       "metadata": {
         "name": "defaults",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
         "limits": [
           {
-            "type": "Container",
             "default": {
               "memory": "256Mi"
             },
             "defaultRequest": {
               "cpu": "10m",
               "memory": "32Mi"
-            }
+            },
+            "type": "Container"
           }
         ]
       }
@@ -61,16 +63,16 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "default-deny",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
+        "egress": [],
+        "ingress": [],
         "podSelector": {},
         "policyTypes": [
           "Ingress",
           "Egress"
-        ],
-        "ingress": [],
-        "egress": []
+        ]
       }
     },
     {
@@ -78,15 +80,21 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "dns",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
-        "podSelector": {},
-        "policyTypes": [
-          "Egress"
-        ],
         "egress": [
           {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              }
+            ],
             "to": [
               {
                 "namespaceSelector": {
@@ -100,20 +108,15 @@
                   }
                 }
               }
-            ],
-            "ports": [
-              {
-                "protocol": "UDP",
-                "port": 53
-              },
-              {
-                "protocol": "TCP",
-                "port": 53
-              }
             ]
           }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

@@ -2,10 +2,12 @@ package workload
 
 import (
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -105,7 +107,7 @@ func policy(ns, name string, pods Object, direction string, peers []any, port in
 	return resource("networking.k8s.io/v1", "NetworkPolicy", ns, name, Object{"podSelector": Object{"matchLabels": pods}, "policyTypes": []string{direction}, key: []any{Object{from: peers, "ports": []any{Object{"protocol": "TCP", "port": port}}}}})
 }
 func app(c CompileContext, name, dir, ns, project, wave string) Object {
-	o := resource("argoproj.io/v1alpha1", "Application", "argocd", name, Object{"project": project, "source": Object{"repoURL": c.Repository, "targetRevision": c.Branch, "path": dir}, "destination": Object{"server": "https://kubernetes.default.svc", "namespace": ns}, "syncPolicy": Object{"automated": Object{"enabled": true, "prune": true, "selfHeal": true}, "syncOptions": []string{"ServerSideApply=true", "FailOnSharedResource=true"}}})
+	o := resource("argoproj.io/v1alpha1", "Application", platformnames.Argo, name, Object{"project": project, "source": Object{"repoURL": c.Repository, "targetRevision": c.Branch, "path": dir}, "destination": Object{"server": "https://kubernetes.default.svc", "namespace": ns}, "syncPolicy": Object{"automated": Object{"enabled": true, "prune": true, "selfHeal": true}, "syncOptions": []string{"ServerSideApply=true", "FailOnSharedResource=true"}}})
 	obj(meta(o)["annotations"])["argocd.argoproj.io/sync-wave"] = wave
 	return o
 }
@@ -196,7 +198,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 	}
 	for _, project := range projects {
 		for _, destination := range arr(val(project, "spec", "destinations")) {
-			if val(obj(destination), "namespace") == m.Intent.Project.Name {
+			if val(obj(destination), "namespace") == m.Intent.Project.Namespace() {
 				return Result{}, errors.New("Project namespace is reserved by the deployment base")
 			}
 		}
@@ -206,7 +208,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 		return Result{}, e
 	}
 	for _, r := range baseInv {
-		if r.Identity == "/Namespace//"+m.Intent.Project.Name {
+		if r.Identity == "/Namespace//"+m.Intent.Project.Namespace() {
 			return Result{}, errors.New("Project namespace already owned by base")
 		}
 	}
@@ -214,7 +216,11 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 	for p, b := range c.Base {
 		files[p] = append([]byte(nil), b...)
 	}
-	for p, b := range m.Authored() {
+	declarations, e := m.HumanAuthored()
+	if e != nil {
+		return Result{}, e
+	}
+	for p, b := range declarations {
 		files[p] = b
 	}
 	// Canonical declarations must actually be installed. Arbitrary author grants
@@ -238,7 +244,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 	}
 	if phase != "permissions" {
 		xs := projectObjects(m, phase)
-		if e = addLeaf(files, c, p.AppName(), "gitops/platform/projects/"+p.Name, p.Name, "platform-project", "-105", xs); e != nil {
+		if e = addLeaf(files, c, p.AppName(), "gitops/platform/projects/"+p.Name, p.Namespace(), "platform-project", "-105", xs); e != nil {
 			return Result{}, e
 		}
 		if e = certificatePrerequisites(files, m); e != nil {
@@ -258,18 +264,18 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 		}
 		for _, r := range m.Workloads {
 			w := r.Definition
-			if e = addLeaf(files, c, w.AppName(), "gitops/workloads/projects/"+p.Name+"/"+w.Name, p.Name, "workload-project", "10", workloadObjects(c, r)); e != nil {
+			if e = addLeaf(files, c, w.AppName(), "gitops/workloads/projects/"+p.Name+"/"+w.Name, p.Namespace(), "workload-project", "10", workloadObjects(c, r)); e != nil {
 				return Result{}, e
 			}
 			if b := r.Binding; b != nil {
-				if e = addLeaf(files, c, b.AppName(), "gitops/platform/bindings/"+p.Name+"/"+b.Name, p.Name, "platform-project", "-5", bindingObjects(*b, w)); e != nil {
+				if e = addLeaf(files, c, b.AppName(), "gitops/platform/bindings/"+p.Name+"/"+b.Name, p.Namespace(), "platform-project", "-5", bindingObjects(*b, w)); e != nil {
 					return Result{}, e
 				}
 			}
 		}
 		if sealed != nil && len(m.Intent.Bindings) > 0 {
 			if e = edit(files, CredentialsPath, func(xs []Object) ([]Object, error) {
-				o, e := find(xs, "SealedSecret", "object-storage", "seaweedfs-auth")
+				o, e := find(xs, "SealedSecret", platformnames.ObjectStorage, "seaweedfs-auth")
 				if e != nil {
 					return nil, e
 				}
@@ -286,7 +292,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 				return Result{}, e
 			}
 			if e = edit(files, StoragePath, func(xs []Object) ([]Object, error) {
-				o, e := find(xs, "StatefulSet", "object-storage", "seaweedfs")
+				o, e := find(xs, "StatefulSet", platformnames.ObjectStorage, "seaweedfs")
 				if e != nil {
 					return nil, e
 				}
@@ -334,22 +340,27 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 }
 func projectObjects(m *Model, phase string) []Object {
 	p := m.Intent.Project
-	ns := resource("v1", "Namespace", "", p.Name, nil)
-	meta(ns)["labels"] = Object{"atlas.io/project": p.Name, "atlas.io/gateway-access": "development", "pod-security.kubernetes.io/enforce": "restricted"}
+	ns := resource("v1", "Namespace", "", p.Namespace(), nil)
+	meta(ns)["annotations"] = Object{"argocd.argoproj.io/sync-options": "Prune=false,Delete=false", "atlas.local/owner-description": p.Owner}
+	owner := p.Owner
+	if !regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,61}[A-Za-z0-9])?$`).MatchString(owner) {
+		owner = "owner-" + ShortID("owner", owner)
+	}
+	meta(ns)["labels"] = Object{"kubernetes.io/metadata.name": p.Namespace(), "atlas.local/class": "project", "atlas.local/domain": "application", "atlas.local/project": p.Name, "atlas.local/owner": owner, "atlas.io/project": p.Name, "atlas.io/gateway-access": "development", "pod-security.kubernetes.io/enforce": "restricted"}
 	q := p.Quota
-	xs := []Object{ns, resource("v1", "ResourceQuota", p.Name, "project-budget", Object{"hard": Object{"pods": fmt.Sprint(q.Pods), "requests.cpu": cpu(q.RequestsCPU), "limits.cpu": cpu(q.LimitsCPU), "requests.memory": memory(q.RequestsMemory), "limits.memory": memory(q.LimitsMemory), "persistentvolumeclaims": "0"}}), resource("v1", "LimitRange", p.Name, "defaults", Object{"limits": []any{Object{"type": "Container", "default": Object{"cpu": "500m", "memory": "256Mi"}, "defaultRequest": Object{"cpu": "100m", "memory": "128Mi"}}}}), resource("networking.k8s.io/v1", "NetworkPolicy", p.Name, "default-deny", Object{"podSelector": Object{}, "policyTypes": []string{"Ingress", "Egress"}})}
-	dns := policy(p.Name, "allow-dns", Object{}, "Egress", []any{peer("kube-system", Object{"k8s-app": "kube-dns"})}, 53)
+	xs := []Object{ns, resource("v1", "ResourceQuota", p.Namespace(), "project-budget", Object{"hard": Object{"pods": fmt.Sprint(q.Pods), "requests.cpu": cpu(q.RequestsCPU), "limits.cpu": cpu(q.LimitsCPU), "requests.memory": memory(q.RequestsMemory), "limits.memory": memory(q.LimitsMemory), "persistentvolumeclaims": "0"}}), resource("v1", "LimitRange", p.Namespace(), "defaults", Object{"limits": []any{Object{"type": "Container", "default": Object{"cpu": "500m", "memory": "256Mi"}, "defaultRequest": Object{"cpu": "100m", "memory": "128Mi"}}}}), resource("networking.k8s.io/v1", "NetworkPolicy", p.Namespace(), "default-deny", Object{"podSelector": Object{}, "policyTypes": []string{"Ingress", "Egress"}})}
+	dns := policy(p.Namespace(), "allow-dns", Object{}, "Egress", []any{peer("kube-system", Object{"k8s-app": "kube-dns"})}, 53)
 	obj(arr(val(dns, "spec", "egress"))[0])["ports"] = []any{Object{"protocol": "UDP", "port": 53}, Object{"protocol": "TCP", "port": 53}}
 	xs = append(xs, dns)
 	for _, r := range m.Workloads {
 		w := r.Definition
-		sa := resource("v1", "ServiceAccount", p.Name, w.Name, nil)
+		sa := resource("v1", "ServiceAccount", p.Namespace(), w.Name, nil)
 		sa["automountServiceAccountToken"] = false
-		xs = append(xs, sa, policy(p.Name, "gateway-"+w.Name, labels(w), "Ingress", []any{peer("envoy-gateway-system", Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": "gateway"})}, w.Port))
+		xs = append(xs, sa, policy(p.Namespace(), "gateway-"+w.Name, labels(w), "Ingress", []any{peer(platformnames.Gateway, Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": platformnames.Gateway})}, w.Port))
 		if w.Observability.Metrics {
-			xs = append(xs, policy(p.Name, "metrics-"+w.Name, labels(w), "Ingress", []any{peer("monitoring", Object{"app.kubernetes.io/name": "prometheus"})}, w.Port))
+			xs = append(xs, policy(p.Namespace(), "metrics-"+w.Name, labels(w), "Ingress", []any{peer(platformnames.Monitoring, Object{"app.kubernetes.io/name": "prometheus"})}, w.Port))
 			if phase == "consumer" {
-				s := resource("monitoring.coreos.com/v1", "ServiceMonitor", p.Name, w.Name, Object{"namespaceSelector": Object{"matchNames": []string{p.Name}}, "selector": Object{"matchLabels": labels(w)}, "endpoints": []any{Object{"port": "http", "path": "/metrics", "interval": "30s"}}})
+				s := resource("monitoring.coreos.com/v1", "ServiceMonitor", p.Namespace(), w.Name, Object{"namespaceSelector": Object{"matchNames": []string{p.Namespace()}}, "selector": Object{"matchLabels": labels(w)}, "endpoints": []any{Object{"port": "http", "path": "/metrics", "interval": "30s"}}})
 				meta(s)["labels"] = Object{"release": "atlas-monitoring"}
 				xs = append(xs, s)
 			}
@@ -360,7 +371,7 @@ func projectObjects(m *Model, phase string) []Object {
 func bindingObjects(b Binding, w Workload) []Object {
 	client := labels(w)
 	client["atlas.io/s3-binding"] = b.ID()
-	return []Object{policy(b.Project, "s3-"+b.ID()+"-egress", client, "Egress", []any{peer("object-storage", Object{"app.kubernetes.io/name": "seaweedfs"})}, 8333), policy("object-storage", "s3-"+b.ID()+"-ingress", Object{"app.kubernetes.io/name": "seaweedfs"}, "Ingress", []any{peer(b.Project, client)}, 8333)}
+	return []Object{policy(b.Namespace(), "s3-"+b.ID()+"-egress", client, "Egress", []any{peer(platformnames.ObjectStorage, Object{"app.kubernetes.io/name": "seaweedfs"})}, 8333), policy(platformnames.ObjectStorage, "s3-"+b.ID()+"-ingress", Object{"app.kubernetes.io/name": "seaweedfs"}, "Ingress", []any{peer(b.Namespace(), client)}, 8333)}
 }
 func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 	w := r.Definition
@@ -368,7 +379,7 @@ func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 	env := []any{Object{"name": "PORT", "value": fmt.Sprint(w.Port)}}
 	if b := r.Binding; b != nil {
 		ls["atlas.io/s3-binding"] = b.ID()
-		for _, kv := range [][2]string{{"ATLAS_S3_ENDPOINT", "http://seaweedfs.object-storage.svc.cluster.local:8333"}, {"ATLAS_S3_BUCKET", b.Bucket}, {"ATLAS_S3_REGION", "us-east-1"}, {"ATLAS_S3_FORCE_PATH_STYLE", "true"}} {
+		for _, kv := range [][2]string{{"ATLAS_S3_ENDPOINT", "http://" + platformnames.S3Address}, {"ATLAS_S3_BUCKET", b.Bucket}, {"ATLAS_S3_REGION", "us-east-1"}, {"ATLAS_S3_FORCE_PATH_STYLE", "true"}} {
 			env = append(env, Object{"name": kv[0], "value": kv[1]})
 		}
 		for _, k := range []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"} {
@@ -382,8 +393,8 @@ func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 		return Object{"httpGet": Object{"path": p, "port": "http"}, "periodSeconds": 5, "timeoutSeconds": 2, "failureThreshold": 6}
 	}
 	container := Object{"name": "web", "image": w.Image, "imagePullPolicy": "IfNotPresent", "ports": []any{Object{"name": "http", "containerPort": w.Port}}, "env": env, "resources": Object{"requests": quantity(w.Resources.Requests), "limits": quantity(w.Resources.Limits)}, "securityContext": Object{"allowPrivilegeEscalation": false, "readOnlyRootFilesystem": true, "capabilities": Object{"drop": []string{"ALL"}}}, "readinessProbe": probe("/readyz"), "livenessProbe": probe("/healthz"), "volumeMounts": []any{Object{"name": "tmp", "mountPath": "/tmp"}}}
-	deploy := resource("apps/v1", "Deployment", w.Project, w.Name, Object{"replicas": w.Replicas, "strategy": Object{"type": "RollingUpdate", "rollingUpdate": Object{"maxSurge": 1, "maxUnavailable": 0}}, "selector": Object{"matchLabels": labels(w)}, "template": Object{"metadata": Object{"labels": ls}, "spec": Object{"serviceAccountName": w.Name, "automountServiceAccountToken": false, "nodeSelector": Object{"node-role.local/compute": "true", "kubernetes.io/os": "linux"}, "securityContext": Object{"runAsNonRoot": true, "runAsUser": 65532, "runAsGroup": 65532, "seccompProfile": Object{"type": "RuntimeDefault"}}, "containers": []any{container}, "volumes": []any{Object{"name": "tmp", "emptyDir": Object{"medium": "Memory", "sizeLimit": "32Mi"}}}}}})
-	service := resource("v1", "Service", w.Project, w.Name, Object{"selector": labels(w), "ports": []any{Object{"name": "http", "port": w.Port, "targetPort": "http"}}})
+	deploy := resource("apps/v1", "Deployment", w.Namespace(), w.Name, Object{"replicas": w.Replicas, "strategy": Object{"type": "RollingUpdate", "rollingUpdate": Object{"maxSurge": 1, "maxUnavailable": 0}}, "selector": Object{"matchLabels": labels(w)}, "template": Object{"metadata": Object{"labels": ls}, "spec": Object{"serviceAccountName": w.Name, "automountServiceAccountToken": false, "nodeSelector": Object{"node-role.local/compute": "true", "kubernetes.io/os": "linux"}, "securityContext": Object{"runAsNonRoot": true, "runAsUser": 65532, "runAsGroup": 65532, "seccompProfile": Object{"type": "RuntimeDefault"}}, "containers": []any{container}, "volumes": []any{Object{"name": "tmp", "emptyDir": Object{"medium": "Memory", "sizeLimit": "32Mi"}}}}}})
+	service := resource("v1", "Service", w.Namespace(), w.Name, Object{"selector": labels(w), "ports": []any{Object{"name": "http", "port": w.Port, "targetPort": "http"}}})
 	meta(service)["labels"] = labels(w)
 	routes := []Object{}
 	for _, https := range []bool{false, true} {
@@ -397,7 +408,7 @@ func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 			listener += "s"
 			rule = Object{"backendRefs": []any{Object{"group": "", "kind": "Service", "name": w.Name, "port": w.Port, "weight": 1}}, "matches": []any{Object{"path": Object{"type": "PathPrefix", "value": "/"}}}}
 		}
-		routes = append(routes, resource("gateway.networking.k8s.io/v1", "HTTPRoute", w.Project, prefix, Object{"parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": "gateway", "sectionName": listener}}, "hostnames": []string{w.Exposure.Hostname}, "rules": []any{rule}}))
+		routes = append(routes, resource("gateway.networking.k8s.io/v1", "HTTPRoute", w.Namespace(), prefix, Object{"parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": platformnames.Gateway, "sectionName": listener}}, "hostnames": []string{w.Exposure.Hostname}, "rules": []any{rule}}))
 	}
 	return append([]Object{deploy, service}, routes...)
 }

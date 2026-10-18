@@ -1,16 +1,15 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "postgresql.cnpg.io/v1",
       "kind": "Cluster",
       "metadata": {
-        "name": "postgresql",
-        "namespace": "postgresql",
         "annotations": {
           "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
-        }
+        },
+        "name": "postgresql",
+        "namespace": "service-postgresql"
       },
       "spec": {
         "affinity": {
@@ -147,17 +146,39 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "database-access",
-        "namespace": "postgresql"
+        "namespace": "service-postgresql"
       },
       "spec": {
-        "podSelector": {
-          "matchLabels": {
-            "cnpg.io/cluster": "postgresql"
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "cnpg.io/cluster": "postgresql"
+                  }
+                }
+              }
+            ]
           }
-        },
-        "policyTypes": [
-          "Ingress",
-          "Egress"
         ],
         "ingress": [
           {
@@ -172,14 +193,19 @@
             ],
             "ports": [
               {
-                "protocol": "TCP",
-                "port": 5432
+                "port": 5432,
+                "protocol": "TCP"
               }
             ]
           },
           {
             "from": [
               {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-cnpg-operator"
+                  }
+                },
                 "podSelector": {
                   "matchLabels": {
                     "app.kubernetes.io/name": "cloudnative-pg"
@@ -196,48 +222,27 @@
             ],
             "ports": [
               {
-                "protocol": "TCP",
-                "port": 8000
+                "port": 8000,
+                "protocol": "TCP"
               },
               {
-                "protocol": "TCP",
-                "port": 5432
+                "port": 5432,
+                "protocol": "TCP"
               }
             ]
           }
         ],
-        "egress": [
-          {
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 443
-              },
-              {
-                "protocol": "TCP",
-                "port": 6443
-              }
-            ]
-          },
-          {
-            "to": [
-              {
-                "podSelector": {
-                  "matchLabels": {
-                    "cnpg.io/cluster": "postgresql"
-                  }
-                }
-              }
-            ],
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 5432
-              }
-            ]
+        "podSelector": {
+          "matchLabels": {
+            "cnpg.io/cluster": "postgresql"
           }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
         ]
       }
     }
-  ]
+  ],
+  "kind": "List"
 }

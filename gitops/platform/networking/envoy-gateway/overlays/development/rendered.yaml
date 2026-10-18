@@ -11,7 +11,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "envoy-gateway",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   }
 }
 ---
@@ -30,7 +30,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "envoy-gateway-config",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   }
 }
 ---
@@ -245,7 +245,7 @@
     {
       "kind": "ServiceAccount",
       "name": "envoy-gateway",
-      "namespace": "envoy-gateway-system"
+      "namespace": "platform-gateway"
     }
   ]
 }
@@ -262,7 +262,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-infra-manager",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "rules": [
     {
@@ -364,7 +364,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-leader-election-role",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "rules": [
     {
@@ -428,7 +428,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-infra-manager",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -439,7 +439,7 @@
     {
       "kind": "ServiceAccount",
       "name": "envoy-gateway",
-      "namespace": "envoy-gateway-system"
+      "namespace": "platform-gateway"
     }
   ]
 }
@@ -456,7 +456,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-leader-election-rolebinding",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -467,7 +467,7 @@
     {
       "kind": "ServiceAccount",
       "name": "envoy-gateway",
-      "namespace": "envoy-gateway-system"
+      "namespace": "platform-gateway"
     }
   ]
 }
@@ -485,7 +485,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "envoy-gateway",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "spec": {
     "ports": [
@@ -532,7 +532,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "envoy-gateway",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "spec": {
     "replicas": 1,
@@ -740,7 +740,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-certgen",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   }
 }
 ---
@@ -760,7 +760,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-certgen",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "rules": [
     {
@@ -795,7 +795,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-certgen",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "roleRef": {
     "apiGroup": "rbac.authorization.k8s.io",
@@ -806,7 +806,7 @@
     {
       "kind": "ServiceAccount",
       "name": "eg-gateway-helm-certgen",
-      "namespace": "envoy-gateway-system"
+      "namespace": "platform-gateway"
     }
   ]
 }
@@ -826,7 +826,7 @@
       "helm.sh/chart": "gateway-helm-v1.9.2"
     },
     "name": "eg-gateway-helm-certgen",
-    "namespace": "envoy-gateway-system"
+    "namespace": "platform-gateway"
   },
   "spec": {
     "backoffLimit": 1,

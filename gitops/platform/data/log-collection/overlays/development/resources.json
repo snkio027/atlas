@@ -1,16 +1,15 @@
 {
   "apiVersion": "v1",
-  "kind": "List",
   "items": [
     {
       "apiVersion": "v1",
+      "data": {
+        "config.alloy": "discovery.kubernetes \"pods\" {\n  role = \"pod\"\n  namespaces { names = [\"service-postgresql\", \"service-redis\", \"service-kafka\", \"service-flink-session\", \"project-platform-smoke\"] }\n}\ndiscovery.relabel \"logs\" {\n  targets = discovery.kubernetes.pods.targets\n  rule {\n    source_labels = [\"__meta_kubernetes_namespace\"]\n    target_label = \"namespace\"\n  }\n  rule {\n    source_labels = [\"__meta_kubernetes_pod_name\"]\n    target_label = \"pod\"\n  }\n  rule {\n    source_labels = [\"__meta_kubernetes_pod_container_name\"]\n    target_label = \"container\"\n  }\n}\nloki.source.kubernetes \"pods\" {\n  targets = discovery.relabel.logs.output\n  forward_to = [loki.write.local.receiver]\n}\nloki.write \"local\" {\n  endpoint { url = \"http://loki.platform-logging.svc.cluster.local:3100/loki/api/v1/push\" }\n}\n"
+      },
       "kind": "ConfigMap",
       "metadata": {
         "name": "alloy-config",
-        "namespace": "logging"
-      },
-      "data": {
-        "config.alloy": "discovery.kubernetes \"pods\" {\n  role = \"pod\"\n  namespaces { names = [\"postgresql\", \"redis\", \"kafka\", \"flink\", \"workload-web\"] }\n}\ndiscovery.relabel \"logs\" {\n  targets = discovery.kubernetes.pods.targets\n  rule {\n    source_labels = [\"__meta_kubernetes_namespace\"]\n    target_label = \"namespace\"\n  }\n  rule {\n    source_labels = [\"__meta_kubernetes_pod_name\"]\n    target_label = \"pod\"\n  }\n  rule {\n    source_labels = [\"__meta_kubernetes_pod_container_name\"]\n    target_label = \"container\"\n  }\n}\nloki.source.kubernetes \"pods\" {\n  targets = discovery.relabel.logs.output\n  forward_to = [loki.write.local.receiver]\n}\nloki.write \"local\" {\n  endpoint { url = \"http://loki.logging.svc.cluster.local:3100/loki/api/v1/push\" }\n}\n"
+        "namespace": "platform-logging"
       }
     },
     {
@@ -18,30 +17,30 @@
       "kind": "ServiceAccount",
       "metadata": {
         "name": "alloy",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       }
     },
     {
       "apiVersion": "v1",
       "kind": "Service",
       "metadata": {
-        "name": "alloy",
-        "namespace": "logging",
         "labels": {
           "app.kubernetes.io/name": "alloy"
-        }
+        },
+        "name": "alloy",
+        "namespace": "platform-logging"
       },
       "spec": {
-        "selector": {
-          "app.kubernetes.io/name": "alloy"
-        },
         "ports": [
           {
             "name": "http",
             "port": 12345,
             "targetPort": "http"
           }
-        ]
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "alloy"
+        }
       }
     },
     {
@@ -49,7 +48,7 @@
       "kind": "Deployment",
       "metadata": {
         "name": "alloy",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
         "replicas": 1,
@@ -58,75 +57,22 @@
             "app.kubernetes.io/name": "alloy"
           }
         },
+        "strategy": {
+          "type": "Recreate"
+        },
         "template": {
           "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "alloy"
-            },
             "annotations": {
               "checksum/config": "9ff60ba7bb43c6e35e8e8837f6c704a36d067f10237b152cd44cd9d2187031bf"
+            },
+            "labels": {
+              "app.kubernetes.io/name": "alloy"
             }
           },
           "spec": {
             "automountServiceAccountToken": true,
-            "nodeSelector": {
-              "kubernetes.io/os": "linux",
-              "node-role.local/compute": "true"
-            },
-            "securityContext": {
-              "runAsNonRoot": true,
-              "runAsUser": 473,
-              "runAsGroup": 473,
-              "fsGroup": 473,
-              "seccompProfile": {
-                "type": "RuntimeDefault"
-              }
-            },
             "containers": [
               {
-                "name": "alloy",
-                "image": "docker.io/grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f",
-                "resources": {
-                  "requests": {
-                    "cpu": "50m",
-                    "memory": "128Mi"
-                  },
-                  "limits": {
-                    "memory": "384Mi"
-                  }
-                },
-                "securityContext": {
-                  "allowPrivilegeEscalation": false,
-                  "readOnlyRootFilesystem": true,
-                  "capabilities": {
-                    "drop": [
-                      "ALL"
-                    ]
-                  }
-                },
-                "ports": [
-                  {
-                    "name": "http",
-                    "containerPort": 12345
-                  }
-                ],
-                "volumeMounts": [
-                  {
-                    "name": "tmp",
-                    "mountPath": "/tmp",
-                    "readOnly": false
-                  },
-                  {
-                    "name": "alloy-config",
-                    "mountPath": "/config",
-                    "readOnly": true
-                  },
-                  {
-                    "name": "data",
-                    "mountPath": "/data",
-                    "readOnly": false
-                  }
-                ],
                 "args": [
                   "run",
                   "/config/config.alloy",
@@ -134,61 +80,114 @@
                   "--server.http.listen-addr=0.0.0.0:12345",
                   "--disable-reporting"
                 ],
-                "startupProbe": {
-                  "httpGet": {
-                    "path": "/-/ready",
-                    "port": "http"
-                  },
-                  "periodSeconds": 5,
-                  "failureThreshold": 60
-                },
-                "readinessProbe": {
-                  "httpGet": {
-                    "path": "/-/ready",
-                    "port": "http"
-                  },
-                  "periodSeconds": 10,
-                  "timeoutSeconds": 3,
-                  "failureThreshold": 3
-                },
+                "image": "docker.io/grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f",
                 "livenessProbe": {
+                  "failureThreshold": 6,
                   "httpGet": {
                     "path": "/-/ready",
                     "port": "http"
                   },
                   "periodSeconds": 20,
-                  "timeoutSeconds": 5,
-                  "failureThreshold": 6
-                }
+                  "timeoutSeconds": 5
+                },
+                "name": "alloy",
+                "ports": [
+                  {
+                    "containerPort": 12345,
+                    "name": "http"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/-/ready",
+                    "port": "http"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "384Mi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "startupProbe": {
+                  "failureThreshold": 60,
+                  "httpGet": {
+                    "path": "/-/ready",
+                    "port": "http"
+                  },
+                  "periodSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp",
+                    "readOnly": false
+                  },
+                  {
+                    "mountPath": "/config",
+                    "name": "alloy-config",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/data",
+                    "name": "data",
+                    "readOnly": false
+                  }
+                ]
               }
             ],
+            "nodeSelector": {
+              "kubernetes.io/os": "linux",
+              "node-role.local/compute": "true"
+            },
+            "securityContext": {
+              "fsGroup": 473,
+              "runAsGroup": 473,
+              "runAsNonRoot": true,
+              "runAsUser": 473,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccountName": "alloy",
+            "terminationGracePeriodSeconds": 60,
             "volumes": [
               {
-                "name": "tmp",
                 "emptyDir": {
                   "sizeLimit": "128Mi"
-                }
+                },
+                "name": "tmp"
               },
               {
-                "name": "alloy-config",
                 "configMap": {
-                  "name": "alloy-config",
-                  "defaultMode": 292
-                }
+                  "defaultMode": 292,
+                  "name": "alloy-config"
+                },
+                "name": "alloy-config"
               },
               {
-                "name": "data",
                 "emptyDir": {
                   "sizeLimit": "128Mi"
-                }
+                },
+                "name": "data"
               }
-            ],
-            "terminationGracePeriodSeconds": 60,
-            "serviceAccountName": "alloy"
+            ]
           }
-        },
-        "strategy": {
-          "type": "Recreate"
         }
       }
     },
@@ -197,17 +196,44 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "alloy-access",
-        "namespace": "logging"
+        "namespace": "platform-logging"
       },
       "spec": {
-        "podSelector": {
-          "matchLabels": {
-            "app.kubernetes.io/name": "alloy"
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 3100,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-logging"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/name": "loki"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ]
           }
-        },
-        "policyTypes": [
-          "Ingress",
-          "Egress"
         ],
         "ingress": [
           {
@@ -215,7 +241,7 @@
               {
                 "namespaceSelector": {
                   "matchLabels": {
-                    "kubernetes.io/metadata.name": "monitoring"
+                    "kubernetes.io/metadata.name": "platform-monitoring"
                   }
                 },
                 "podSelector": {
@@ -227,47 +253,20 @@
             ],
             "ports": [
               {
-                "protocol": "TCP",
-                "port": 12345
+                "port": 12345,
+                "protocol": "TCP"
               }
             ]
           }
         ],
-        "egress": [
-          {
-            "to": [
-              {
-                "namespaceSelector": {
-                  "matchLabels": {
-                    "kubernetes.io/metadata.name": "logging"
-                  }
-                },
-                "podSelector": {
-                  "matchLabels": {
-                    "app.kubernetes.io/name": "loki"
-                  }
-                }
-              }
-            ],
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 3100
-              }
-            ]
-          },
-          {
-            "ports": [
-              {
-                "protocol": "TCP",
-                "port": 443
-              },
-              {
-                "protocol": "TCP",
-                "port": 6443
-              }
-            ]
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "alloy"
           }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
         ]
       }
     },
@@ -276,7 +275,7 @@
       "kind": "Role",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "postgresql"
+        "namespace": "service-postgresql"
       },
       "rules": [
         {
@@ -310,7 +309,7 @@
       "kind": "RoleBinding",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "postgresql"
+        "namespace": "service-postgresql"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -321,7 +320,7 @@
         {
           "kind": "ServiceAccount",
           "name": "alloy",
-          "namespace": "logging"
+          "namespace": "platform-logging"
         }
       ]
     },
@@ -330,7 +329,7 @@
       "kind": "Role",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "redis"
+        "namespace": "service-redis"
       },
       "rules": [
         {
@@ -364,7 +363,7 @@
       "kind": "RoleBinding",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "redis"
+        "namespace": "service-redis"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -375,7 +374,7 @@
         {
           "kind": "ServiceAccount",
           "name": "alloy",
-          "namespace": "logging"
+          "namespace": "platform-logging"
         }
       ]
     },
@@ -384,7 +383,7 @@
       "kind": "Role",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "rules": [
         {
@@ -418,7 +417,7 @@
       "kind": "RoleBinding",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "kafka"
+        "namespace": "service-kafka"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -429,7 +428,7 @@
         {
           "kind": "ServiceAccount",
           "name": "alloy",
-          "namespace": "logging"
+          "namespace": "platform-logging"
         }
       ]
     },
@@ -438,7 +437,7 @@
       "kind": "Role",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "flink"
+        "namespace": "service-flink-session"
       },
       "rules": [
         {
@@ -472,7 +471,7 @@
       "kind": "RoleBinding",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "flink"
+        "namespace": "service-flink-session"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -483,7 +482,7 @@
         {
           "kind": "ServiceAccount",
           "name": "alloy",
-          "namespace": "logging"
+          "namespace": "platform-logging"
         }
       ]
     },
@@ -492,7 +491,7 @@
       "kind": "Role",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "workload-web"
+        "namespace": "project-platform-smoke"
       },
       "rules": [
         {
@@ -526,7 +525,7 @@
       "kind": "RoleBinding",
       "metadata": {
         "name": "alloy-logs",
-        "namespace": "workload-web"
+        "namespace": "project-platform-smoke"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -537,9 +536,10 @@
         {
           "kind": "ServiceAccount",
           "name": "alloy",
-          "namespace": "logging"
+          "namespace": "platform-logging"
         }
       ]
     }
-  ]
+  ],
+  "kind": "List"
 }

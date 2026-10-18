@@ -6,7 +6,7 @@
       "kind": "AppProject",
       "metadata": {
         "name": "platform-project",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "clusterResourceWhitelist": [
@@ -53,7 +53,7 @@
         ],
         "destinations": [
           {
-            "namespace": "argocd",
+            "namespace": "platform-argocd",
             "server": "https://kubernetes.default.svc"
           },
           {
@@ -61,15 +61,11 @@
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "cert-manager",
+            "namespace": "platform-cert-manager",
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "envoy-gateway-system",
-            "server": "https://kubernetes.default.svc"
-          },
-          {
-            "namespace": "gateway",
+            "namespace": "platform-gateway",
             "server": "https://kubernetes.default.svc"
           },
           {
@@ -77,19 +73,19 @@
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "workload-web",
+            "namespace": "project-platform-smoke",
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "monitoring",
+            "namespace": "platform-monitoring",
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "sealed-secrets",
+            "namespace": "platform-sealed-secrets",
             "server": "https://kubernetes.default.svc"
           },
           {
-            "namespace": "object-storage",
+            "namespace": "service-object-storage",
             "server": "https://kubernetes.default.svc"
           }
         ],
@@ -209,13 +205,13 @@
       "kind": "AppProject",
       "metadata": {
         "name": "workload-project",
-        "namespace": "argocd"
+        "namespace": "platform-argocd"
       },
       "spec": {
         "clusterResourceWhitelist": [],
         "destinations": [
           {
-            "namespace": "workload-web",
+            "namespace": "project-platform-smoke",
             "server": "https://kubernetes.default.svc"
           }
         ],

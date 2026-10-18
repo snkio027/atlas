@@ -37,7 +37,7 @@ func TestDataCapabilitySelectionIsOptInAndCredentialGated(t *testing.T) {
 		t.Fatal("missing credentials accepted")
 	}
 	missing := plan["missingSealedSecrets"].([]string)
-	for _, key := range []string{"postgresql/postgresql-app/username", "postgresql/postgresql-app/password", "flink/flink-webhook-password/password", "redis/redis-auth/password", "redis/redis-auth/users.acl"} {
+	for _, key := range []string{"service-postgresql/postgresql-app/username", "service-postgresql/postgresql-app/password", "platform-flink-operator/flink-webhook-password/password", "service-redis/redis-auth/password", "service-redis/redis-auth/users.acl"} {
 		found := false
 		for _, value := range missing {
 			found = found || value == key
@@ -220,7 +220,7 @@ func TestRedisProbeRejectsAuthErrors(t *testing.T) {
 			// redis-cli stops parsing options at the command. Trailing --sni
 			// becomes a PING argument and makes every otherwise valid probe fail.
 			if len(args) < 4 || args[len(args)-1] != "ping" ||
-				args[len(args)-3] != "--sni" || args[len(args)-2] != "redis.redis.svc.cluster.local" {
+				args[len(args)-3] != "--sni" || args[len(args)-2] != "redis.service-redis.svc.cluster.local" {
 				t.Fatal("Redis TLS options must precede the PING command", probe, args)
 			}
 		}
@@ -231,7 +231,7 @@ func TestCNPGSpecMatchesAdmittedReleaseDefaults(t *testing.T) {
 	// Spec captured after actual CNPG 1.30.1 admission, stripped of all
 	// metadata/status. Structural CRD validation alone cannot predict these
 	// webhook defaults. Keep them explicit rather than ignoring live extras.
-	fixture, err := os.ReadFile(filepath.Join(testRoot(t), "internal/platform/testdata/cnpg-1.30.1-admitted-spec.json"))
+	fixture, err := readInput(filepath.Join(testRoot(t), "internal/platform/testdata/cnpg-1.30.1-admitted-spec.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -395,7 +395,7 @@ func TestOperatorsOwnChildrenWithinNamespace(t *testing.T) {
 			}
 			if o["kind"] == "RoleBinding" {
 				ns := str(metadata(o)["namespace"])
-				if ns != "" && ns != tc.ns {
+				if ns != "" && ns != p.Capabilities.Catalog.Components[tc.ns].Namespace && ns != p.Capabilities.Catalog.Components[tc.ns+"-operator"].Namespace {
 					t.Fatal("cross namespace binding", identity(o))
 				}
 			}

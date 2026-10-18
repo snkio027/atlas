@@ -1,0 +1,8 @@
+schema: 1
+kind: CapabilityBinding
+project: demo
+name: web-api-storage
+workload: web-api
+capability: object-storage
+bucket: uploads
+access: read-write

@@ -82,13 +82,13 @@ func (w *Workflow) Verify(ctx context.Context, functional bool) error {
 		if nested(pv, "spec", "persistentVolumeReclaimPolicy") != "Retain" || nested(pv, "spec", "claimRef", "uid") != nested(pvc, "metadata", "uid") {
 			return errors.New("PV reclaim/claim identity mismatch")
 		}
-		web = web || nested(pvc, "metadata", "namespace") == "workload-web" && nested(pvc, "metadata", "name") == "web-data"
-		storage = storage || nested(pvc, "metadata", "namespace") == "object-storage" && nested(pvc, "metadata", "name") == "seaweedfs-data"
+		web = web || nested(pvc, "metadata", "namespace") == platformnames.Smoke && nested(pvc, "metadata", "name") == "web-data"
+		storage = storage || nested(pvc, "metadata", "namespace") == platformnames.ObjectStorage && nested(pvc, "metadata", "name") == "seaweedfs-data"
 	}
 	if !web || !storage {
 		return errors.New("required Web/S3 persistent storage absent")
 	}
-	b, e = w.kube(ctx, nil, "get", "secret", "development-ca", "-n", "gateway", "-o", `jsonpath={.data.tls\.crt}`)
+	b, e = w.kube(ctx, nil, "get", "secret", "development-ca", "-n", platformnames.Gateway, "-o", `jsonpath={.data.tls\.crt}`)
 	if e != nil {
 		return e
 	}

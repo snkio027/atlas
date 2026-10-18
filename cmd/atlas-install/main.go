@@ -3,6 +3,7 @@
 package main
 
 import (
+	"atlas-refactor/internal/authored"
 	"atlas-refactor/internal/installation"
 	"context"
 	"errors"
@@ -25,11 +26,11 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
-		fmt.Println("usage: atlas-install prepare|plan|install|verify|access --config <installation.json>")
+		fmt.Println("usage: atlas-install prepare|plan|install|verify|access --config <installation.yaml>")
 		return nil
 	}
 	if len(args) == 0 {
-		return errors.New("usage: atlas-install prepare|plan|install|verify|access --config <installation.json>")
+		return errors.New("usage: atlas-install prepare|plan|install|verify|access --config <installation.yaml>")
 	}
 	verb := args[0]
 	switch verb {
@@ -38,7 +39,7 @@ func run(args []string) error {
 		return errors.New("unknown installation command")
 	}
 	fs := flag.NewFlagSet(verb, flag.ContinueOnError)
-	config := fs.String("config", "installation.json", "installation configuration")
+	config := fs.String("config", "installation.yaml", "installation configuration")
 	approval := fs.String("approve-plan", "", "exact reviewed plan SHA256")
 	service := fs.String("service", "web", "web, grafana, prometheus, alertmanager or s3")
 	functional := fs.Bool("functional", false, "repeat bounded S3/alert test writes during verification")
@@ -73,7 +74,10 @@ func run(args []string) error {
 	if e = installation.Decode(manifest, &product); e != nil {
 		return e
 	}
-	b, e := os.ReadFile(*config)
+	if filepath.Ext(*config) != ".yaml" {
+		return errors.New("installation configuration must use .yaml")
+	}
+	b, e := authored.Read(*config)
 	if e != nil {
 		return e
 	}

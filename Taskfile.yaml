@@ -4,7 +4,7 @@ env:
   GOTOOLCHAIN: local
   GOPROXY: 'off'
   GOSUMDB: 'off'
-  GOFLAGS: -mod=readonly
+  GOFLAGS: -mod=vendor
 
 vars:
   LOCAL_OT1_TOOLS: '{{.ROOT_DIR}}/.state/tools/ot1'
@@ -44,6 +44,7 @@ tasks:
       - task: platform:check
       - task: ot1:contracts
       - task: experiments:check
+      - task: data:contracts
   build:
     cmds:
       - task: toolchain
@@ -104,3 +105,8 @@ tasks:
       - task: toolchain
       - go test -tags 'ot1_finalization ot1_f12_recovery ot1_stage12_continuation' ./experiments/foundation-ownership/...
       - go vet -tags 'ot1_finalization ot1_f12_recovery ot1_stage12_continuation' ./experiments/foundation-ownership/...
+
+  data:contracts:
+    desc: Versioned data acceptance contracts and actual runner fault injection; no cluster access
+    cmds:
+      - env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s experiments/data-platform -v
