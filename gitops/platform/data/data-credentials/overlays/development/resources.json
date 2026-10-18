@@ -1,5 +1,77 @@
 {
   "apiVersion": "v1",
-  "items": null,
+  "items": [
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "postgresql-app",
+        "namespace": "service-postgresql"
+      },
+      "spec": {
+        "encryptedData": {
+          "password": "AgBwRrVjkCQZjxlFrvjz0IWZ/hhsZlJ3TQDbKP1af5+BDLw7hDl/vegE33iVKCzGRszD5iz9HebdidwQkT3KoW8theBiM1DCWAyB3xW1ZFdhKcD4xzqzRnxeIghtdcl+6iThTmf6G6CXzJM9sacznSPqPD1UmOwKjSsSQPAn2mWJLh6ezx25KzaJIKIafXVJ4H9r4q8J2IsCwYMhVq3vYo0v8v0YSllJveas4fX7mScsqRp2ytsWhmWULFRC6F4eZG52d20YN/+tPmCj0DGRiZgvj8vcJYp1CYDB0P+z0R6eCDTeRasLYE6tVzIr8opm/EtYBYUjyBZyCOUUVgQgxUxoMC6iMGA7wIn0I2MD2bPjyiUAkRo4Gc9JXUjbL/hTnMppX5ywpMJSN9errmKL5vfooF1SDLaP+NoPPHO4v32qfJ9B7l6XsfZYM3uB6klSBakiXf75RHG1b3L6UtfHkCscmI/IKEUxQ69O4ezUY0f5jHLKuHVoyWUw08pn0y0ZlUfDof15KzogPF80oOZ09a+mECShqe9sQVnKtP4tt2hq44s3S81e6fCicn0wBkZIhD1OKi9Of2fb67lZ23cftDwHiMlL9GcFrjW43W2fDwNCvGn/znMyjoULTJ4KfIfmfsjBooEbgtSe66TqphVxL9vV7rEg6WksbJlM90cLRXqLbW1LSi+BEh8xD1GPhCA4T9fJdW5IpiovGzLLE2DCV+H+cCbyQYekrdSR22LxzDDgSJWZK37IwywUUARu",
+          "username": "AgDCKH8YPpxupqCsUNqOA16GfKbmZbOETzpbQ8y97ixUkr+KbF05bbnvx+GoVYz9SsW52vjlHSfPeowhtUdYy2EQReh4T7APElPlXL9B4xHge8MTeKz5IFWf1nPfBD+F/zI5s/J0c0bm2GXAAyhPnNXjXCyONPCc3SHg/8JF4McbJjBqG5hGkDKcFN4KuLBiMlr4BAM6Il9YOnw6SQUFiQKj4vDrbk0nJu+X5UU5Q9Gpt+pnhEIg8jg8D5Mj9j9RRt+BY2RiFACdTk4qA7nFTseGriCiUZpxbOcAlRbPpRYdLoSJeCKCp58XktXsEgrShzhC2tA4iQMF6ckr3h+mgStcK84wY9HttAg+54nvIIyzrQSjOs9P9ep41CMQMVq24JWJQHUNDiDDu/cUJmZgIYxnJUp1Z04DGj3VRCm2BqSzb2SIvv4HHe6dW8wzuPycjt0poXSlrV2bLLt64bkONaaFqrPpYY8oXJAU/Aim9Ao/O7Csp3VcnshJC8WprjOAb2oC4NgNcegtGXMNwSYQ9i/MU9CdI5+g97ctOfx5XYeZqqdhn7sUWdm3G/cefPQzaQZ7wz9bIqzsARI2XnN4RAJ08KU0WA/d6i7vFTD+N1iJOZRVcxgtX4Gvg89ZHK8bvRT8Z0MlLpmWqouD9190gzMg8rPWYzKr15z0qsih/Ft5y727b5HYTNxAD93QdfrAmNFfd7OZZ9jg2g=="
+        },
+        "template": {
+          "metadata": {
+            "name": "postgresql-app",
+            "namespace": "service-postgresql"
+          },
+          "type": "kubernetes.io/basic-auth"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "redis-auth",
+        "namespace": "service-redis"
+      },
+      "spec": {
+        "encryptedData": {
+          "password": "AgBIJKgThL/HdpKYRESv+Qi0IIt9UjLBzqbuI0AKG3uJ65eCeKEt8pdX1jfJ61BI1SXgRXKWJliuzUzPfz10OgLjVuAFOmy7jY0YjLxkTsaoH5SoVk+jOHn/LMZJFtJQolhT9Ui8VWcXJWaOlzpr1ASLn4wmCLgbY67EhL0uKiIQx48iQj9m4ia0P8vKgOQk1DgjtiqGTbRFRoTBc+0nMTocWMJMoDn/fmp1V+1kqgf2zT2gK392Vtw0AFHzupiK5A+GchNGY4NCEZ7xezwQuW1DVaGfVEwNNQ41NjxnYoPMuMLlWo3ndwJi4LmbA70IfTekh3zAvg9lfhFWYAULGvxPRRVD3cp3a5nqrzS1dUfumaDcalrfZYFlQd0fXP2KNsyfJCMhmFpYqwCv1R0VR2RURCuoGq4pMxrqR5Xti6nPfVlOWMrE8svv31YEV2xMkzx5y6nk+fsHJJLg5ZpvFhRaxtyZxaHvG7m3G3DKc47cqedJN9VGct24OGNkKn8Zneva0wGovlHOuJ6w4o1XE0GhOdwBJwSYQWfQXLr5nyL4/faibzKB1KeEQ9bz2Qh7Pd9bKEq1JubZwwb/qJyONvpzV+2Bd28yqWJsaf3D3Oja8cY82rgLV/lLXxN5w/e99JQozaGZdXWkVIum+VHJzGX4x4Vz8iu9/SF33Qyo2RVpLMFaky+R2fQbPgvjAORFQqgKXhcNJrkJkadvlZ1ZwMkHSx/S4zjVGa8AVIN9trI9frU0Ex49VecVArnX",
+          "users.acl": "AgAVpOp5ryI+8NZjHaH7a/tdutVDRj4UM+McEhfH7yOD5FHCqE7h1zzlGP6TsPH4gzmz9nCVWAKdGlBsjzBmigyEUxgbkYF1o/pHSjt/rvktO3pBsPfvq3YGo+uMrEKUr6MO17sG27XCnJhSAjIi8Hw3MJyYayw2ZlMoPwrE/kza2tKN2kU5IAG6H2NKZzpibhXK0d6xzGA0OsjMyGAD7cMxb/6uoAThHIqiYIQWIaPjPDXGLQ5Y+EjNCT7B+/L2ogo1LlQHhbFd4U3VMnbKvqCDWCBT4p2ujZOBAAyiat2jYqknLQoOIai2XmkyEawBoaiXf72k7A37Ae8plZVW4DQyWzA3u3p+PFkLxRm8UrugxYcXiNskYnvEIie53O2hZ0CsLpiLCVZ7Nf5X3UYWyLcTnoCKQqRWm+zC8mACjL31pypvaO9/SRSdZ9UhjJKGnCYKL3EPgbXyc9LUPMg5dzvqbbdQkq84fBkB+vuxPcx+D59fbukJyc5bLpkyQ8OZi+yZZhuJxbaGZP/Y801glxyhf7LCB/Gcv2HuWgh09JtMtOdBFvv+A7Q5yjEgTkuMzBAsxFlUNSbPVnhBnseBStxFEN0tklH/euN7K3KWtehCD+Q0SzU9F1FWHjIflub2MiTHZbihL8kTcaRR2foitpLT/+3uP8llwsmA/xnpSGyB6RkX/6LGhJOVaBdNZrbqy+z5QEZkXb6ZVuFof8YL1dlUDQfv2Z2y8xiWguvUYS79PbSpfCmx+WtQC23Jp4et/urGgqBOL4877GDGpBMpj9fgIoqCtif1HI6Em4dcSLY+YzlEbhwj1lVmJnLnmkKkYOyQhiLHDgM3ftXRYRTEjbb7cQZeQRz4"
+        },
+        "template": {
+          "metadata": {
+            "name": "redis-auth",
+            "namespace": "service-redis"
+          },
+          "type": "Opaque"
+        }
+      }
+    },
+    {
+      "apiVersion": "bitnami.com/v1alpha1",
+      "kind": "SealedSecret",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "flink-webhook-password",
+        "namespace": "platform-flink-operator"
+      },
+      "spec": {
+        "encryptedData": {
+          "password": "AgBTfDjlLWO5eA0suJvM66UNWmZkQCcgDz/hr/LResTwx2EME5EOf4GLKyHWKbcDxXMtBKZc084Dg7rAdWpMLrxtx9oEGYzepzQYFJJNFcEjnPCvp4fx0WZ+9D/cKrvDJRl/ryr5jAyxaFl1klcp/b35U0Nb+QMIX7Md83VckeUbHnidOc2pl/lo9NQV/DJXN1dmaqpCyPgUGxCOVT2xjZl5RN6i2OXNhiKDR0IUzBZqACTaE8S6vsgpadrIhbTFdThXCqGSq59IMKwqgspVnyPjNA2I+ACnDHcsx36lqJA7f/1ma8/8eX/dR/fcvB1FvXPRCrxOAhAeM+34yLwg/Z8wIs9cquKqNwZZZ7BRlIDcRn58UzLAAjDeW+6uSXaf7UIKYUOG5GEnmJQlhk5PZkqTPdbmifacqBpR/dozz/wYX6ho20ZxOUr6YpIt9rfZ2fRBst3h2HLMNcHnANTbcbnKSnYQ2fCy42MW594f3anqnqmVYfdsiEmIGhHMxIQ3RONH5IzmqbzoADJmHFpXS62B2fiVw0tmG01S6LZKfTE9J8egzl6vXvSc4p3xuR+9CmxK9m1Xv6X2EbIZ2f1VBAlPODBfMp3x+qpmaweIbHh7UmeyWItar244YLjKSJ9s4m7J0iFxw1oV+TOko+PfJ1pqSXMtvWui0C44n/ULkzCXW1oUHj3n12AdgGZRamYFSlxshXnPfeuT3LPyHtp/n55npVYzK5suJL8seLsTtTGlICclTYC0WifckA61"
+        },
+        "template": {
+          "metadata": {
+            "name": "flink-webhook-password",
+            "namespace": "platform-flink-operator"
+          },
+          "type": "Opaque"
+        }
+      }
+    }
+  ],
   "kind": "List"
 }
