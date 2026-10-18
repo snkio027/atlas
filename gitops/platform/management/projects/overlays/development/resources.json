@@ -77,7 +77,39 @@
             "server": "https://kubernetes.default.svc"
           },
           {
+            "namespace": "service-flink-session",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "platform-flink-operator",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "service-kafka",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "platform-strimzi-operator",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "platform-logging",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
             "namespace": "platform-monitoring",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "service-postgresql",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "platform-cnpg-operator",
+            "server": "https://kubernetes.default.svc"
+          },
+          {
+            "namespace": "service-redis",
             "server": "https://kubernetes.default.svc"
           },
           {
@@ -193,6 +225,26 @@
           {
             "group": "monitoring.coreos.com",
             "kind": "ServiceMonitor"
+          },
+          {
+            "group": "flink.apache.org",
+            "kind": "FlinkDeployment"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "Kafka"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "KafkaNodePool"
+          },
+          {
+            "group": "kafka.strimzi.io",
+            "kind": "KafkaUser"
+          },
+          {
+            "group": "postgresql.cnpg.io",
+            "kind": "Cluster"
           }
         ],
         "sourceRepos": [
