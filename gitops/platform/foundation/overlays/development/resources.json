@@ -1,0 +1,211 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
+        "labels": {
+          "atlas.local/class": "platform",
+          "atlas.local/domain": "security",
+          "atlas.local/owner": "platform",
+          "kubernetes.io/metadata.name": "platform-cert-manager"
+        },
+        "name": "platform-cert-manager"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
+        "labels": {
+          "atlas.local/class": "platform",
+          "atlas.local/domain": "networking",
+          "atlas.local/owner": "platform",
+          "kubernetes.io/metadata.name": "platform-gateway"
+        },
+        "name": "platform-gateway"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "local-path-storage"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=false"
+        },
+        "labels": {
+          "atlas.io/gateway-access": "development",
+          "atlas.local/class": "project",
+          "atlas.local/domain": "platform-validation",
+          "atlas.local/owner": "platform",
+          "atlas.local/project": "platform-smoke",
+          "kubernetes.io/metadata.name": "project-platform-smoke",
+          "pod-security.kubernetes.io/enforce": "restricted",
+          "pod-security.kubernetes.io/enforce-version": "v1.36"
+        },
+        "name": "project-platform-smoke"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ResourceQuota",
+      "metadata": {
+        "name": "web-budget",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "hard": {
+          "limits.cpu": "4",
+          "limits.memory": "4Gi",
+          "persistentvolumeclaims": "5",
+          "pods": "12",
+          "requests.cpu": "2",
+          "requests.memory": "2Gi",
+          "requests.storage": "10Gi",
+          "services": "10"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "LimitRange",
+      "metadata": {
+        "name": "web-defaults",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "limits": [
+          {
+            "default": {
+              "cpu": "500m",
+              "memory": "256Mi"
+            },
+            "defaultRequest": {
+              "cpu": "50m",
+              "memory": "64Mi"
+            },
+            "type": "Container"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "default-deny",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "podSelector": {},
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "allow-dns",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "kube-system"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "k8s-app": "kube-dns"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "gateway-to-web",
+        "namespace": "project-platform-smoke"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8080,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "web-smoke"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    }
+  ],
+  "kind": "List"
+}
