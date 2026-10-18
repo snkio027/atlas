@@ -112,11 +112,15 @@ func (p *Project) projectOperatorLayout(j CapabilityJob, objects []Object) ([]Ob
 			return nil, errors.New("CNPG RBAC structure changed")
 		}
 		// Original full runtime rules move to the service. The installation domain
-		// retains only leader election, configuration, TLS secrets and events.
+		// retains only leader election, configuration, TLS secrets and events,
+		// plus the label-selected Deployment list used by CNPG's PKI setup to
+		// attach its certificates to the operator. This is not a named GET and
+		// cannot use resourceNames; it does not require Deployment writes.
 		var own Object
 		b, _ := json.Marshal(role)
 		_ = json.Unmarshal(b, &own)
 		own["rules"] = []any{
+			Object{"apiGroups": []any{"apps"}, "resources": []any{"deployments"}, "verbs": []any{"list"}},
 			Object{"apiGroups": []any{"coordination.k8s.io"}, "resources": []any{"leases"}, "verbs": []any{"create", "get", "list", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"configmaps", "secrets"}, "verbs": []any{"create", "delete", "get", "list", "patch", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"events"}, "verbs": []any{"create", "patch"}},

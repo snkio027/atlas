@@ -122,6 +122,14 @@ Gateway合并不是扩大平台入口权限：Route接入、listener/TLS引用�
 | Strimzi | service-kafka | Chart的strimzi.watchNamespacesList自动追加安装ns；不能误认为values只列service就已限定监听。需要固定版本投影收窄env/运行域RoleBinding，同时保留管理域leader election；Kafka Entity Operator留在service |
 | Flink | service-flink-session | watchNamespaces已生成目标Role/RoleBinding及webhook selector；校验跨namespace SA、webhook证书/密码引用、Operator→JM8081与JM/TM侧对应许可 |
 
+CNPG 的安装域 Role 必须允许 `apps/deployments` 的 `list`：锁定的
+[1.30.1 PKI 实现](https://github.com/cloudnative-pg/cloudnative-pg/blob/2a35abb4628f209d149825ef3c38011e0701ff2f/pkg/certs/operator_deployment.go)
+按 label 查询 Operator Deployment，作为同域 CA/Webhook Secret 的 owner。
+该调用不是按名称 GET，也没有 name field selector，因此不能用 `resourceNames` 限制 LIST。
+安装域不因此获得 Deployment create/update/patch/delete 权限；编译检查必须同时拒绝缺失的
+LIST 与通过其他 RoleBinding 累加得到的 Deployment 写权限。服务实例的完整 Role 仍只绑定
+`service-postgresql`，CR watch 集合不变。
+
 三个安装域都不能因watch变化得到`*`或全部project-*权限。CNPG/Strimzi仍有必要的集群级
 读权限和CRD/webhook能力；分namespace不等于没有集群级权限。
 Operator生成NetworkPolicy与Atlas默认拒绝要组合验证，不能只检查一侧。

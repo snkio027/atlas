@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -21,6 +22,63 @@ func operatorObjects(t *testing.T) []Object {
 		all = append(all, xs...)
 	}
 	return all
+}
+
+func TestCNPGPKIDeploymentDiscovery(t *testing.T) {
+	all := operatorObjects(t)
+	for _, mode := range []string{"missing", "get-only", "named-list", "create", "update", "patch", "delete", "deletecollection", "*"} {
+		t.Run(mode, func(t *testing.T) {
+			raw, err := json.Marshal(all)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var objects []Object
+			if err := json.Unmarshal(raw, &objects); err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, role := range objects {
+				if role["kind"] != "Role" || metadata(role)["namespace"] != platformnames.CNPGOperator || metadata(role)["name"] != "cnpg" {
+					continue
+				}
+				for i, rawRule := range slice(role["rules"]) {
+					rule := mapping(rawRule)
+					if !contains(rule["apiGroups"], "apps") || !contains(rule["resources"], "deployments") {
+						continue
+					}
+					found = true
+					switch mode {
+					case "missing": // Exact permission omission observed during layout-r1 startup.
+						rules := slice(role["rules"])
+						role["rules"] = append(rules[:i], rules[i+1:]...)
+					case "get-only":
+						rule["verbs"] = []any{"get"}
+					case "named-list":
+						rule["resourceNames"] = []any{"cnpg"}
+					default:
+						// An additional binding can grant named writes even while the
+						// original read-only Role looks correct. Evaluate their union.
+						objects = append(objects,
+							Object{"kind": "Role", "metadata": Object{"namespace": platformnames.CNPGOperator, "name": "extra"}, "rules": []any{Object{"apiGroups": []any{"apps"}, "resources": []any{"deployments"}, "verbs": []any{mode}, "resourceNames": []any{"cnpg"}}}},
+							Object{"kind": "RoleBinding", "metadata": Object{"namespace": platformnames.CNPGOperator, "name": "extra"}, "roleRef": Object{"kind": "Role", "name": "extra"}, "subjects": []any{Object{"kind": "ServiceAccount", "namespace": platformnames.CNPGOperator, "name": "cnpg"}}},
+						)
+					}
+					break
+				}
+				break
+			}
+			if !found {
+				t.Fatal("rendered CNPG installation Role cannot discover its PKI owner")
+			}
+			want := "installation Deployment mutation"
+			if mode == "missing" || mode == "get-only" || mode == "named-list" {
+				want = "requires deployment discovery"
+			}
+			if err := ValidateOperatorPermissions(objects); err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("expected %s, got %v", want, err)
+			}
+		})
+	}
 }
 func TestOperatorEffectivePermissions(t *testing.T) {
 	all := operatorObjects(t)

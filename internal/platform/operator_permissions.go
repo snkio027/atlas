@@ -75,6 +75,26 @@ func ValidateOperatorPermissions(objects []Object) error {
 			}
 			return false
 		}
+		if op.ns == platformnames.CNPGOperator {
+			// CNPG 1.30.1 discovers its own Deployment by label before creating
+			// its CA/webhook Secrets. RBAC cannot narrow that LIST by object name.
+			if !allowed(op.ns, "apps", "deployments", "list", "") {
+				return fmt.Errorf("operator %s requires deployment discovery in %s for PKI", op.sa, op.ns)
+			}
+			for _, g := range grants {
+				r := g.rule
+				if (g.ns != op.ns && g.ns != "*") || !(contains(r["apiGroups"], "apps") || contains(r["apiGroups"], "*")) || !(contains(r["resources"], "deployments") || contains(r["resources"], "*")) {
+					continue
+				}
+				// Check every additive grant, including resourceNames-restricted
+				// writes: discovering the certificate owner must not permit edits.
+				for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
+					if contains(r["verbs"], verb) {
+						return fmt.Errorf("operator %s has installation Deployment mutation", op.sa)
+					}
+				}
+			}
+		}
 		// Check the whole grant, not a sample Secret/CR name. A binding in an
 		// unlisted namespace or a resourceNames-restricted grant is still access.
 		for _, g := range grants {
