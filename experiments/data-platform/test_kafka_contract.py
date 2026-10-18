@@ -1,5 +1,7 @@
 import copy
 import unittest
+import json
+from pathlib import Path
 from kafka_contract import IMAGE, consumed, consumer, transactional_denial, validate_cli
 
 
@@ -18,18 +20,35 @@ class KafkaContract(unittest.TestCase):
         result['stdout'] = 'Warning: deprecated option\nmarker\n'
         with self.assertRaises(ValueError):consumed(result, 'marker')
 
+    def test_captured_kubectl_authorization_denial(self):
+        # Sanitized capture checked against Kafka stderr and kubectl ExitError.
+        # This fixture is independent of the implementation's string builder.
+        result = json.loads((Path(__file__).parent / 'fixtures/kafka-transaction-denial.json').read_text())
+        self.assertTrue(transactional_denial(result, 'atlas-probe-forbidden')['transactionalIDAuthorizationDenied'])
+
     def test_authorization_result_is_version_bound_and_fail_closed(self):
         tx = 'atlas-probe-forbidden'
-        text = "Failed to describe transaction state of transactional-id `atlas-probe-forbidden`: FindCoordinator request for transactionalId `CoordinatorKey(idValue='atlas-probe-forbidden', type=TRANSACTION)` failed due to authorization failure. Enable debug logging for additional detail.\n"
-        good = {'exitCode': 1, 'stdout': text, 'stderr': ''}
-        self.assertTrue(transactional_denial(good, tx)['transactionalIDAuthorizationDenied'])
+        good = json.loads((Path(__file__).parent / 'fixtures/kafka-transaction-denial.json').read_text())
+        text = good['stderr']
+        marker = 'command terminated with exit code 1\n'
         bad = []
-        for output in ['', text.replace(tx, 'other'), 'TransactionalIdNotFoundException\n', 'TimeoutException\n', text + 'unexpected\n']:
-            x = copy.deepcopy(good); x['stdout'] = output; bad.append(x)
+        for output in ['', text.replace(tx, 'other'), 'TransactionalIdNotFoundException\n',
+                       'TimeoutException\n' + marker, 'Unable to connect to the server\n',
+                       text + 'unexpected\n', 'warning\n' + text,
+                       text.removesuffix(marker), marker, text + marker,
+                       text.replace('exit code 1', 'exit code 124')]:
+            x = copy.deepcopy(good); x['stderr'] = output; bad.append(x)
+        # Neither the old incorrect stdout fixture nor combined streams may pass.
+        for stdout, stderr in [(text, ''), (text.removesuffix(marker), marker),
+                               (text, text), ('unexpected\n', text)]:
+            x = copy.deepcopy(good); x.update(stdout=stdout, stderr=stderr); bad.append(x)
         for code in [0, 124, 137, -1]:
             x = copy.deepcopy(good); x['exitCode'] = code; bad.append(x)
         for value in bad:
             with self.subTest(value=value), self.assertRaises(ValueError):transactional_denial(value, tx)
+        for wrong_id in ['other', '', 'invalid id']:
+            with self.subTest(transactional_id=wrong_id), self.assertRaises(ValueError):
+                transactional_denial(good, wrong_id)
 
 
 if __name__ == '__main__':unittest.main()

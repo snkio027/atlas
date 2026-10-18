@@ -27,13 +27,16 @@ def consumed(result, message):
 
 
 def transactional_denial(result, transactional_id):
+    """Validate the captured non-TTY kubectl exec result, not a direct JVM call."""
     if not re.fullmatch(r'[a-z0-9-]+', transactional_id):
         raise ValueError('invalid transactional ID')
     expected = (f"Failed to describe transaction state of transactional-id `{transactional_id}`: "
                 f"FindCoordinator request for transactionalId `CoordinatorKey(idValue='{transactional_id}', type=TRANSACTION)` "
                 "failed due to authorization failure. Enable debug logging for additional detail.\n")
-    # TransactionsCommand.printErrorAndExit uses Throwable.getMessage(), not its
-    # Java class name. Timeout, missing-ID, transport and unknown errors fail.
-    if result != {'exitCode': 1, 'stdout': expected, 'stderr': ''}:
+    # Kafka writes the exception message to stderr. kubectl preserves that
+    # stream and appends its remote ExitError diagnostic before exiting 1.
+    # Require both layers exactly; never merge streams or strip arbitrary text.
+    expected += "command terminated with exit code 1\n"
+    if result != {'exitCode': 1, 'stdout': '', 'stderr': expected}:
         raise ValueError('not the reviewed transactional-ID authorization denial')
     return {'transactionalIDAuthorizationDenied': True}
