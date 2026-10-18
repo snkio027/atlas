@@ -125,6 +125,9 @@ func (p *Project) projectOperatorLayout(j CapabilityJob, objects []Object) ([]Ob
 			// OPERATOR_NAMESPACE, independently of WATCH_NAMESPACE. It starts
 			// even with no configured plugins and must synchronize its cache.
 			Object{"apiGroups": []any{"discovery.k8s.io"}, "resources": []any{"endpointslices"}, "verbs": []any{"get", "list", "watch"}},
+			// EndpointSlice event mapping resolves its Service before filtering
+			// plugin labels. That cached GET starts a namespaced LIST/WATCH.
+			Object{"apiGroups": []any{""}, "resources": []any{"services"}, "verbs": []any{"get", "list", "watch"}},
 			Object{"apiGroups": []any{"coordination.k8s.io"}, "resources": []any{"leases"}, "verbs": []any{"create", "get", "list", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"configmaps", "secrets"}, "verbs": []any{"create", "delete", "get", "list", "patch", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"events"}, "verbs": []any{"create", "patch"}},

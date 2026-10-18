@@ -76,24 +76,46 @@ func ValidateOperatorPermissions(objects []Object) error {
 			return false
 		}
 		if op.ns == platformnames.CNPGOperator {
-			// WATCH_NAMESPACE scopes the instance controllers, but the locked
-			// EndpointSlice informer explicitly uses OPERATOR_NAMESPACE.
-			for _, verb := range []string{"get", "list", "watch"} {
-				if !allowed(op.ns, "discovery.k8s.io", "endpointslices", verb, "") {
-					return fmt.Errorf("operator %s requires installation EndpointSlice %s for its informer", op.sa, verb)
+			// EndpointSlice mapping performs a cached Service GET in the
+			// installation domain before it can filter non-plugin Services.
+			// Both informers require unrestricted LIST/WATCH in that domain.
+			for _, informer := range []struct {
+				group, resource, label string
+				runtimeWrites          bool
+			}{
+				{"discovery.k8s.io", "endpointslices", "EndpointSlice", false},
+				{"", "services", "Service", true},
+			} {
+				for _, verb := range []string{"get", "list", "watch"} {
+					if !allowed(op.ns, informer.group, informer.resource, verb, "") {
+						return fmt.Errorf("operator %s requires installation %s %s for its informer", op.sa, informer.label, verb)
+					}
 				}
-			}
-			for _, g := range grants {
-				r := g.rule
-				if !(contains(r["apiGroups"], "discovery.k8s.io") || contains(r["apiGroups"], "*")) || !(contains(r["resources"], "endpointslices") || contains(r["resources"], "*")) {
-					continue
-				}
-				if g.ns != op.ns && g.ns != op.runtime {
-					return fmt.Errorf("operator %s has foreign EndpointSlice access in %s", op.sa, g.ns)
-				}
-				for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
-					if contains(r["verbs"], verb) {
-						return fmt.Errorf("operator %s has EndpointSlice mutation in %s", op.sa, g.ns)
+				for _, g := range grants {
+					r := g.rule
+					if !(contains(r["apiGroups"], informer.group) || contains(r["apiGroups"], "*")) || !(contains(r["resources"], informer.resource) || contains(r["resources"], "*")) {
+						continue
+					}
+					if g.ns != op.ns && g.ns != op.runtime {
+						// Sealed Secrets already exposes this one Service name to
+						// system:authenticated for public certificate discovery.
+						// Preserve that GET without permitting foreign enumeration.
+						if informer.resource == "services" && g.ns == platformnames.Secrets &&
+							len(slice(r["apiGroups"])) == 1 && contains(r["apiGroups"], "") &&
+							len(slice(r["resources"])) == 1 && contains(r["resources"], "services") &&
+							len(slice(r["verbs"])) == 1 && contains(r["verbs"], "get") &&
+							len(slice(r["resourceNames"])) == 1 && contains(r["resourceNames"], "sealed-secrets") {
+							continue
+						}
+						return fmt.Errorf("operator %s has foreign %s access in %s", op.sa, informer.label, g.ns)
+					}
+					if g.ns == op.runtime && informer.runtimeWrites {
+						continue // CNPG still owns instance Services in its runtime domain.
+					}
+					for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
+						if contains(r["verbs"], verb) {
+							return fmt.Errorf("operator %s has %s mutation in %s", op.sa, informer.label, g.ns)
+						}
 					}
 				}
 			}

@@ -142,6 +142,31 @@ layout-r1 的运行揭示了两个独立启动步骤：PKI owner discovery 成�
 还应核验锁定版本控制器已启动 workers，并在当前 Pod/container 身份下没有新的启动错误。
 原 PKI Gate 的时间点证据和后续 STOP 均保留，不能把短暂 Ready 写成最终验收成功。
 
+权限审查必须覆盖该 informer 的事件读取闭包：安装域的任意带 Service 名称的
+EndpointSlice（包括 Operator 自身 webhook）先触发 cached `Get(Service)`，随后才检查
+是否属于 CNPG-i 插件；因此“未启用插件”也不能省略安装域 Service 的 `get/list/watch`。
+这个 GET 走 `externalCache`，首次访问会启动该 namespace 的 Service LIST/WATCH；
+只给 named GET 不足。源码依据为
+[事件映射](https://github.com/cloudnative-pg/cloudnative-pg/blob/2a35abb4628f209d149825ef3c38011e0701ff2f/internal/controller/cluster_plugins.go) 和
+[跨域缓存](https://github.com/cloudnative-pg/cloudnative-pg/blob/2a35abb4628f209d149825ef3c38011e0701ff2f/pkg/multicache/multinamespaced_cache.go)。
+
+该闭包在安装域只读 Service；其余已有配置/Secret、选主 Lease 和事件权限不变，
+实例域的 Service 管理由 CNPG 保留。安装域 Service 写权限、外域 Service 枚举/写入
+和全局 Service 访问均应被有效权限检查拒绝。既有 `system:authenticated` 对
+`platform-sealed-secrets/sealed-secrets` Service 的定名 GET 用于公共证书发现，继续保留；
+该例外不允许其他名称、LIST/WATCH 或写权限，也不新增任何 live 授权。插件安装、旧插件 finalizer 清理和任意外部 namespace 引用
+不属于当前声明的能力，不能据此复制完整 runtime Role 到安装域。
+
+| 安装域路径 | 必需读取 | 现有限制 |
+| --- | --- | --- |
+| PKI owner discovery | Deployment LIST | 无 Deployment 写权限 |
+| 插件 rollout 事件源 | EndpointSlice GET/LIST/WATCH | 仅安装域/实例域，无写权限 |
+| 事件解析的缓存读取 | Service GET/LIST/WATCH | 安装域只读；实例域保留管理权限 |
+| 配置和插件证书读取 | ConfigMap/Secret（既有） | 不跨未声明 namespace |
+
+layout-r1 后续验证已证实 EndpointSlice 权限生效后会触发上述 Service 缓存路径。
+该 STOP 发生在日志监测发布及业务 probe 之前；修正源码与本地检查不构成 Runtime PASS。
+
 三个安装域都不能因watch变化得到`*`或全部project-*权限。CNPG/Strimzi仍有必要的集群级
 读权限和CRD/webhook能力；分namespace不等于没有集群级权限。
 Operator生成NetworkPolicy与Atlas默认拒绝要组合验证，不能只检查一侧。
