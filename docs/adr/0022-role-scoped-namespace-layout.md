@@ -1,6 +1,7 @@
 # ADR-0022：按平台管理、共享服务与项目划分 namespace
 
-Status: Design Accepted — 2026-10-16。用户批准按复审后的方案实施；Runtime 尚未验证。
+Status: Design Accepted — 2026-10-16。用户批准按复审后的方案实施；后续[运行验收](../namespace-layout-runtime-validation.md)已通过，
+历史执行与修正分别绑定，不扩大生产/迁移授权。
 本记录替代 ADR-0020 的新安装命名决定，
 并替代 ADR-0021 中三个领域 Operator 与实例共 namespace 的决定。
 

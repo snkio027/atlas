@@ -31,7 +31,8 @@ atlas-platform app open --service experiment-archive
 
 新安装采用 `platform-* / service-* / project-*`，系统 namespace 保留原名。人工配置使用 YAML，锁、计划与证据使用 JSON；名称对应、组件扩展
 与旧实例边界见 [平台 namespace 约定](docs/platform-namespaces.md)。
-本次新布局仅完成本地验证；[部署审查](docs/namespace-layout-review.md)与现有实例操作分开。
+新布局与数据能力组合候选已完成[运行验收 PASS](docs/namespace-layout-runtime-validation.md)；
+历史 STOP 保留，新实例与已有实例操作分别审查。
 
 ## 维护与验证
 

@@ -1,5 +1,7 @@
 # 数据平台首次部署：失败经验
 
+> 最新结果：组合候选已完成[运行验收 PASS](namespace-layout-runtime-validation.md)。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
+
 适用范围：单所有者本地开发。首次运行实现 `8d0741f`，不是数据平台 Runtime PASS。
 D1 已经完成正常交接续行及功能检查；原中断记录保留，不能描述为未中断的单次安装。
 修正实现 `660b96e` 的 exact-head Quality 已通过，Flink CRD 修正 Gate 已通过。

@@ -1,7 +1,8 @@
 # 数据平台能力与部署审查
 
-实现候选、默认未启用、运行时未验收。参见 [ADR-0021](adr/0021-local-data-platform.md)
-与 [本地验证](data-platform-validation.md)。当前新安装采用 [role-scoped-v1](namespace-layout-contract.md)；现存 data-r1 及原 STOP/计划保持不动。
+能力默认未启用。PR #11/#12 组合候选已完成[本地运行验收 PASS](namespace-layout-runtime-validation.md)，
+包括协议、权限负例、持久化及 D1 不回归；原 STOP 和各阶段提交绑定保留。参见 [ADR-0021](adr/0021-local-data-platform.md)
+与 [本地验证](data-platform-validation.md)。当前新安装采用 [role-scoped-v1](namespace-layout-contract.md)。
 
 Strimzi 1.3.0 的启动配置必须保留官方支持的 4.2.0、4.2.1、4.2.2、4.3.0、4.3.1
 完整镜像目录，分别固定真实 digest。当前 Kafka CR 仍明确选择 4.3.1；目录完整性不等于
@@ -90,10 +91,10 @@ Root、signal、既有业务与该实例已经冻结的 authority 字节必须�
 
 ## 新布局部署审查
 
-本次只完成实现和离线验证。新布局审查见 [REVIEW](namespace-layout-review.md)，
-不得把以下新名称混入旧 data-r1 的 repair plan。旧目标、STOP、Git 与备份继续保留。
+历史新布局审查见 [REVIEW](namespace-layout-review.md)，运行结果见[最终摘要](namespace-layout-runtime-validation.md)。
+新的部署需形成自己的目标与输入绑定；旧 STOP、Git 与备份保持原义。
 创建新目标需要独立 D1、Trust Root、备份和六个严格绑定的新密文目标，不能仅修改旧密文的 namespace。
-新建集群时设置默认 kubectl context；本轮没有创建、删除或访问集群。
+新建集群时设置并核验默认 kubectl context；源码合并本身不构成一次部署。
 
 ## 真实验收 Gate
 

@@ -1,5 +1,7 @@
 # YAML 输入与 namespace 归属重构：部署审查
 
+> 最新结果：组合候选已完成[运行验收 PASS](namespace-layout-runtime-validation.md)。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
+
 状态：本地实现审查候选；**未获部署授权、Runtime NOT RUN**。
 本轮不访问或操作现存 atlas-data-r1，不执行其 readiness-repair，不删除任何集群。
 旧 STOP、私钥备份、部署分支和历史验收绑定保留。
