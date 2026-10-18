@@ -36,3 +36,25 @@ CNPG默认值与Ready语义另核对锁定版本的
 新的Lua进入后续产品渲染；当前实例保持原D1 Seed/record，不借修复改写authority。
 后续只发布经审查的Redis/CNPG资源差异及原日志监测阶段，重新核对实际目标和计划。
 无需删除现有集群或重新获取Seed权限；没有数据组件Runtime PASS。
+
+## Acceptance tooling is part of the implementation
+
+Three private-script failures shared one coverage gap: the code actually used for
+acceptance was outside repository CI. A Kafka consumer used obsolete options;
+transaction authorization was inferred from an exception class that the locked
+CLI never prints; a create-only evidence file was written twice. These are tool
+contract and execution-order failures, not reasons to broaden accepted runtime
+states or permissions.
+
+A further S3 test selected web-smoke as a supposedly authorized peer. Both its
+rendered and live identity lack the S3 client label, so default-deny correctly
+blocked the request. The positive control was invalid before any network call.
+No workload label or policy is changed to make that test pass.
+
+The finite [data acceptance contracts](../experiments/data-platform/README.md)
+now validate probe identities and both policy directions before effects, separate
+process exit/stdout/stderr, persist exclusive intents before operations, and test
+the actual entry point with injected failures. `task quality` runs these tests.
+CNPG installation checks cover its complete reviewed control-plane permission set,
+rather than only the informer that most recently failed. Existing runtime STOPs
+remain historical facts; these local tests do not retroactively turn them into PASS.

@@ -76,6 +76,26 @@ func ValidateOperatorPermissions(objects []Object) error {
 			return false
 		}
 		if op.ns == platformnames.CNPGOperator {
+			// The installation domain is a control plane of its own. WATCH_NAMESPACE
+			// scopes instance reconciliation; it does not remove leader election,
+			// configuration/PKI management, event publication or cached API reads.
+			// Verify the entire known installation closure, including permissions
+			// that do not happen to be exercised by a healthy current process.
+			for _, required := range []struct {
+				group, resource string
+				verbs           []string
+			}{
+				{"coordination.k8s.io", "leases", []string{"create", "get", "list", "update", "watch"}},
+				{"", "configmaps", []string{"create", "delete", "get", "list", "patch", "update", "watch"}},
+				{"", "secrets", []string{"create", "delete", "get", "list", "patch", "update", "watch"}},
+				{"", "events", []string{"create", "patch"}},
+			} {
+				for _, verb := range required.verbs {
+					if !allowed(op.ns, required.group, required.resource, verb, "") {
+						return fmt.Errorf("operator %s requires installation %s %s", op.sa, required.resource, verb)
+					}
+				}
+			}
 			// EndpointSlice mapping performs a cached Service GET in the
 			// installation domain before it can filter non-plugin Services.
 			// Both informers require unrestricted LIST/WATCH in that domain.
