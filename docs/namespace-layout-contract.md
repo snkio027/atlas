@@ -130,6 +130,18 @@ CNPG 的安装域 Role 必须允许 `apps/deployments` 的 `list`：锁定的
 LIST 与通过其他 RoleBinding 累加得到的 Deployment 写权限。服务实例的完整 Role 仍只绑定
 `service-postgresql`，CR watch 集合不变。
 
+锁定版本还将用于检测 CNPG-i 插件 rollout 的 `EndpointSlice` informer 显式限定到
+`OPERATOR_NAMESPACE`，独立于实例的 `WATCH_NAMESPACE`；即使未配置插件，它仍会启动。
+安装域因此保留 `discovery.k8s.io/endpointslices` 的 `get/list/watch`，不授予写权限，
+也不将该权限提升为集群范围。有效权限检查必须覆盖缺失、仅具名 LIST/WATCH、附加写授权
+和跨域授权。源码依据为 [1.30.1 cache 配置](https://github.com/cloudnative-pg/cloudnative-pg/blob/2a35abb4628f209d149825ef3c38011e0701ff2f/internal/cmd/manager/controller/controller.go)。
+
+layout-r1 的运行揭示了两个独立启动步骤：PKI owner discovery 成功后，Webhook readiness
+可能先变为 Ready；随后缺少 EndpointSlice LIST 导致 informer cache 超时，manager 退出。
+因此短暂 Pod Ready 或 Application Healthy 不证明控制器的 cache 已完成初始化；安装验收
+还应核验锁定版本控制器已启动 workers，并在当前 Pod/container 身份下没有新的启动错误。
+原 PKI Gate 的时间点证据和后续 STOP 均保留，不能把短暂 Ready 写成最终验收成功。
+
 三个安装域都不能因watch变化得到`*`或全部project-*权限。CNPG/Strimzi仍有必要的集群级
 读权限和CRD/webhook能力；分namespace不等于没有集群级权限。
 Operator生成NetworkPolicy与Atlas默认拒绝要组合验证，不能只检查一侧。

@@ -121,6 +121,10 @@ func (p *Project) projectOperatorLayout(j CapabilityJob, objects []Object) ([]Ob
 		_ = json.Unmarshal(b, &own)
 		own["rules"] = []any{
 			Object{"apiGroups": []any{"apps"}, "resources": []any{"deployments"}, "verbs": []any{"list"}},
+			// CNPG 1.30.1 scopes its plugin-rollout EndpointSlice informer to
+			// OPERATOR_NAMESPACE, independently of WATCH_NAMESPACE. It starts
+			// even with no configured plugins and must synchronize its cache.
+			Object{"apiGroups": []any{"discovery.k8s.io"}, "resources": []any{"endpointslices"}, "verbs": []any{"get", "list", "watch"}},
 			Object{"apiGroups": []any{"coordination.k8s.io"}, "resources": []any{"leases"}, "verbs": []any{"create", "get", "list", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"configmaps", "secrets"}, "verbs": []any{"create", "delete", "get", "list", "patch", "update", "watch"}},
 			Object{"apiGroups": []any{""}, "resources": []any{"events"}, "verbs": []any{"create", "patch"}},

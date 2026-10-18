@@ -76,6 +76,27 @@ func ValidateOperatorPermissions(objects []Object) error {
 			return false
 		}
 		if op.ns == platformnames.CNPGOperator {
+			// WATCH_NAMESPACE scopes the instance controllers, but the locked
+			// EndpointSlice informer explicitly uses OPERATOR_NAMESPACE.
+			for _, verb := range []string{"get", "list", "watch"} {
+				if !allowed(op.ns, "discovery.k8s.io", "endpointslices", verb, "") {
+					return fmt.Errorf("operator %s requires installation EndpointSlice %s for its informer", op.sa, verb)
+				}
+			}
+			for _, g := range grants {
+				r := g.rule
+				if !(contains(r["apiGroups"], "discovery.k8s.io") || contains(r["apiGroups"], "*")) || !(contains(r["resources"], "endpointslices") || contains(r["resources"], "*")) {
+					continue
+				}
+				if g.ns != op.ns && g.ns != op.runtime {
+					return fmt.Errorf("operator %s has foreign EndpointSlice access in %s", op.sa, g.ns)
+				}
+				for _, verb := range []string{"*", "create", "update", "patch", "delete", "deletecollection"} {
+					if contains(r["verbs"], verb) {
+						return fmt.Errorf("operator %s has EndpointSlice mutation in %s", op.sa, g.ns)
+					}
+				}
+			}
 			// CNPG 1.30.1 discovers its own Deployment by label before creating
 			// its CA/webhook Secrets. RBAC cannot narrow that LIST by object name.
 			if !allowed(op.ns, "apps", "deployments", "list", "") {
