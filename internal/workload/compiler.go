@@ -189,6 +189,18 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 			}
 		}
 	}
+	// AppProject destinations reserve names even before the Namespace exists.
+	projects, e := objects(c.Base[ProjectsPath])
+	if e != nil {
+		return Result{}, e
+	}
+	for _, project := range projects {
+		for _, destination := range arr(val(project, "spec", "destinations")) {
+			if val(obj(destination), "namespace") == m.Intent.Project.Name {
+				return Result{}, errors.New("Project namespace is reserved by the deployment base")
+			}
+		}
+	}
 	baseInv, e := InventoryOf(c.Base, c.ResourceModel)
 	if e != nil {
 		return Result{}, e
@@ -257,7 +269,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 		}
 		if sealed != nil && len(m.Intent.Bindings) > 0 {
 			if e = edit(files, CredentialsPath, func(xs []Object) ([]Object, error) {
-				o, e := find(xs, "SealedSecret", "atlas-storage", "seaweedfs-auth")
+				o, e := find(xs, "SealedSecret", "object-storage", "seaweedfs-auth")
 				if e != nil {
 					return nil, e
 				}
@@ -274,7 +286,7 @@ func compile(c CompileContext, m *Model, phase string, sealed *Artifacts, prefli
 				return Result{}, e
 			}
 			if e = edit(files, StoragePath, func(xs []Object) ([]Object, error) {
-				o, e := find(xs, "StatefulSet", "atlas-storage", "seaweedfs")
+				o, e := find(xs, "StatefulSet", "object-storage", "seaweedfs")
 				if e != nil {
 					return nil, e
 				}
@@ -333,9 +345,9 @@ func projectObjects(m *Model, phase string) []Object {
 		w := r.Definition
 		sa := resource("v1", "ServiceAccount", p.Name, w.Name, nil)
 		sa["automountServiceAccountToken"] = false
-		xs = append(xs, sa, policy(p.Name, "gateway-"+w.Name, labels(w), "Ingress", []any{peer("envoy-gateway-system", Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": "atlas-gateway"})}, w.Port))
+		xs = append(xs, sa, policy(p.Name, "gateway-"+w.Name, labels(w), "Ingress", []any{peer("envoy-gateway-system", Object{"gateway.envoyproxy.io/owning-gateway-name": "development", "gateway.envoyproxy.io/owning-gateway-namespace": "gateway"})}, w.Port))
 		if w.Observability.Metrics {
-			xs = append(xs, policy(p.Name, "metrics-"+w.Name, labels(w), "Ingress", []any{peer("atlas-monitoring", Object{"app.kubernetes.io/name": "prometheus"})}, w.Port))
+			xs = append(xs, policy(p.Name, "metrics-"+w.Name, labels(w), "Ingress", []any{peer("monitoring", Object{"app.kubernetes.io/name": "prometheus"})}, w.Port))
 			if phase == "consumer" {
 				s := resource("monitoring.coreos.com/v1", "ServiceMonitor", p.Name, w.Name, Object{"namespaceSelector": Object{"matchNames": []string{p.Name}}, "selector": Object{"matchLabels": labels(w)}, "endpoints": []any{Object{"port": "http", "path": "/metrics", "interval": "30s"}}})
 				meta(s)["labels"] = Object{"release": "atlas-monitoring"}
@@ -348,7 +360,7 @@ func projectObjects(m *Model, phase string) []Object {
 func bindingObjects(b Binding, w Workload) []Object {
 	client := labels(w)
 	client["atlas.io/s3-binding"] = b.ID()
-	return []Object{policy(b.Project, "s3-"+b.ID()+"-egress", client, "Egress", []any{peer("atlas-storage", Object{"app.kubernetes.io/name": "seaweedfs"})}, 8333), policy("atlas-storage", "s3-"+b.ID()+"-ingress", Object{"app.kubernetes.io/name": "seaweedfs"}, "Ingress", []any{peer(b.Project, client)}, 8333)}
+	return []Object{policy(b.Project, "s3-"+b.ID()+"-egress", client, "Egress", []any{peer("object-storage", Object{"app.kubernetes.io/name": "seaweedfs"})}, 8333), policy("object-storage", "s3-"+b.ID()+"-ingress", Object{"app.kubernetes.io/name": "seaweedfs"}, "Ingress", []any{peer(b.Project, client)}, 8333)}
 }
 func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 	w := r.Definition
@@ -356,7 +368,7 @@ func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 	env := []any{Object{"name": "PORT", "value": fmt.Sprint(w.Port)}}
 	if b := r.Binding; b != nil {
 		ls["atlas.io/s3-binding"] = b.ID()
-		for _, kv := range [][2]string{{"ATLAS_S3_ENDPOINT", "http://seaweedfs.atlas-storage.svc.cluster.local:8333"}, {"ATLAS_S3_BUCKET", b.Bucket}, {"ATLAS_S3_REGION", "us-east-1"}, {"ATLAS_S3_FORCE_PATH_STYLE", "true"}} {
+		for _, kv := range [][2]string{{"ATLAS_S3_ENDPOINT", "http://seaweedfs.object-storage.svc.cluster.local:8333"}, {"ATLAS_S3_BUCKET", b.Bucket}, {"ATLAS_S3_REGION", "us-east-1"}, {"ATLAS_S3_FORCE_PATH_STYLE", "true"}} {
 			env = append(env, Object{"name": kv[0], "value": kv[1]})
 		}
 		for _, k := range []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"} {
@@ -385,7 +397,7 @@ func workloadObjects(c CompileContext, r ResolvedWorkload) []Object {
 			listener += "s"
 			rule = Object{"backendRefs": []any{Object{"group": "", "kind": "Service", "name": w.Name, "port": w.Port, "weight": 1}}, "matches": []any{Object{"path": Object{"type": "PathPrefix", "value": "/"}}}}
 		}
-		routes = append(routes, resource("gateway.networking.k8s.io/v1", "HTTPRoute", w.Project, prefix, Object{"parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": "atlas-gateway", "sectionName": listener}}, "hostnames": []string{w.Exposure.Hostname}, "rules": []any{rule}}))
+		routes = append(routes, resource("gateway.networking.k8s.io/v1", "HTTPRoute", w.Project, prefix, Object{"parentRefs": []any{Object{"group": "gateway.networking.k8s.io", "kind": "Gateway", "name": "development", "namespace": "gateway", "sectionName": listener}}, "hostnames": []string{w.Exposure.Hostname}, "rules": []any{rule}}))
 	}
 	return append([]Object{deploy, service}, routes...)
 }

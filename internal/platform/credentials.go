@@ -5,8 +5,10 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -30,6 +32,11 @@ type localCredentials struct {
 	AccessKey       string `json:"accessKey"`
 	SecretKey       string `json:"secretKey"`
 }
+type dataServiceCredentials struct {
+	PostgresPassword     string `json:"postgresPassword"`
+	RedisPassword        string `json:"redisPassword"`
+	FlinkWebhookPassword string `json:"flinkWebhookPassword"`
+}
 type sealingReceipt struct {
 	CertificateSHA256 string `json:"certificateSHA256"`
 	CredentialsSHA256 string `json:"credentialsSHA256"`
@@ -40,6 +47,15 @@ type sealingReceipt struct {
 // only its PUBLIC certificate. Plaintext stays in a create-only private file;
 // stdin to the pinned kubeseal process contains the transient Secret objects.
 func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal string) error {
+	return p.PrepareCredentialProfile(ctx, certPath, kubeseal, "platform")
+}
+
+// PrepareCredentialProfile keeps data-service credentials independent from D1.
+// Profiles are a fixed allowlist, never user-supplied Secret templates.
+func (p *Project) PrepareCredentialProfile(ctx context.Context, certPath, kubeseal, profile string) error {
+	if profile != "platform" && profile != "data-services" {
+		return errors.New("unknown credential profile")
+	}
 	var lock credentialTool
 	if e := readJSON(filepath.Join(p.Root, capabilityDir, "kubeseal.lock.json"), &lock); e != nil {
 		return e
@@ -75,6 +91,9 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 		return errors.New("invalid, expired, or weak sealing certificate")
 	}
 	privateDir := filepath.Join(p.Root, ".state/capabilities")
+	if profile == "data-services" {
+		privateDir = filepath.Join(p.Root, ".state/data-services")
+	}
 	// Never follow a pre-existing symlink into another location.
 	for _, dir := range []string{filepath.Join(p.Root, ".state"), privateDir} {
 		if st, e := os.Lstat(dir); e == nil && (st.Mode()&os.ModeSymlink != 0 || !st.IsDir()) {
@@ -89,11 +108,16 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 	}
 	privatePath := filepath.Join(privateDir, "credentials.json")
 	var credentials localCredentials
+	var dataCredentials dataServiceCredentials
+	var record any = &credentials
+	if profile == "data-services" {
+		record = &dataCredentials
+	}
 	if st, e := os.Lstat(privatePath); e == nil {
 		if !st.Mode().IsRegular() || st.Mode().Perm() != 0600 {
 			return errors.New("credentials file must be a regular 0600 file")
 		}
-		if e = readJSON(privatePath, &credentials); e != nil {
+		if e = readJSON(privatePath, record); e != nil {
 			return e
 		}
 	} else if os.IsNotExist(e) {
@@ -102,16 +126,28 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 			_, e := rand.Read(b)
 			return base64.RawURLEncoding.EncodeToString(b), e
 		}
-		if credentials.GrafanaPassword, e = random(); e != nil {
-			return e
+		if profile == "data-services" {
+			if dataCredentials.PostgresPassword, e = random(); e != nil {
+				return e
+			}
+			if dataCredentials.RedisPassword, e = random(); e != nil {
+				return e
+			}
+			if dataCredentials.FlinkWebhookPassword, e = random(); e != nil {
+				return e
+			}
+		} else {
+			if credentials.GrafanaPassword, e = random(); e != nil {
+				return e
+			}
+			if credentials.AccessKey, e = random(); e != nil {
+				return e
+			}
+			if credentials.SecretKey, e = random(); e != nil {
+				return e
+			}
 		}
-		if credentials.AccessKey, e = random(); e != nil {
-			return e
-		}
-		if credentials.SecretKey, e = random(); e != nil {
-			return e
-		}
-		b, _ := json.MarshalIndent(credentials, "", "  ")
+		b, _ := json.MarshalIndent(record, "", "  ")
 		f, e := os.OpenFile(privatePath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if e != nil {
 			return e
@@ -127,7 +163,7 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 	} else {
 		return e
 	}
-	if len(credentials.GrafanaPassword) < 32 || len(credentials.AccessKey) < 32 || len(credentials.SecretKey) < 32 {
+	if profile == "platform" && (len(credentials.GrafanaPassword) < 32 || len(credentials.AccessKey) < 32 || len(credentials.SecretKey) < 32) || profile == "data-services" && (len(dataCredentials.PostgresPassword) < 32 || len(dataCredentials.RedisPassword) < 32 || len(dataCredentials.FlinkWebhookPassword) < 32) {
 		return errors.New("invalid generated credentials")
 	}
 	privateBytes, e := os.ReadFile(privatePath)
@@ -136,6 +172,9 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 	}
 	receiptPath := filepath.Join(privateDir, "sealing-receipt.json")
 	outputPath := capabilityDir + "/resources/platform-credentials.json"
+	if profile == "data-services" {
+		outputPath = capabilityDir + "/resources/data-credentials.json"
+	}
 	current, e := os.ReadFile(filepath.Join(p.Root, outputPath))
 	if e != nil {
 		return e
@@ -156,9 +195,25 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 		namespace, name string
 		data            map[string]string
 	}{
-		{"atlas-monitoring", "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": credentials.GrafanaPassword}},
-		{"atlas-storage", "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3config)}},
+		{p.Capabilities.Catalog.Components["monitoring"].Namespace, "grafana-admin", map[string]string{"admin-user": "admin", "admin-password": credentials.GrafanaPassword}},
+		{p.Capabilities.Catalog.Components["object-storage"].Namespace, "seaweedfs-auth", map[string]string{"seaweedfs_s3_config": string(s3config)}},
 		{"workload-web", "s3-client", map[string]string{"AWS_ACCESS_KEY_ID": credentials.AccessKey, "AWS_SECRET_ACCESS_KEY": credentials.SecretKey}},
+	}
+	if profile == "data-services" {
+		passwordHash := sha256.Sum256([]byte(dataCredentials.RedisPassword))
+		definitions = definitions[:0]
+		definitions = append(definitions, struct {
+			namespace, name string
+			data            map[string]string
+		}{"postgresql", "postgresql-app", map[string]string{"username": "platform", "password": dataCredentials.PostgresPassword}})
+		definitions = append(definitions, struct {
+			namespace, name string
+			data            map[string]string
+		}{"redis", "redis-auth", map[string]string{"password": dataCredentials.RedisPassword, "users.acl": "user default off\nuser platform-admin on #" + hex.EncodeToString(passwordHash[:]) + " ~* &* +@all\n"}})
+		definitions = append(definitions, struct {
+			namespace, name string
+			data            map[string]string
+		}{"flink", "flink-webhook-password", map[string]string{"password": dataCredentials.FlinkWebhookPassword}})
 	}
 	sealed := []Object{}
 	certFile, e := os.CreateTemp(privateDir, "public-cert-*.pem")
@@ -179,6 +234,9 @@ func (p *Project) PrepareCredentials(ctx context.Context, certPath, kubeseal str
 			data[k] = base64.StdEncoding.EncodeToString([]byte(v))
 		}
 		secret := Object{"apiVersion": "v1", "kind": "Secret", "type": "Opaque", "metadata": Object{"namespace": d.namespace, "name": d.name}, "data": data}
+		if profile == "data-services" && d.namespace == "postgresql" && d.name == "postgresql-app" {
+			secret["type"] = "kubernetes.io/basic-auth"
+		}
 		input, _ := json.Marshal(secret)
 		cmd := exec.CommandContext(ctx, executable, "--cert", certFile.Name(), "--scope", "strict", "--format", "json")
 		cmd.Stdin = bytes.NewReader(input)

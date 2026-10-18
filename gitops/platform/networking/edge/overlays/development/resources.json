@@ -7,7 +7,7 @@
       "kind": "EnvoyProxy",
       "metadata": {
         "name": "development",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "0"
         }
@@ -88,7 +88,7 @@
           "group": "gateway.envoyproxy.io",
           "kind": "EnvoyProxy",
           "name": "development",
-          "namespace": "atlas-gateway"
+          "namespace": "gateway"
         }
       }
     },
@@ -97,7 +97,7 @@
       "kind": "Gateway",
       "metadata": {
         "name": "development",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
         }
@@ -167,7 +167,7 @@
       "kind": "BackendTrafficPolicy",
       "metadata": {
         "name": "ipv4-dns",
-        "namespace": "atlas-gateway",
+        "namespace": "gateway",
         "annotations": {
           "argocd.argoproj.io/sync-wave": "2"
         }

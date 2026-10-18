@@ -17,8 +17,8 @@
             "namespaces"
           ],
           "resourceNames": [
-            "atlas-monitoring",
-            "atlas-storage",
+            "monitoring",
+            "object-storage",
             "workload-web"
           ],
           "verbs": [
@@ -42,7 +42,7 @@
         {
           "kind": "ServiceAccount",
           "name": "sealed-secrets",
-          "namespace": "atlas-secrets"
+          "namespace": "sealed-secrets"
         }
       ]
     }

@@ -291,6 +291,17 @@ func (p *Project) Render(ctx context.Context) (map[string][]byte, error) {
 			for _, k := range []string{"cert-manager.io_Issuer", "cert-manager.io_Certificate", "gateway.networking.k8s.io_GatewayClass", "gateway.networking.k8s.io_Gateway", "gateway.networking.k8s.io_HTTPRoute", "gateway.envoyproxy.io_BackendTrafficPolicy"} {
 				data["resource.customizations.health."+k] = string(health)
 			}
+			// Frozen S1 catalogs have no data operators. Do not introduce new
+			// inputs or Seed bytes into those historical projections.
+			if p.hasDataOperators() {
+				operatorHealth, e := os.ReadFile(filepath.Join(p.Root, inputDir, "health/data-operators.lua"))
+				if e != nil {
+					return nil, e
+				}
+				for _, k := range []string{"postgresql.cnpg.io_Cluster", "kafka.strimzi.io_Kafka", "kafka.strimzi.io_KafkaUser", "flink.apache.org_FlinkDeployment"} {
+					data["resource.customizations.health."+k] = string(operatorHealth)
+				}
+			}
 			objs = append(objs, cms[0])
 		}
 		for _, o := range objs {

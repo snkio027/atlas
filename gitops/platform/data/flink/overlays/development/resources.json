@@ -1,0 +1,265 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "flink-state",
+        "namespace": "flink",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "atlas-local-retain",
+        "resources": {
+          "requests": {
+            "storage": "4Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "flink.apache.org/v1beta1",
+      "kind": "FlinkDeployment",
+      "metadata": {
+        "name": "flink-session",
+        "namespace": "flink",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "image": "docker.io/library/flink:2.3.0-scala_2.12-java17@sha256:df6b153c93d3e60f4b96b323979bf0305861949a600fcee287214609d325037e",
+        "imagePullPolicy": "IfNotPresent",
+        "flinkVersion": "v2_3",
+        "serviceAccount": "flink",
+        "mode": "standalone",
+        "flinkConfiguration": {
+          "taskmanager.numberOfTaskSlots": "2",
+          "taskmanager.rpc.port": "6122",
+          "taskmanager.data.port": "6123",
+          "blob.server.port": "6124",
+          "jobmanager.rpc.port": "6125",
+          "kubernetes.rest-service.exposed.type": "ClusterIP",
+          "execution.checkpointing.storage": "filesystem",
+          "execution.checkpointing.dir": "file:///state/checkpoints",
+          "execution.checkpointing.savepoint-dir": "file:///state/savepoints",
+          "execution.checkpointing.interval": "60s",
+          "kubernetes.operator.deployment.rollback.enabled": "false"
+        },
+        "jobManager": {
+          "resource": {
+            "memory": "1024m",
+            "cpu": 0.25
+          }
+        },
+        "taskManager": {
+          "replicas": 1,
+          "resource": {
+            "memory": "1536m",
+            "cpu": 0.5
+          }
+        },
+        "podTemplate": {
+          "apiVersion": "v1",
+          "kind": "Pod",
+          "metadata": {
+            "labels": {
+              "atlas.local/data-runtime": "flink"
+            }
+          },
+          "spec": {
+            "nodeSelector": {
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 9999,
+              "runAsGroup": 9999,
+              "fsGroup": 9999,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "flink-main-container",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "state",
+                    "mountPath": "/state"
+                  },
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  },
+                  {
+                    "name": "logs",
+                    "mountPath": "/opt/flink/log"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "state",
+                "persistentVolumeClaim": {
+                  "claimName": "flink-state"
+                }
+              },
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              },
+              {
+                "name": "logs",
+                "emptyDir": {}
+              }
+            ],
+            "automountServiceAccountToken": false,
+            "tolerations": [
+              {
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true",
+                "effect": "NoSchedule"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "runtime-network",
+        "namespace": "flink"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "atlas.local/data-runtime": "flink"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "atlas.local/data-runtime": "flink"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 6122
+              },
+              {
+                "protocol": "TCP",
+                "port": 6123
+              },
+              {
+                "protocol": "TCP",
+                "port": 6124
+              },
+              {
+                "protocol": "TCP",
+                "port": 6125
+              },
+              {
+                "protocol": "TCP",
+                "port": 8081
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/name": "flink-kubernetes-operator"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "atlas.local/data-admin": "flink"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 8081
+              }
+            ]
+          }
+        ],
+        "egress": [
+          {
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "atlas.local/data-runtime": "flink"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 6122
+              },
+              {
+                "protocol": "TCP",
+                "port": 6123
+              },
+              {
+                "protocol": "TCP",
+                "port": 6124
+              },
+              {
+                "protocol": "TCP",
+                "port": 6125
+              },
+              {
+                "protocol": "TCP",
+                "port": 8081
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

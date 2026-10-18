@@ -119,9 +119,9 @@
             "key": "kubernetes.io/metadata.name",
             "operator": "In",
             "values": [
-              "atlas-monitoring",
-              "atlas-storage",
-              "atlas-secrets",
+              "monitoring",
+              "object-storage",
+              "sealed-secrets",
               "kube-system"
             ]
           }
@@ -138,9 +138,9 @@
             "key": "kubernetes.io/metadata.name",
             "operator": "In",
             "values": [
-              "atlas-monitoring",
-              "atlas-storage",
-              "atlas-secrets",
+              "monitoring",
+              "object-storage",
+              "sealed-secrets",
               "kube-system"
             ]
           }
@@ -157,9 +157,9 @@
             "key": "kubernetes.io/metadata.name",
             "operator": "In",
             "values": [
-              "atlas-monitoring",
-              "atlas-storage",
-              "atlas-secrets",
+              "monitoring",
+              "object-storage",
+              "sealed-secrets",
               "kube-system"
             ]
           }
@@ -274,11 +274,11 @@
     },
     "sidecar": {
       "dashboards": {
-        "searchNamespace": "atlas-monitoring",
+        "searchNamespace": "monitoring",
         "resource": "configmap"
       },
       "datasources": {
-        "searchNamespace": "atlas-monitoring",
+        "searchNamespace": "monitoring",
         "resource": "configmap"
       },
       "resources": {

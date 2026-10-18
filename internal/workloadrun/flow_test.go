@@ -139,8 +139,8 @@ func TestPlanApprovalBindsTargetBeforeAnyIO(t *testing.T) {
 }
 
 func TestAbsentAuthoredAnnotationsPermitArgoTracking(t *testing.T) {
-	want := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "atlas-monitoring", "annotations": nil}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
-	got := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "atlas-monitoring", "annotations": Object{"argocd.argoproj.io/tracking-id": "monitoring:/Service:atlas-monitoring/metrics"}}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
+	want := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "monitoring", "annotations": nil}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
+	got := Object{"apiVersion": "v1", "kind": "Service", "metadata": Object{"name": "metrics", "namespace": "monitoring", "annotations": Object{"argocd.argoproj.io/tracking-id": "monitoring:/Service:monitoring/metrics"}}, "spec": Object{"ports": []any{Object{"port": 8080}}}}
 	if !matches(want, got) {
 		t.Fatal("null authored annotations are not an instruction to remove Argo tracking")
 	}
@@ -209,7 +209,7 @@ func TestKnownAPIOmissionsPreserveAuthoredValues(t *testing.T) {
 
 func TestBindingSubjectDefaultDoesNotBroadenPermissions(t *testing.T) {
 	for _, kind := range []string{"RoleBinding", "ClusterRoleBinding"} {
-		want := Object{"apiVersion": "rbac.authorization.k8s.io/v1", "kind": kind, "subjects": []any{Object{"kind": "ServiceAccount", "name": "controller", "namespace": "atlas-secrets", "apiGroup": ""}}, "roleRef": Object{"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "controller"}}
+		want := Object{"apiVersion": "rbac.authorization.k8s.io/v1", "kind": kind, "subjects": []any{Object{"kind": "ServiceAccount", "name": "controller", "namespace": "sealed-secrets", "apiGroup": ""}}, "roleRef": Object{"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "controller"}}
 		got := comparisonObject(want)
 		subject := mapping(array(got["subjects"])[0])
 		delete(subject, "apiGroup")
@@ -225,7 +225,7 @@ func TestBindingSubjectDefaultDoesNotBroadenPermissions(t *testing.T) {
 		if matches(want, got) {
 			t.Fatal("foreign subject accepted")
 		}
-		subject["namespace"] = "atlas-secrets"
+		subject["namespace"] = "sealed-secrets"
 		got["subjects"] = append(array(got["subjects"]), Object{"kind": "User", "name": "extra"})
 		if matches(want, got) {
 			t.Fatal("extra subject accepted")

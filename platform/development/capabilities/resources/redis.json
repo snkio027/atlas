@@ -1,0 +1,349 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "redis-data",
+        "namespace": "redis",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "storageClassName": "atlas-local-retain",
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "redis-config",
+        "namespace": "redis"
+      },
+      "data": {
+        "redis.conf": "bind 0.0.0.0\nprotected-mode yes\nport 0\ntls-port 6379\ntls-cert-file /tls/tls.crt\ntls-key-file /tls/tls.key\ntls-ca-cert-file /tls/ca.crt\ntls-auth-clients no\naclfile /auth/users.acl\ndir /data\nappendonly yes\nappendfsync everysec\nsave 900 1\nmaxmemory 256mb\nmaxmemory-policy noeviction\n"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "redis",
+        "namespace": "redis",
+        "labels": {
+          "app.kubernetes.io/name": "redis"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app.kubernetes.io/name": "redis"
+        },
+        "ports": [
+          {
+            "name": "redis",
+            "port": 6379,
+            "targetPort": "redis"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "redis-headless",
+        "namespace": "redis",
+        "labels": {
+          "app.kubernetes.io/name": "redis"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app.kubernetes.io/name": "redis"
+        },
+        "ports": [
+          {
+            "name": "redis",
+            "port": 6379,
+            "targetPort": "redis"
+          }
+        ],
+        "clusterIP": "None",
+        "publishNotReadyAddresses": true
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "redis",
+        "namespace": "redis"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "redis"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "redis"
+            },
+            "annotations": {
+              "checksum/config": "448a077b7743c8028cf91d2a5ec4da01808f4ee244d800fd44b2d31c596b9b94"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "nodeSelector": {
+              "kubernetes.io/os": "linux",
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 999,
+              "runAsGroup": 999,
+              "fsGroup": 999,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "redis",
+                "image": "docker.io/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "ports": [
+                  {
+                    "name": "redis",
+                    "containerPort": 6379
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "data",
+                    "mountPath": "/data",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "redis-config",
+                    "mountPath": "/etc/redis",
+                    "readOnly": true
+                  },
+                  {
+                    "name": "redis-auth",
+                    "mountPath": "/auth",
+                    "readOnly": true
+                  },
+                  {
+                    "name": "server-tls",
+                    "mountPath": "/tls",
+                    "readOnly": true
+                  }
+                ],
+                "args": [
+                  "redis-server",
+                  "/etc/redis/redis.conf"
+                ],
+                "env": [
+                  {
+                    "name": "REDISCLI_AUTH",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "redis-auth",
+                        "key": "password"
+                      }
+                    }
+                  }
+                ],
+                "startupProbe": {
+                  "exec": {
+                    "command": [
+                      "redis-cli",
+                      "-e",
+                      "--tls",
+                      "--cacert",
+                      "/tls/ca.crt",
+                      "-h",
+                      "127.0.0.1",
+                      "--user",
+                      "platform-admin",
+                      "--sni",
+                      "redis.redis.svc.cluster.local",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60
+                },
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "redis-cli",
+                      "-e",
+                      "--tls",
+                      "--cacert",
+                      "/tls/ca.crt",
+                      "-h",
+                      "127.0.0.1",
+                      "--user",
+                      "platform-admin",
+                      "--sni",
+                      "redis.redis.svc.cluster.local",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 3
+                },
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "redis-cli",
+                      "-e",
+                      "--tls",
+                      "--cacert",
+                      "/tls/ca.crt",
+                      "-h",
+                      "127.0.0.1",
+                      "--user",
+                      "platform-admin",
+                      "--sni",
+                      "redis.redis.svc.cluster.local",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 20,
+                  "timeoutSeconds": 5,
+                  "failureThreshold": 6
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {
+                  "sizeLimit": "128Mi"
+                }
+              },
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "redis-data"
+                }
+              },
+              {
+                "name": "redis-config",
+                "configMap": {
+                  "name": "redis-config",
+                  "defaultMode": 292
+                }
+              },
+              {
+                "name": "redis-auth",
+                "secret": {
+                  "secretName": "redis-auth",
+                  "defaultMode": 292
+                }
+              },
+              {
+                "name": "server-tls",
+                "secret": {
+                  "secretName": "server-tls",
+                  "defaultMode": 288
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 60,
+            "tolerations": [
+              {
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true",
+                "effect": "NoSchedule"
+              }
+            ]
+          }
+        },
+        "serviceName": "redis-headless",
+        "persistentVolumeClaimRetentionPolicy": {
+          "whenDeleted": "Retain",
+          "whenScaled": "Retain"
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "admin-access",
+        "namespace": "redis"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "redis"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "atlas.local/data-admin": "redis"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 6379
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

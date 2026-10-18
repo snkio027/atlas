@@ -16,6 +16,9 @@ import (
 // fingerprint cycle. Its Kustomization entry remains part of the fingerprint.
 func (p *Project) BundleFiles() (map[string][]byte, error) {
 	paths := []string{inputDir + "/bootstrap/baseline.json", inputDir + "/config.json", inputDir + "/versions.lock.json", inputDir + "/health/ready.lua", inputDir + "/values/cilium.json", inputDir + "/values/cert-manager.json", inputDir + "/values/envoy-gateway.json", inputDir + "/bootstrap/kind.json", inputDir + "/bootstrap/project.json", inputDir + "/bootstrap/root.json", inputDir + "/bootstrap/cilium-seed.yaml", inputDir + "/bootstrap/argocd-self-seed.yaml"}
+	if p.hasDataOperators() {
+		paths = append(paths, inputDir+"/health/data-operators.lua")
+	}
 	capPaths, e := p.CapabilityInputs()
 	if e != nil {
 		return nil, e

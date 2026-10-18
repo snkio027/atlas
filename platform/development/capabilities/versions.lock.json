@@ -14,7 +14,23 @@
     "quay.io/prometheus/node-exporter:v1.12.1-distroless": "quay.io/prometheus/node-exporter:v1.12.1-distroless@sha256:8c9bac11973b94b59be88d6e11fee4429aa743c8846cdc75d65b18db33f6a106",
     "quay.io/prometheus/prometheus:v3.15.0-distroless": "quay.io/prometheus/prometheus:v3.15.0-distroless@sha256:b2a413d5a03ea6a76782a508d1c7947440bba3b973931a25676e278431891b01",
     "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0": "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0@sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b",
-    "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1": "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1@sha256:06b52bd4dbe3ed6dd5905aadaf8b9987d9da4c31d37bb86deaadae68cee2d26b"
+    "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1": "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1@sha256:06b52bd4dbe3ed6dd5905aadaf8b9987d9da4c31d37bb86deaadae68cee2d26b",
+    "docker.io/library/redis:8.10.2-alpine": "docker.io/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+    "docker.io/library/flink:2.3.0-scala_2.12-java17": "docker.io/library/flink:2.3.0-scala_2.12-java17@sha256:df6b153c93d3e60f4b96b323979bf0305861949a600fcee287214609d325037e",
+    "docker.io/grafana/loki:3.7.8": "docker.io/grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193",
+    "docker.io/grafana/alloy:v1.20.1": "docker.io/grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f",
+    "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
+    "ghcr.io/cloudnative-pg/postgresql:18.6": "ghcr.io/cloudnative-pg/postgresql:18.6@sha256:899d3ed526b659d77935dde0e6bf2d69dbbf17d3d8c6486ca8cfd04bd3c18533",
+    "quay.io/strimzi/operator:1.3.0": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
+    "docker.io/apache/flink-kubernetes-operator:1.16.0": "docker.io/apache/flink-kubernetes-operator:1.16.0@sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
+    "quay.io/strimzi/kafka-bridge:1.2.0": "quay.io/strimzi/kafka-bridge:1.2.0@sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6",
+    "quay.io/strimzi/buildah:1.3.0": "quay.io/strimzi/buildah:1.3.0@sha256:3ac4d8fde6eca2ad837dc5258390f5ea704949b0539c77a394eb33a63c806b97",
+    "quay.io/strimzi/maven-builder:1.3.0": "quay.io/strimzi/maven-builder:1.3.0@sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2": "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652",
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4"
   },
   "artifacts": {
     "vendor/platform/sealed-secrets-2.20.0.tgz": {
@@ -26,6 +42,21 @@
       "sha256": "48399b911fa91b353e0c3d5e32c1cb7a67a168566549723553154ffd7be5d1fa",
       "source": "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-92.3.0/kube-prometheus-stack-92.3.0.tgz",
       "verification": "GitHub release asset digest"
+    },
+    "vendor/platform/cloudnative-pg-0.29.1.tgz": {
+      "sha256": "b53d3991fe84bcf38767e7702cae78666265427a127a26fff168ab4207d2b1df",
+      "source": "https://github.com/cloudnative-pg/charts/releases/download/cloudnative-pg-v0.29.1/cloudnative-pg-0.29.1.tgz",
+      "verification": "GitHub release asset SHA-256"
+    },
+    "vendor/platform/strimzi-kafka-operator-helm-3-chart-1.3.0.tgz": {
+      "sha256": "42677cec73d2122f4a395d9891bbccfae18ec16b3582174d49ca04695f351192",
+      "source": "https://github.com/strimzi/strimzi-kafka-operator/releases/download/1.3.0/strimzi-kafka-operator-helm-3-chart-1.3.0.tgz",
+      "verification": "GitHub release asset SHA-256"
+    },
+    "vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz": {
+      "sha256": "8afdca38d3104f47a5c59f63886f9153d0f63fc0a0ce7979c79357f9571d4fe5",
+      "source": "https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.16.0/flink-kubernetes-operator-1.16.0-helm.tgz",
+      "verification": "Apache release SHA-512"
     }
   }
 }

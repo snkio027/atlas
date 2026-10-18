@@ -2,6 +2,7 @@ package installation
 
 import (
 	"atlas-refactor/internal/platformcheck"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -46,7 +47,7 @@ func (w *Workflow) Verify(ctx context.Context, functional bool) error {
 	if e = decodeLive(b, &pods); e != nil {
 		return e
 	}
-	if e = platformcheck.VerifyPods(pods.Items, w.Config.Cluster); e != nil {
+	if e = platformcheck.VerifyPods(pods.Items, w.Config.Cluster, platformnames.Gateway); e != nil {
 		var pending platformcheck.PendingPod
 		if errors.As(e, &pending) {
 			return pendingState(e.Error())
@@ -82,12 +83,12 @@ func (w *Workflow) Verify(ctx context.Context, functional bool) error {
 			return errors.New("PV reclaim/claim identity mismatch")
 		}
 		web = web || nested(pvc, "metadata", "namespace") == "workload-web" && nested(pvc, "metadata", "name") == "web-data"
-		storage = storage || nested(pvc, "metadata", "namespace") == "atlas-storage" && nested(pvc, "metadata", "name") == "seaweedfs-data"
+		storage = storage || nested(pvc, "metadata", "namespace") == "object-storage" && nested(pvc, "metadata", "name") == "seaweedfs-data"
 	}
 	if !web || !storage {
 		return errors.New("required Web/S3 persistent storage absent")
 	}
-	b, e = w.kube(ctx, nil, "get", "secret", "development-ca", "-n", "atlas-gateway", "-o", `jsonpath={.data.tls\.crt}`)
+	b, e = w.kube(ctx, nil, "get", "secret", "development-ca", "-n", "gateway", "-o", `jsonpath={.data.tls\.crt}`)
 	if e != nil {
 		return e
 	}

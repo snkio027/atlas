@@ -3,6 +3,7 @@ package platform
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -199,7 +200,9 @@ func TestPlanReportsRetirementAndSharedDomainAuthority(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if full["readyToEnable"] != true {
+	// Source templates have no installation ciphertext. A complete selection
+	// remains blocked until that instance supplies all five required keys.
+	if full["readyToEnable"] != false || len(full["missingSealedSecrets"].([]string)) != 5 || len(full["removedCapabilities"].([]string)) != 0 {
 		t.Fatal(full)
 	}
 	for _, step := range full["resolved"].([]any) {
@@ -215,7 +218,7 @@ func TestPlanReportsRetirementAndSharedDomainAuthority(t *testing.T) {
 
 func TestAPIServiceAndCustomClusterScopeProjectIntoClusterAuthority(t *testing.T) {
 	p := unsealedCandidate(t)
-	p.Capabilities.Catalog.Components["scope-probe"] = Capability{PermissionDomain: "security", Path: "gitops/platform/scope-probe/overlays/development", Namespace: "atlas-secrets", Wave: 0}
+	p.Capabilities.Catalog.Components["scope-probe"] = Capability{PermissionDomain: "security", Path: "gitops/platform/scope-probe/overlays/development", Namespace: "sealed-secrets", Wave: 0}
 	objects := []Object{customDefinition("Cluster"), {"apiVersion": "example.test/v1", "kind": "Widget", "metadata": Object{"name": "probe"}, "spec": Object{"value": "ok"}},
 		{"apiVersion": "apiregistration.k8s.io/v1", "kind": "APIService", "metadata": Object{"name": "v1beta1.metrics.k8s.io"}}}
 	path := p.Capabilities.Catalog.Components["scope-probe"].Path
@@ -246,7 +249,7 @@ func TestAPIServiceAndCustomClusterScopeProjectIntoClusterAuthority(t *testing.T
 		if e = permitted(projects[0], apps[len(apps)-1], o, m); e != nil {
 			t.Fatal(e)
 		}
-		metadata(o)["namespace"] = "atlas-secrets"
+		metadata(o)["namespace"] = "sealed-secrets"
 		if e = permitted(projects[0], apps[len(apps)-1], o, m); e == nil {
 			t.Fatal("cluster resource with namespace accepted")
 		}
@@ -278,7 +281,7 @@ func TestFoundationsAreIndependentAndHaveUniqueOwners(t *testing.T) {
 			if o["kind"] == "Namespace" {
 				ns = str(metadata(o)["name"])
 			}
-			if ns == "atlas-monitoring" || ns == "atlas-storage" {
+			if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
 				t.Fatal("secrets-only pulls unrelated namespace objects", identity(o))
 			}
 		}
@@ -326,13 +329,14 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 		watched string
 		bound   int
 	}{
-		{[]string{"secrets-controller"}, "atlas-secrets,workload-web", 0},
-		{[]string{"secrets-controller", "observability-foundation"}, "atlas-secrets,atlas-monitoring,workload-web", 2},
-		{[]string{"secrets-controller", "storage-foundation"}, "atlas-secrets,atlas-storage,workload-web", 2},
+		{[]string{"secrets-controller"}, "sealed-secrets,workload-web", 0},
+		{[]string{"secrets-controller", "observability-foundation"}, "sealed-secrets,monitoring,workload-web", 2},
+		{[]string{"secrets-controller", "storage-foundation"}, "sealed-secrets,object-storage,workload-web", 2},
 		// The disabled controller has a complete offline candidate; foundations
 		// must never receive its RBAC, even when only monitoring CRDs are active.
-		{[]string{"monitoring-crds"}, "atlas-secrets,atlas-monitoring,atlas-storage,workload-web", 4},
-		{[]string{"storage-monitoring"}, "atlas-secrets,atlas-monitoring,atlas-storage,workload-web", 4},
+		{[]string{"monitoring-crds"}, "sealed-secrets,flink,monitoring,object-storage,postgresql,redis,workload-web", 10},
+		{[]string{"storage-monitoring"}, "sealed-secrets,monitoring,object-storage,workload-web", 4},
+		{[]string{"secrets-controller", "postgresql-foundation", "redis-foundation"}, "sealed-secrets,postgresql,redis,workload-web", 4},
 	} {
 		names, e := p.ResolveCapabilities(tc.request)
 		if e != nil {
@@ -369,12 +373,12 @@ func TestSealedSecretsNamespaceSelectionRealHelm(t *testing.T) {
 				if !strings.Contains(","+tc.watched+",", ","+ns+",") {
 					t.Fatal("controller RBAC outside watched namespaces", identity(o))
 				}
-				if ns == "atlas-monitoring" || ns == "atlas-storage" {
+				if ns == "monitoring" || ns == "object-storage" || ns == "postgresql" || ns == "redis" || ns == "flink" {
 					count++
 				}
 			}
 		}
-		for _, name := range []string{"observability-foundation", "storage-foundation"} {
+		for _, name := range []string{"observability-foundation", "storage-foundation", "postgresql-foundation", "redis-foundation"} {
 			if _, exists := files[p.Capabilities.Catalog.Components[name].Path+"/rendered.yaml"]; exists {
 				t.Fatal("controller chart emitted foundation resources")
 			}
@@ -459,10 +463,29 @@ func TestSelectAddAndRepeatRealHelm(t *testing.T) {
 	if e := p.SelectCapabilities(context.Background(), []string{"secrets-controller"}); e != nil {
 		t.Fatal(e)
 	}
-	// Public fixture ciphertext is checked as opaque data, never decrypted or
-	// copied from private credentials. No keys or cluster access are involved.
+	// Only envelope structure matters to selection. Use non-decryptable fixture
+	// bytes rather than an instance's public ciphertext. Real sealing is covered
+	// independently by TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable.
+	cipher := make([]byte, 300)
+	cipher[0] = 1 // 256-byte wrapped-key envelope, followed by synthetic payload.
+	items := []Object{}
+	for _, target := range []struct {
+		namespace, name string
+		keys            []string
+	}{
+		{"monitoring", "grafana-admin", []string{"admin-user", "admin-password"}},
+		{"object-storage", "seaweedfs-auth", []string{"seaweedfs_s3_config"}},
+		{"workload-web", "s3-client", []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}},
+	} {
+		data := Object{}
+		for _, key := range target.keys {
+			data[key] = base64.StdEncoding.EncodeToString(cipher)
+		}
+		m := Object{"namespace": target.namespace, "name": target.name}
+		items = append(items, Object{"apiVersion": "bitnami.com/v1alpha1", "kind": "SealedSecret", "metadata": m, "spec": Object{"encryptedData": data, "template": Object{"metadata": m, "type": "Opaque"}}})
+	}
 	path := capabilityDir + "/resources/platform-credentials.json"
-	b, e := os.ReadFile(filepath.Join(testRoot(t), path))
+	b, e := json.Marshal(Object{"apiVersion": "v1", "kind": "List", "items": items})
 	if e != nil {
 		t.Fatal(e)
 	}

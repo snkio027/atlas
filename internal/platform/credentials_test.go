@@ -100,4 +100,49 @@ func TestOfflineCredentialPreparationIsPrivateScopedAndRepeatable(t *testing.T) 
 			t.Fatal(e)
 		}
 	}
+	// The second profile must neither rewrite D1 ciphertext nor reuse its secrets.
+	dataPath := filepath.Join(dir, "data-credentials.json")
+	if e = os.WriteFile(dataPath, []byte(`{"apiVersion":"v1","kind":"List","items":[]}`), 0600); e != nil {
+		t.Fatal(e)
+	}
+	if e = p.PrepareCredentialProfile(context.Background(), cert, tool, "data-services"); e != nil {
+		t.Fatal(e)
+	}
+	dataBefore, e := os.ReadFile(dataPath)
+	if e != nil {
+		t.Fatal(e)
+	}
+	dataObjects, e := decodeObjects(dataBefore)
+	if e != nil || len(dataObjects) != 3 {
+		t.Fatal("expected independent PG/Redis/Flink sealed credentials", e)
+	}
+	for _, o := range dataObjects {
+		if metadata(o)["name"] == "postgresql-app" && field(o, "spec", "template", "type") != "kubernetes.io/basic-auth" {
+			t.Fatal("CNPG requires a basic-auth Secret")
+		}
+	}
+	var dataCredentials dataServiceCredentials
+	if e = readJSON(filepath.Join(p.Root, ".state/data-services/credentials.json"), &dataCredentials); e != nil {
+		t.Fatal(e)
+	}
+	if dataCredentials.RedisPassword == credentials.AccessKey {
+		t.Fatal("reused D1 credential")
+	}
+	for _, value := range []string{dataCredentials.PostgresPassword, dataCredentials.RedisPassword, dataCredentials.FlinkWebhookPassword} {
+		if bytes.Contains(dataBefore, []byte(value)) {
+			t.Fatal("data plaintext leaked")
+		}
+	}
+	if e = p.PrepareCredentialProfile(context.Background(), cert, tool, "data-services"); e != nil {
+		t.Fatal(e)
+	}
+	dataAfter, _ := os.ReadFile(dataPath)
+	platformAfter, _ := os.ReadFile(path)
+	if !bytes.Equal(dataBefore, dataAfter) || !bytes.Equal(platformAfter, before) {
+		t.Fatal("credential preparation rewrote prior output")
+	}
+	if missing, e = p.missingCapabilitySecrets([]string{"postgresql", "redis", "flink-operator"}); e != nil || len(missing) != 0 {
+		t.Fatal(missing, e)
+	}
+
 }

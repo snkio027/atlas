@@ -3,6 +3,7 @@ package installation
 import (
 	"atlas-refactor/internal/atlas"
 	"atlas-refactor/internal/platform"
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"errors"
 	"fmt"
@@ -41,8 +42,17 @@ func BuildProduct(root, version, source string, tools platform.Tools, locks []To
 	if e = p.VerifyArtifacts(); e != nil {
 		return Product{}, e
 	}
-	if e = p.ValidateCapabilityActivation(); e != nil {
+	if e = p.ValidateCapabilityProjection(); e != nil {
 		return Product{}, e
+	}
+	// Data services are a post-install capability publication. D1 owns exactly
+	// three credential targets; do not produce an installer that can only finish
+	// after unreviewed extra credential/namespace work.
+	for _, name := range p.Capabilities.Active {
+		component := p.Capabilities.Catalog.Components[name]
+		if component.PermissionDomain == "data" || strings.HasPrefix(component.Path, "gitops/platform/data/") {
+			return Product{}, errors.New("data capabilities must be enabled after D1 installation; build the baseline product before selection")
+		}
 	}
 	all, e := p.BundleFiles()
 	if e != nil {
@@ -57,6 +67,10 @@ func BuildProduct(root, version, source string, tools platform.Tools, locks []To
 	// Author ciphertext never crosses the product boundary, including dormant
 	// manifests. The installer inserts exactly three newly sealed objects later.
 	files[CredentialPath] = JSON(platform.Object{"apiVersion": "v1", "kind": "List", "items": []any{}})
+	dataCredentials := "gitops/platform/data/data-credentials/overlays/development/resources.json"
+	if _, exists := files[dataCredentials]; exists {
+		files[dataCredentials] = JSON(platform.Object{"apiVersion": "v1", "kind": "List", "items": []any{}})
+	}
 	base := Files{}
 	for path, b := range files {
 		base[path] = b
@@ -163,6 +177,7 @@ func (p Product) Validate() error {
 				return fmt.Errorf("missing runtime template: %s", path)
 			}
 		}
+		namespaceNames := []string{}
 		for path, b := range files {
 			if filepath.Clean(path) != path || strings.Contains(path, "..") || !(strings.HasPrefix(path, "gitops/") || strings.HasPrefix(path, bootstrapDir)) || path == signalPath {
 				return fmt.Errorf("invalid runtime path: %s", path)
@@ -194,10 +209,19 @@ func (p Product) Validate() error {
 				return fmt.Errorf("runtime template %s: %w", path, e)
 			}
 			for _, o := range objects {
+				if o["kind"] == "Namespace" {
+					namespaceNames = append(namespaceNames, fmt.Sprint(nested(o, "metadata", "name")))
+				}
+				if platformnames.Legacy(fmt.Sprint(nested(o, "metadata", "namespace"))) {
+					return errors.New("legacy namespace in installation package; use its bound version")
+				}
 				if o["kind"] == "Secret" || o["kind"] == "SealedSecret" {
 					return errors.New("product must not carry credentials or author ciphertext")
 				}
 			}
+		}
+		if e := platformnames.ValidateDefinitions(namespaceNames); e != nil {
+			return e
 		}
 		for _, pair := range [][2]string{{"cilium", "gitops/platform/networking/cilium/overlays/development/rendered.yaml"}, {"argocd-self", "gitops/platform/management/argocd-self/overlays/development/rendered.yaml"}} {
 			if len(files[bootstrapDir+pair[0]+"-seed.yaml"]) == 0 || !bytes.Equal(files[bootstrapDir+pair[0]+"-seed.yaml"], files[pair[1]]) {

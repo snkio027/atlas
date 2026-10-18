@@ -176,8 +176,31 @@ func (p *Project) loadCapabilities() error {
 	// Only active capabilities expand the substrate's offline image set. All
 	// candidate images are independently verified by CheckCapabilities.
 	if len(c.Active) > 0 {
+		refs := map[string]bool{}
+		for _, name := range c.Active {
+			files, err := p.componentFiles(c.Catalog.Components[name].Path)
+			if err != nil {
+				return err
+			}
+			for _, file := range files {
+				data, err := os.ReadFile(file)
+				if err != nil {
+					return err
+				}
+				for _, image := range c.Lock.Images {
+					// This only selects already locked artifacts, not authority.
+					// Avoid decoding large CRD schemas in every offline Load.
+					// CheckCapabilities separately verifies actual image fields.
+					if bytes.Contains(data, []byte(image)) {
+						refs[image] = true
+					}
+				}
+			}
+		}
 		for k, v := range c.Lock.Images {
-			p.Lock.Images["capability:"+k] = v
+			if refs[v] {
+				p.Lock.Images["capability:"+k] = v
+			}
 		}
 		for k, v := range c.Lock.Artifacts {
 			p.Lock.Artifacts[k] = v
@@ -282,13 +305,24 @@ func (p *Project) CapabilityPlan(requested []string) (Object, error) {
 }
 
 func (p *Project) missingCapabilitySecrets(names []string) ([]string, error) {
-	b, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "resources/platform-credentials.json"))
-	if e != nil {
-		return nil, e
+	paths := []string{"platform-credentials.json"}
+	for _, n := range names {
+		if n == "data-credentials" || n == "postgresql" || n == "redis" || n == "flink-operator" || n == "flink" {
+			paths = append(paths, "data-credentials.json")
+			break
+		}
 	}
-	objects, e := decodeObjects(b)
-	if e != nil {
-		return nil, e
+	objects := []Object{}
+	for _, path := range paths {
+		b, e := os.ReadFile(filepath.Join(p.Root, capabilityDir, "resources", path))
+		if e != nil {
+			return nil, e
+		}
+		more, e := decodeObjects(b)
+		if e != nil {
+			return nil, e
+		}
+		objects = append(objects, more...)
 	}
 	present := map[string]Object{}
 	for _, o := range objects {
@@ -395,6 +429,9 @@ func (p *Project) RenderCapabilities(ctx context.Context) (map[string][]byte, er
 			}
 		}
 		for _, o := range objects {
+			if e := p.hardenDataOperator(j.Release, o); e != nil {
+				return nil, e
+			}
 			if o["kind"] == "ServiceMonitor" {
 				for _, name := range j.ProjectedTokenMonitors {
 					if metadata(o)["name"] == name {
@@ -465,29 +502,41 @@ func (p *Project) capabilityObjects(name string) ([]Object, error) {
 	return p.componentObjects(p.Capabilities.Catalog.Components[name].Path)
 }
 
-func (p *Project) componentObjects(path string) ([]Object, error) {
+func (p *Project) componentFiles(path string) ([]string, error) {
 	var k Object
-	if e := readJSON(filepath.Join(p.Root, path, "kustomization.yaml"), &k); e != nil {
-		return nil, e
+	if err := readJSON(filepath.Join(p.Root, path, "kustomization.yaml"), &k); err != nil {
+		return nil, err
 	}
 	if len(k) != 3 || k["kind"] != "Kustomization" {
 		return nil, errors.New("capability Kustomization must contain only local resources")
 	}
-	objects := []Object{}
+	files := []string{}
 	for _, v := range slice(k["resources"]) {
 		file := str(v)
 		if file == "" || filepath.Base(file) != file || strings.Contains(file, ":") {
 			return nil, errors.New("nonlocal capability resource")
 		}
-		b, e := os.ReadFile(filepath.Join(p.Root, path, file))
-		if e != nil {
-			return nil, e
+		files = append(files, filepath.Join(p.Root, path, file))
+	}
+	return files, nil
+}
+
+func (p *Project) componentObjects(path string) ([]Object, error) {
+	files, err := p.componentFiles(path)
+	if err != nil {
+		return nil, err
+	}
+	objects := []Object{}
+	for _, file := range files {
+		b, err := os.ReadFile(file)
+		if err != nil {
+			return nil, err
 		}
-		o, e := DecodeJSONManifests(b)
-		if e != nil {
-			return nil, e
+		decoded, err := DecodeJSONManifests(b)
+		if err != nil {
+			return nil, err
 		}
-		objects = append(objects, o...)
+		objects = append(objects, decoded...)
 	}
 	return objects, nil
 }
@@ -618,6 +667,12 @@ func (p *Project) ValidateCapabilityActivation() error {
 	if len(missing) > 0 {
 		return fmt.Errorf("capabilities require sealed credentials: %s", strings.Join(missing, ", "))
 	}
+	return p.ValidateCapabilityProjection()
+}
+
+// ValidateCapabilityProjection verifies offline desired-state templates. It does
+// not authorize activation; ValidateCapabilityActivation also requires ciphertext.
+func (p *Project) ValidateCapabilityProjection() error {
 	files, e := p.CapabilityActivation(p.Capabilities.Active)
 	if e != nil {
 		return e

@@ -1,0 +1,324 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "kafka.strimzi.io/v1",
+      "kind": "Kafka",
+      "metadata": {
+        "name": "kafka",
+        "namespace": "kafka",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "kafka": {
+          "version": "4.3.1",
+          "metadataVersion": "4.3-IV0",
+          "image": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
+          "listeners": [
+            {
+              "name": "tls",
+              "port": 9093,
+              "type": "internal",
+              "tls": true,
+              "authentication": {
+                "type": "tls"
+              },
+              "networkPolicyPeers": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "atlas.local/data-admin": "kafka"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "authorization": {
+            "type": "simple"
+          },
+          "config": {
+            "offsets.topic.replication.factor": 1,
+            "transaction.state.log.replication.factor": 1,
+            "transaction.state.log.min.isr": 1,
+            "default.replication.factor": 1,
+            "min.insync.replicas": 1,
+            "auto.create.topics.enable": false,
+            "log.retention.hours": 24,
+            "log.retention.bytes": 1073741824
+          },
+          "jvmOptions": {
+            "-Xms": "256m",
+            "-Xmx": "512m"
+          }
+        },
+        "entityOperator": {
+          "userOperator": {
+            "image": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
+            "resources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              },
+              "limits": {
+                "memory": "256Mi"
+              }
+            }
+          },
+          "template": {
+            "pod": {
+              "securityContext": {
+                "runAsNonRoot": true,
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              },
+              "affinity": {
+                "nodeAffinity": {
+                  "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                      {
+                        "matchExpressions": [
+                          {
+                            "key": "node-role.local/compute",
+                            "operator": "In",
+                            "values": [
+                              "true"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "userOperatorContainer": {
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "readOnlyRootFilesystem": true,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "runAsNonRoot": true,
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "kafka.strimzi.io/v1",
+      "kind": "KafkaNodePool",
+      "metadata": {
+        "name": "single",
+        "namespace": "kafka",
+        "labels": {
+          "strimzi.io/cluster": "kafka"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "roles": [
+          "controller",
+          "broker"
+        ],
+        "storage": {
+          "type": "jbod",
+          "volumes": [
+            {
+              "id": 0,
+              "type": "persistent-claim",
+              "size": "8Gi",
+              "class": "atlas-local-retain",
+              "deleteClaim": false,
+              "kraftMetadata": "shared"
+            }
+          ]
+        },
+        "resources": {
+          "requests": {
+            "cpu": "100m",
+            "memory": "512Mi"
+          },
+          "limits": {
+            "memory": "1Gi"
+          }
+        },
+        "template": {
+          "pod": {
+            "securityContext": {
+              "runAsNonRoot": true,
+              "fsGroup": 1001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "affinity": {
+              "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                  "nodeSelectorTerms": [
+                    {
+                      "matchExpressions": [
+                        {
+                          "key": "node-role.local/data",
+                          "operator": "In",
+                          "values": [
+                            "true"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "tolerations": [
+              {
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true",
+                "effect": "NoSchedule"
+              }
+            ]
+          },
+          "kafkaContainer": {
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "readOnlyRootFilesystem": true,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "kafka.strimzi.io/v1",
+      "kind": "KafkaUser",
+      "metadata": {
+        "name": "platform-admin",
+        "namespace": "kafka",
+        "labels": {
+          "strimzi.io/cluster": "kafka"
+        },
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        }
+      },
+      "spec": {
+        "authentication": {
+          "type": "tls"
+        },
+        "authorization": {
+          "type": "simple",
+          "acls": [
+            {
+              "resource": {
+                "type": "cluster"
+              },
+              "operations": [
+                "All"
+              ]
+            },
+            {
+              "resource": {
+                "type": "topic",
+                "name": "*",
+                "patternType": "literal"
+              },
+              "operations": [
+                "All"
+              ]
+            },
+            {
+              "resource": {
+                "type": "group",
+                "name": "*",
+                "patternType": "literal"
+              },
+              "operations": [
+                "All"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "runtime-egress",
+        "namespace": "kafka"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "strimzi.io/cluster": "kafka"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ],
+        "egress": [
+          {
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "strimzi.io/cluster": "kafka"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 9090
+              },
+              {
+                "protocol": "TCP",
+                "port": 9091
+              },
+              {
+                "protocol": "TCP",
+                "port": 9093
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 443
+              },
+              {
+                "protocol": "TCP",
+                "port": 6443
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,451 @@
+{
+  "checkedOn": "2026-10-16",
+  "images": {
+    "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": {
+      "digest": "sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:b0f9805bd5f98592e7320b5ea624dd10a7a6ef8e477df5650655c94f0b242497",
+          "user": "65532:65532",
+          "entrypoint": [
+            "/manager"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:9a10dd7d7466310d5d543f618478cb905093cfc7a5463b538f449da626660083",
+          "user": "65532:65532",
+          "entrypoint": [
+            "/manager"
+          ],
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+          ]
+        }
+      }
+    },
+    "ghcr.io/cloudnative-pg/postgresql:18.6": {
+      "digest": "sha256:899d3ed526b659d77935dde0e6bf2d69dbbf17d3d8c6486ca8cfd04bd3c18533",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:2cd40a7458922b0604ef6e24cad0b64c7d5f3aa148d393abfe87d9b8a38e3579",
+          "user": "26",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/18/bin",
+            "PIP_BREAK_SYSTEM_PACKAGES=1"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:63079eb3fcef08657344d06c477c20d6c8737e0e315caf5576948a6a6e96fa73",
+          "user": "26",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/18/bin",
+            "PIP_BREAK_SYSTEM_PACKAGES=1"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/operator:1.3.0": {
+      "digest": "sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:d2751827ad622ae7cbf16efca471fe87e1d1eccd65afcf98dea13fb4c72cb202",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "STRIMZI_VERSION=1.3.0",
+            "STRIMZI_HOME=/opt/strimzi"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:f0a2414a4db9db8deea06f6cb5d428bbdceda0507d0bee4f5cc1082702044a5b",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "STRIMZI_VERSION=1.3.0",
+            "STRIMZI_HOME=/opt/strimzi"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1": {
+      "digest": "sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:5acbacba20cbd4986f84c873cb0f301e2a354c62771b94d0d276e85e387a03bf",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:68774ac75c09211524fa1fe8af1ad07454161ee059fa48f8064b7394c0baf0c5",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "docker.io/apache/flink-kubernetes-operator:1.16.0": {
+      "digest": "sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:b94c49e3fdfa0917c818f6cfdef8bcdbae783dfed4896c0371661579600c572b",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "env": [
+            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20+8",
+            "FLINK_HOME=/opt/flink",
+            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
+            "OPERATOR_VERSION=1.16.0",
+            "OPERATOR_JAR=flink-kubernetes-operator-1.16.0-shaded.jar",
+            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.0-shaded.jar",
+            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.0.jar",
+            "OPERATOR_LIB=/opt/flink/operator-lib"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:ba395d28affa7ec457335de1409ce17dcd0796a995b4dbafae653042a4e0dfdc",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "env": [
+            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20+8",
+            "FLINK_HOME=/opt/flink",
+            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
+            "OPERATOR_VERSION=1.16.0",
+            "OPERATOR_JAR=flink-kubernetes-operator-1.16.0-shaded.jar",
+            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.0-shaded.jar",
+            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.0.jar",
+            "OPERATOR_LIB=/opt/flink/operator-lib"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka-bridge:1.2.0": {
+      "digest": "sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:8540dcaaa2466fc6b3109dc2ef7ad036702f3f6287eacd7d55eac9dba5312c93",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "STRIMZI_KAFKA_BRIDGE_VERSION=1.2.0",
+            "STRIMZI_HOME=/opt/strimzi",
+            "TINI_VERSION=v0.19.0",
+            "TINI_SHA256_AMD64=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c",
+            "TINI_SHA256_ARM64=07952557df20bfd2a95f9bef198b445e006171969499a1d361bd9e6f8e5e0e81",
+            "TINI_SHA256_PPC64LE=3f658420974768e40810001a038c29d003728c5fe86da211cff5059e48cfdfde",
+            "TINI_SHA256_S390X=931b70a182af879ca249ae9de87ef68423121b38d235c78997fafc680ceab32d"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:024555c9ddaeafbf840f7abe57b42a20feaaac0b89f9f9832ae76b7683f44e6a",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "STRIMZI_KAFKA_BRIDGE_VERSION=1.2.0",
+            "STRIMZI_HOME=/opt/strimzi",
+            "TINI_VERSION=v0.19.0",
+            "TINI_SHA256_AMD64=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c",
+            "TINI_SHA256_ARM64=07952557df20bfd2a95f9bef198b445e006171969499a1d361bd9e6f8e5e0e81",
+            "TINI_SHA256_PPC64LE=3f658420974768e40810001a038c29d003728c5fe86da211cff5059e48cfdfde",
+            "TINI_SHA256_S390X=931b70a182af879ca249ae9de87ef68423121b38d235c78997fafc680ceab32d"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/buildah:1.3.0": {
+      "digest": "sha256:3ac4d8fde6eca2ad837dc5258390f5ea704949b0539c77a394eb33a63c806b97",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:ed9ba10368e6a01923fc2877109a7560cb8e63fa7ba3950f3812c0271d891e5c",
+          "user": null,
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/bin:/usr/bin",
+            "container=oci",
+            "BUILDAH_ISOLATION=chroot"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:baef50bb520549ecf8419ca07bbb52d89f80788e78790877efb2648e8c3f1eb8",
+          "user": null,
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/bin:/usr/bin",
+            "container=oci",
+            "BUILDAH_ISOLATION=chroot"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/maven-builder:1.3.0": {
+      "digest": "sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:38c56787633ea3aed077fa627ef6a2fb834f5e46215bd210260eadb35d445214",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "container=oci",
+            "GECOS=Default user",
+            "HOME=/home/default",
+            "UID=185",
+            "USER=default",
+            "JAVA_HOME=/usr/lib/jvm/java-21",
+            "JAVA_VENDOR=openjdk",
+            "JAVA_VERSION=21",
+            "JBOSS_CONTAINER_OPENJDK_JDK_MODULE=/opt/jboss/container/openjdk/jdk",
+            "JBOSS_CONTAINER_MAVEN_39_MODULE=/opt/jboss/container/maven/39/",
+            "MAVEN_VERSION=3.9",
+            "JBOSS_CONTAINER_S2I_CORE_MODULE=/opt/jboss/container/s2i/core/",
+            "S2I_SOURCE_DEPLOYMENTS_FILTER=*.jar quarkus-app",
+            "JBOSS_CONTAINER_JAVA_PROXY_MODULE=/opt/jboss/container/java/proxy",
+            "JBOSS_CONTAINER_JAVA_JVM_MODULE=/opt/jboss/container/java/jvm",
+            "JBOSS_CONTAINER_UTIL_LOGGING_MODULE=/opt/jboss/container/util/logging/",
+            "JBOSS_CONTAINER_MAVEN_DEFAULT_MODULE=/opt/jboss/container/maven/default/",
+            "JBOSS_CONTAINER_MAVEN_S2I_MODULE=/opt/jboss/container/maven/s2i",
+            "JAVA_DATA_DIR=/deployments/data",
+            "JBOSS_CONTAINER_JAVA_RUN_MODULE=/opt/jboss/container/java/run",
+            "JBOSS_CONTAINER_JAVA_S2I_MODULE=/opt/jboss/container/java/s2i",
+            "JBOSS_IMAGE_NAME=ubi9/openjdk-21",
+            "JBOSS_IMAGE_VERSION=1.24",
+            "LANG=C.utf8",
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/s2i"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:a79e4cde6d43382d6bd3aa4b7cc80d92b482445f0bef7bb87b976f9dc6fd2460",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "container=oci",
+            "GECOS=Default user",
+            "HOME=/home/default",
+            "UID=185",
+            "USER=default",
+            "JAVA_HOME=/usr/lib/jvm/java-21",
+            "JAVA_VENDOR=openjdk",
+            "JAVA_VERSION=21",
+            "JBOSS_CONTAINER_OPENJDK_JDK_MODULE=/opt/jboss/container/openjdk/jdk",
+            "JBOSS_CONTAINER_MAVEN_39_MODULE=/opt/jboss/container/maven/39/",
+            "MAVEN_VERSION=3.9",
+            "JBOSS_CONTAINER_S2I_CORE_MODULE=/opt/jboss/container/s2i/core/",
+            "S2I_SOURCE_DEPLOYMENTS_FILTER=*.jar quarkus-app",
+            "JBOSS_CONTAINER_JAVA_PROXY_MODULE=/opt/jboss/container/java/proxy",
+            "JBOSS_CONTAINER_JAVA_JVM_MODULE=/opt/jboss/container/java/jvm",
+            "JBOSS_CONTAINER_UTIL_LOGGING_MODULE=/opt/jboss/container/util/logging/",
+            "JBOSS_CONTAINER_MAVEN_DEFAULT_MODULE=/opt/jboss/container/maven/default/",
+            "JBOSS_CONTAINER_MAVEN_S2I_MODULE=/opt/jboss/container/maven/s2i",
+            "JAVA_DATA_DIR=/deployments/data",
+            "JBOSS_CONTAINER_JAVA_RUN_MODULE=/opt/jboss/container/java/run",
+            "JBOSS_CONTAINER_JAVA_S2I_MODULE=/opt/jboss/container/java/s2i",
+            "JBOSS_IMAGE_NAME=ubi9/openjdk-21",
+            "JBOSS_IMAGE_VERSION=1.24",
+            "LANG=C.utf8",
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/s2i"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.0": {
+      "digest": "sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:dff4a6d6e7f750ff3304c255516c46bdf63b076c4a5a4b871a39ce0bb3a24c9e",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:343385814ebffbb4bfd64f1023195f399311355fb28f7d523abf1fa49cc996c7",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.1": {
+      "digest": "sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:a8335462b905900f6e0a06f12abe5aa72145b4152758ea4ef6c27d49d8940dd0",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:3b637a509e3a29696589eb60868a05934aae0cffaa03745d784d96324bdae951",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.1",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.2.2": {
+      "digest": "sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:631b69b3ccb10f166432d759f93f846770f92da521df79fc5cc0a637f42cc320",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.2",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:f282c34458f44c348f0017b7c24f59305ad2047104b3f0c2545f9b6c4ab99ffc",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.2.2",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    },
+    "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0": {
+      "digest": "sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:9d71f51e5aa1f79eafe2cf47e3d0a01fbe3f9cba3331af9d463dad33cb6881d5",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:fb816169faccea4aefd9b00defed1debda6c0687a080b4c514dcc0e4c6893b1a",
+          "user": "1001",
+          "entrypoint": null,
+          "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "container=oci",
+            "JAVA_HOME=/usr/lib/jvm/jre-21",
+            "KAFKA_HOME=/opt/kafka",
+            "KAFKA_VERSION=4.3.0",
+            "STRIMZI_VERSION=1.3.0",
+            "KAFKA_EXPORTER_HOME=/opt/kafka-exporter",
+            "JMX_EXPORTER_HOME=/opt/prometheus-jmx-exporter",
+            "CRUISE_CONTROL_HOME=/opt/cruise-control"
+          ]
+        }
+      }
+    }
+  }
+}

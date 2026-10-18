@@ -3,7 +3,7 @@
   "components": {
     "secrets-crds": {
       "path": "gitops/platform/management/sealed-secrets-crds/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -95,
       "dependsOn": [
         "secrets-foundation"
@@ -13,7 +13,7 @@
     },
     "secrets-controller": {
       "path": "gitops/platform/management/sealed-secrets/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -90,
       "dependsOn": [
         "secrets-crds"
@@ -23,7 +23,7 @@
     },
     "platform-credentials": {
       "path": "gitops/platform/management/platform-credentials/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -80,
       "dependsOn": [
         "secrets-controller",
@@ -35,7 +35,7 @@
     },
     "monitoring-crds": {
       "path": "gitops/platform/observability/crds/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -40,
       "dependsOn": [
         "observability-foundation"
@@ -45,7 +45,7 @@
     },
     "monitoring-operator": {
       "path": "gitops/platform/observability/operator/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -30,
       "dependsOn": [
         "monitoring-crds",
@@ -56,7 +56,7 @@
     },
     "monitoring": {
       "path": "gitops/platform/observability/stack/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -10,
       "dependsOn": [
         "monitoring-operator",
@@ -65,7 +65,7 @@
       ],
       "requiredSecrets": [
         {
-          "namespace": "atlas-monitoring",
+          "namespace": "monitoring",
           "name": "grafana-admin",
           "keys": [
             "admin-user",
@@ -77,7 +77,7 @@
     },
     "object-storage": {
       "path": "gitops/platform/storage/seaweedfs/overlays/development",
-      "namespace": "atlas-storage",
+      "namespace": "object-storage",
       "wave": -10,
       "dependsOn": [
         "platform-credentials",
@@ -85,7 +85,7 @@
       ],
       "requiredSecrets": [
         {
-          "namespace": "atlas-storage",
+          "namespace": "object-storage",
           "name": "seaweedfs-auth",
           "keys": [
             "seaweedfs_s3_config"
@@ -104,7 +104,7 @@
     },
     "storage-monitoring": {
       "path": "gitops/platform/observability/storage/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": 0,
       "dependsOn": [
         "monitoring",
@@ -115,7 +115,7 @@
     },
     "secrets-foundation": {
       "path": "gitops/platform/foundation/secrets/overlays/development",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
@@ -123,7 +123,7 @@
     },
     "observability-foundation": {
       "path": "gitops/platform/foundation/observability/overlays/development",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
@@ -131,18 +131,253 @@
     },
     "storage-foundation": {
       "path": "gitops/platform/foundation/storage/overlays/development",
-      "namespace": "atlas-storage",
+      "namespace": "object-storage",
       "wave": -100,
       "dependsOn": [],
       "requiredSecrets": [],
       "permissionDomain": "storage"
+    },
+    "postgresql-foundation": {
+      "path": "gitops/platform/foundation/postgresql/overlays/development",
+      "namespace": "postgresql",
+      "wave": -100,
+      "dependsOn": [],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "redis-foundation": {
+      "path": "gitops/platform/foundation/redis/overlays/development",
+      "namespace": "redis",
+      "wave": -100,
+      "dependsOn": [],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "kafka-foundation": {
+      "path": "gitops/platform/foundation/kafka/overlays/development",
+      "namespace": "kafka",
+      "wave": -100,
+      "dependsOn": [],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "flink-foundation": {
+      "path": "gitops/platform/foundation/flink/overlays/development",
+      "namespace": "flink",
+      "wave": -100,
+      "dependsOn": [],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "logging-foundation": {
+      "path": "gitops/platform/foundation/logging/overlays/development",
+      "namespace": "logging",
+      "wave": -100,
+      "dependsOn": [],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "data-credentials": {
+      "path": "gitops/platform/data/data-credentials/overlays/development",
+      "namespace": "postgresql",
+      "wave": -60,
+      "dependsOn": [
+        "secrets-controller",
+        "postgresql-foundation",
+        "redis-foundation",
+        "flink-foundation"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "security"
+    },
+    "data-pki": {
+      "path": "gitops/platform/data/data-pki/overlays/development",
+      "namespace": "redis",
+      "wave": -20,
+      "dependsOn": [
+        "redis-foundation",
+        "core:cert-manager"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "security"
+    },
+    "postgresql": {
+      "path": "gitops/platform/data/postgresql/overlays/development",
+      "namespace": "postgresql",
+      "wave": 10,
+      "dependsOn": [
+        "postgresql-operator",
+        "core:local-storage",
+        "data-credentials"
+      ],
+      "requiredSecrets": [
+        {
+          "namespace": "postgresql",
+          "name": "postgresql-app",
+          "keys": [
+            "username",
+            "password"
+          ]
+        }
+      ],
+      "permissionDomain": "data"
+    },
+    "redis": {
+      "path": "gitops/platform/data/redis/overlays/development",
+      "namespace": "redis",
+      "wave": 10,
+      "dependsOn": [
+        "data-credentials",
+        "data-pki",
+        "core:local-storage"
+      ],
+      "requiredSecrets": [
+        {
+          "namespace": "redis",
+          "name": "redis-auth",
+          "keys": [
+            "password",
+            "users.acl"
+          ]
+        }
+      ],
+      "permissionDomain": "data"
+    },
+    "kafka": {
+      "path": "gitops/platform/data/kafka/overlays/development",
+      "namespace": "kafka",
+      "wave": 10,
+      "dependsOn": [
+        "kafka-operator",
+        "core:local-storage"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "flink": {
+      "path": "gitops/platform/data/flink/overlays/development",
+      "namespace": "flink",
+      "wave": 10,
+      "dependsOn": [
+        "flink-operator",
+        "core:local-storage"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "loki": {
+      "path": "gitops/platform/data/loki/overlays/development",
+      "namespace": "logging",
+      "wave": 10,
+      "dependsOn": [
+        "logging-foundation",
+        "core:local-storage"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "observability"
+    },
+    "log-collection": {
+      "path": "gitops/platform/data/log-collection/overlays/development",
+      "namespace": "logging",
+      "wave": 20,
+      "dependsOn": [
+        "loki",
+        "postgresql-foundation",
+        "redis-foundation",
+        "kafka-foundation",
+        "flink-foundation",
+        "core:foundation"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "observability"
+    },
+    "data-observability": {
+      "path": "gitops/platform/data/data-observability/overlays/development",
+      "namespace": "monitoring",
+      "wave": 30,
+      "dependsOn": [
+        "monitoring",
+        "log-collection"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "observability"
+    },
+    "postgresql-crds": {
+      "path": "gitops/platform/data/postgresql-crds/overlays/development",
+      "namespace": "postgresql",
+      "wave": -85,
+      "dependsOn": [
+        "postgresql-foundation"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "postgresql-operator": {
+      "path": "gitops/platform/data/postgresql-operator/overlays/development",
+      "namespace": "postgresql",
+      "wave": -10,
+      "dependsOn": [
+        "postgresql-crds"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "kafka-crds": {
+      "path": "gitops/platform/data/kafka-crds/overlays/development",
+      "namespace": "kafka",
+      "wave": -85,
+      "dependsOn": [
+        "kafka-foundation"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "kafka-operator": {
+      "path": "gitops/platform/data/kafka-operator/overlays/development",
+      "namespace": "kafka",
+      "wave": -10,
+      "dependsOn": [
+        "kafka-crds"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "flink-crds": {
+      "path": "gitops/platform/data/flink-crds/overlays/development",
+      "namespace": "flink",
+      "wave": -85,
+      "dependsOn": [
+        "flink-foundation"
+      ],
+      "requiredSecrets": [],
+      "permissionDomain": "data"
+    },
+    "flink-operator": {
+      "path": "gitops/platform/data/flink-operator/overlays/development",
+      "namespace": "flink",
+      "wave": -10,
+      "dependsOn": [
+        "flink-crds",
+        "data-credentials",
+        "core:cert-manager"
+      ],
+      "requiredSecrets": [
+        {
+          "namespace": "flink",
+          "name": "flink-webhook-password",
+          "keys": [
+            "password"
+          ]
+        }
+      ],
+      "permissionDomain": "data"
     }
   },
   "jobs": [
     {
       "release": "sealed-secrets",
       "chart": "vendor/platform/sealed-secrets-2.20.0.tgz",
-      "namespace": "atlas-secrets",
+      "namespace": "sealed-secrets",
       "values": [
         "platform/development/capabilities/values/sealed-secrets.json"
       ],
@@ -160,16 +395,19 @@
         }
       ],
       "namespaceCapabilities": {
-        "atlas-secrets": "secrets-foundation",
-        "atlas-monitoring": "observability-foundation",
-        "atlas-storage": "storage-foundation",
-        "workload-web": "core:foundation"
+        "sealed-secrets": "secrets-foundation",
+        "monitoring": "observability-foundation",
+        "object-storage": "storage-foundation",
+        "workload-web": "core:foundation",
+        "postgresql": "postgresql-foundation",
+        "redis": "redis-foundation",
+        "flink": "flink-foundation"
       }
     },
     {
       "release": "atlas-monitoring",
       "chart": "vendor/platform/kube-prometheus-stack-92.3.0.tgz",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "values": [
         "platform/development/capabilities/values/monitoring.json",
         "platform/development/capabilities/values/operator-only.json"
@@ -191,7 +429,7 @@
     {
       "release": "atlas-monitoring",
       "chart": "vendor/platform/kube-prometheus-stack-92.3.0.tgz",
-      "namespace": "atlas-monitoring",
+      "namespace": "monitoring",
       "values": [
         "platform/development/capabilities/values/monitoring.json"
       ],
@@ -209,11 +447,75 @@
         "atlas-monitoring-kubelet",
         "atlas-monitoring-apiserver"
       ]
+    },
+    {
+      "release": "cnpg",
+      "chart": "vendor/platform/cloudnative-pg-0.29.1.tgz",
+      "namespace": "postgresql",
+      "values": [
+        "platform/development/capabilities/values/cnpg.json"
+      ],
+      "excludeComponents": [],
+      "outputs": [
+        {
+          "component": "postgresql-crds",
+          "kinds": [
+            "CustomResourceDefinition"
+          ]
+        },
+        {
+          "component": "postgresql-operator",
+          "kinds": []
+        }
+      ]
+    },
+    {
+      "release": "strimzi",
+      "chart": "vendor/platform/strimzi-kafka-operator-helm-3-chart-1.3.0.tgz",
+      "namespace": "kafka",
+      "values": [
+        "platform/development/capabilities/values/strimzi.json"
+      ],
+      "excludeComponents": [],
+      "outputs": [
+        {
+          "component": "kafka-crds",
+          "kinds": [
+            "CustomResourceDefinition"
+          ]
+        },
+        {
+          "component": "kafka-operator",
+          "kinds": []
+        }
+      ]
+    },
+    {
+      "release": "flink-operator",
+      "chart": "vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz",
+      "namespace": "flink",
+      "values": [
+        "platform/development/capabilities/values/flink-operator.json"
+      ],
+      "excludeComponents": [],
+      "outputs": [
+        {
+          "component": "flink-crds",
+          "kinds": [
+            "CustomResourceDefinition"
+          ]
+        },
+        {
+          "component": "flink-operator",
+          "kinds": []
+        }
+      ]
     }
   ],
   "permissionDomains": {
     "security": "platform-project",
     "observability": "platform-project",
-    "storage": "platform-project"
+    "storage": "platform-project",
+    "data": "platform-project"
   }
 }

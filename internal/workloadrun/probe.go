@@ -303,7 +303,7 @@ func (w *Workflow) VerifyMaterialized(ctx context.Context) error {
 			return errors.New("materialized client credential differs")
 		}
 	}
-	s, e := w.get(ctx, "secret", "atlas-storage", "seaweedfs-auth")
+	s, e := w.get(ctx, "secret", "object-storage", "seaweedfs-auth")
 	if e != nil {
 		return e
 	}

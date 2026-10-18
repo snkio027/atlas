@@ -17,6 +17,13 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "management-access" {
+		if err := runManagementAccess(os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "app" {
 		if e := runApp(os.Args[2:]); e != nil {
 			fmt.Fprintln(os.Stderr, e)
@@ -40,6 +47,7 @@ func main() {
 	kubectl := fs.String("kubectl", "kubectl", "locked kubectl (client commands only)")
 	cert := fs.String("cert", "", "reviewed public Sealed Secrets certificate (offline)")
 	kubeseal := fs.String("kubeseal", "kubeseal", "checksum-locked kubeseal executable")
+	credentialProfile := fs.String("credential-profile", "platform", "fixed offline credential recipe: platform or data-services")
 	capabilities := fs.String("capabilities", "monitoring,object-storage,storage-monitoring", "complete desired capability set for plan/select; removal is unsupported")
 	yq := fs.String("yq", "yq", "locked yq executable")
 	fs.Usage = func() {
@@ -70,9 +78,9 @@ func main() {
 		requested = strings.Split(*capabilities, ",")
 	}
 	if command == "prepare-credentials" {
-		e = p.PrepareCredentials(ctx, *cert, *kubeseal)
+		e = p.PrepareCredentialProfile(ctx, *cert, *kubeseal, *credentialProfile)
 		if e == nil {
-			fmt.Println("Prepared sealed manifests; plaintext remains in private .state/capabilities/credentials.json. No cluster operations.")
+			fmt.Println("Prepared sealed manifests; plaintext remains in the private .state profile directory. No cluster operations.")
 		}
 	} else if command == "select" {
 		e = p.SelectCapabilities(ctx, requested)
@@ -97,10 +105,6 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		if plan["readyToEnable"] != true {
-			fmt.Fprintln(os.Stderr, "enabled capabilities are missing sealed credentials; run plan")
-			os.Exit(1)
-		}
 		var files map[string][]byte
 		files, e = p.Render(ctx)
 		if e == nil {
@@ -114,16 +118,16 @@ func main() {
 			}
 		}
 		if e == nil {
-			e = p.ValidateCapabilityActivation()
+			e = p.ValidateCapabilityProjection()
 		}
 		if e == nil {
-			fmt.Println("Rendered core, capability candidates and active catalog; no cluster operations.")
+			fmt.Printf("Rendered templates and catalog; activationReady=%v. Run plan before activation. No cluster operations.\n", plan["readyToEnable"])
 		}
 	} else {
 		var n int
 		n, e = p.Check(ctx)
 		if e == nil {
-			fmt.Printf("Checked %d GitOps resources, artifact hashes, deterministic renders, project boundaries, CRD structural schemas and local Kustomize builds. No cluster operations.\n", n)
+			fmt.Printf("Checked %d GitOps resources, artifact hashes, deterministic renders, project boundaries, CRD structural schemas and local Kustomize builds. Activation credentials are checked separately by plan/select/Bootstrap. No cluster operations.\n", n)
 		}
 	}
 	if e != nil {

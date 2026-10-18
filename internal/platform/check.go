@@ -65,7 +65,7 @@ func (p *Project) images(v any) error {
 	switch x := v.(type) {
 	case map[string]any:
 		for k, v := range x {
-			if k == "image" {
+			if k == "image" || k == "imageName" {
 				if !p.imageLocked(str(v)) {
 					return fmt.Errorf("unlocked image %v", v)
 				}
@@ -219,7 +219,7 @@ func validateSchema(value any, s Object, path string) error {
 	return nil
 }
 func (p *Project) Check(ctx context.Context) (int, error) {
-	if e := p.ValidateCapabilityActivation(); e != nil {
+	if e := p.ValidateCapabilityProjection(); e != nil {
 		return 0, e
 	}
 	if _, e := p.CheckCapabilities(ctx); e != nil {
@@ -380,7 +380,7 @@ func (p *Project) Check(ctx context.Context) (int, error) {
 			}
 		}
 	}
-	if e := checkRoutes(inventory); e != nil {
+	if e := checkRoutes(inventory, p.gatewayNamespace()); e != nil {
 		return 0, e
 	}
 	if e := p.checkNetwork(inventory); e != nil {
@@ -450,7 +450,7 @@ func (p *Project) checkNetwork(inv map[string]Object) error {
 	if sc["reclaimPolicy"] != "Retain" || sc["volumeBindingMode"] != "WaitForFirstConsumer" {
 		return errors.New("unsafe local storage semantics")
 	}
-	ep := inv["gateway.envoyproxy.io/EnvoyProxy/atlas-gateway/development"]
+	ep := inv["gateway.envoyproxy.io/EnvoyProxy/"+p.gatewayNamespace()+"/development"]
 	if field(ep, "spec", "ipFamily") != "IPv4" {
 		return errors.New("Envoy listeners must use IPv4")
 	}
@@ -458,7 +458,7 @@ func (p *Project) checkNetwork(inv map[string]Object) error {
 	if len(patches) != 1 || mapping(patches[0])["value"] != "V4_ONLY" || mapping(patches[0])["jsonPath"] != "$.static_resources.clusters[?(@.name == 'xds_cluster')]" || mapping(patches[0])["path"] != "/dns_lookup_family" {
 		return errors.New("xDS DNS must be IPv4 only")
 	}
-	dns := inv["gateway.envoyproxy.io/BackendTrafficPolicy/atlas-gateway/ipv4-dns"]
+	dns := inv["gateway.envoyproxy.io/BackendTrafficPolicy/"+p.gatewayNamespace()+"/ipv4-dns"]
 	if field(dns, "spec", "dns", "lookupFamily") != "IPv4" {
 		return errors.New("backend DNS must be IPv4 only")
 	}

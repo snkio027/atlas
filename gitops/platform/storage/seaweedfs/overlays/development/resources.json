@@ -7,7 +7,7 @@
       "kind": "PersistentVolumeClaim",
       "metadata": {
         "name": "seaweedfs-data",
-        "namespace": "atlas-storage",
+        "namespace": "object-storage",
         "annotations": {
           "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
         }
@@ -29,7 +29,7 @@
       "kind": "Service",
       "metadata": {
         "name": "seaweedfs",
-        "namespace": "atlas-storage",
+        "namespace": "object-storage",
         "labels": {
           "app.kubernetes.io/name": "seaweedfs"
         }
@@ -57,7 +57,7 @@
       "kind": "StatefulSet",
       "metadata": {
         "name": "seaweedfs",
-        "namespace": "atlas-storage"
+        "namespace": "object-storage"
       },
       "spec": {
         "serviceName": "seaweedfs",

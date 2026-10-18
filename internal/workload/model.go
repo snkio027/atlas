@@ -3,6 +3,7 @@
 package workload
 
 import (
+	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -237,7 +238,7 @@ func Resolve(in Intent, objectStorage bool) (*Model, error) {
 		return nil, e
 	}
 	p := c.Project
-	if p.Schema != 1 || p.Kind != "Project" || !nameRE.MatchString(p.Name) || p.Name == "default" || p.Name == "argocd" || p.Name == "workload-web" || strings.HasPrefix(p.Name, "kube-") || strings.HasPrefix(p.Name, "atlas-") {
+	if p.Schema != 1 || p.Kind != "Project" || !nameRE.MatchString(p.Name) || platformnames.Reserved(p.Name) || strings.HasPrefix(p.Name, "kube-") || strings.HasPrefix(p.Name, "atlas-") {
 		return nil, errors.New("invalid/reserved Project identity")
 	}
 	if strings.TrimSpace(p.Owner) != p.Owner || len(p.Owner) == 0 || len(p.Owner) > 128 || strings.ContainsAny(p.Owner, "\r\n\x00") {

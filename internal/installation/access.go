@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var serviceAccess = map[string]struct{ Namespace, Service, Port string }{"grafana": {"atlas-monitoring", "atlas-monitoring-grafana", "80"}, "prometheus": {"atlas-monitoring", "atlas-monitoring-prometheus", "9090"}, "alertmanager": {"atlas-monitoring", "atlas-monitoring-alertmanager", "9093"}, "s3": {"atlas-storage", "seaweedfs", "8333"}}
+var serviceAccess = map[string]struct{ Namespace, Service, Port string }{"grafana": {"monitoring", "atlas-monitoring-grafana", "80"}, "prometheus": {"monitoring", "atlas-monitoring-prometheus", "9090"}, "alertmanager": {"monitoring", "atlas-monitoring-alertmanager", "9093"}, "s3": {"object-storage", "seaweedfs", "8333"}}
 
 func (w *Workflow) forward(ctx context.Context, name string) (string, func(), <-chan error, error) {
 	s, ok := serviceAccess[name]

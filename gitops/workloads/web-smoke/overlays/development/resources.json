@@ -206,7 +206,7 @@
         "parentRefs": [
           {
             "name": "development",
-            "namespace": "atlas-gateway",
+            "namespace": "gateway",
             "sectionName": "http",
             "group": "gateway.networking.k8s.io",
             "kind": "Gateway"
@@ -250,7 +250,7 @@
         "parentRefs": [
           {
             "name": "development",
-            "namespace": "atlas-gateway",
+            "namespace": "gateway",
             "sectionName": "https",
             "group": "gateway.networking.k8s.io",
             "kind": "Gateway"

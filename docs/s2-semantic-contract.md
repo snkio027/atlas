@@ -49,7 +49,10 @@ StatefulService、PVC 申请、Job/CronJob/Worker、GPU、多集群、自动扩�
 
 `Project` 是受平台所有者审查的 Tier-1 治理输入，不是 Workload 自行扩权的请求。
 授权还必须与锁定产品提供的 capability contract 及部署策略求交；列入此数组不能启用未安装能力。
-禁止 `default`、`argocd`、`kube-*`、`atlas-*`、`workload-web` 及平台 inventory 已占用 namespace。
+禁止 `default`、`argocd`、`kube-*`、`atlas-*`、`workload-web`，以及
+[平台保留名](platform-namespaces.md)（含 gateway、monitoring、sealed-secrets、object-storage）。
+编译时还拒绝 base inventory 已声明的 Namespace 及 AppProject 精确 destination，
+即使该 destination 的 Namespace 尚未创建。
 未知既有 namespace 不自动接管：离线与 deployment inventory 比较，执行前再只读检查 live UID/owner。
 
 网络基线固定为 default-deny ingress/egress，加按 namespace + Pod selector 的 DNS 许可；
@@ -163,7 +166,7 @@ AUTHORED 位于用户 deployment repo 的 `platform/projects/<project>.json`、
 | --- | --- | --- |
 | Namespace、Quota、LimitRange、DNS/default-deny、Workload SA | gitops/platform/projects/demo；新 s2-p-* leaf | platform-project；platform-control 的直接子项 |
 | Deployment、Service、HTTPRoute | gitops/workloads/projects/demo/web-api；新 s2-w-* leaf | workload-project；workload-control 的直接子项 |
-| Binding 两端 NetworkPolicy（demo egress、atlas-storage ingress） | gitops/platform/bindings/demo/*；新 s2-b-* leaf | platform-project；不并入已有 storage-foundation 的对象 |
+| Binding 两端 NetworkPolicy（demo egress、object-storage ingress） | gitops/platform/bindings/demo/*；新 s2-b-* leaf | platform-project；不并入已有 storage-foundation 的对象 |
 | metrics ingress、ServiceMonitor | project platform leaf | 平台持有监测策略；不让 workload-project 获得监测 CR 写权限 |
 | Gateway listener / Certificate | 现有 edge / TLS owner 内增量聚合 | 保留 Gateway/证书原 owner；不生成第二个相同 Gateway |
 | AppProject destinations | 现有 platform/management/projects owner | 只增加明确 demo destination；三个 canonical AppProject 不变 |

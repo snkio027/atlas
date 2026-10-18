@@ -1,0 +1,1125 @@
+{
+  "apiVersion": "v1",
+  "kind": "ServiceAccount",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "service-account",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator",
+    "namespace": "kafka"
+  }
+}
+---
+{
+  "apiVersion": "v1",
+  "data": {
+    "log4j2.properties": "name = COConfig\nmonitorInterval = 30\n\nappender.console.type = Console\nappender.console.name = STDOUT\nappender.console.layout.type = PatternLayout\nappender.console.layout.pattern = %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n\n\nrootLogger.level = ${env:STRIMZI_LOG_LEVEL:-INFO}\nrootLogger.appenderRefs = stdout\nrootLogger.appenderRef.console.ref = STDOUT\n\n# Kafka AdminClient logging is a bit noisy at INFO level\nlogger.kafka.name = org.apache.kafka\nlogger.kafka.level = WARN\n\n# Keeps separate level for Netty logging -\u003e to not be changed by the root logger\nlogger.netty.name = io.netty\nlogger.netty.level = INFO\n"
+  },
+  "kind": "ConfigMap",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "logging-config-map",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator",
+    "namespace": "kafka"
+  }
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-namespaced"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "rbac.authorization.k8s.io"
+      ],
+      "resources": [
+        "rolebindings"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "rbac.authorization.k8s.io"
+      ],
+      "resources": [
+        "roles"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "pods",
+        "serviceaccounts",
+        "configmaps",
+        "services",
+        "endpoints",
+        "secrets",
+        "persistentvolumeclaims"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "pods/resize"
+      ],
+      "verbs": [
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "serviceaccounts/token"
+      ],
+      "verbs": [
+        "create"
+      ]
+    },
+    {
+      "apiGroups": [
+        "apps"
+      ],
+      "resources": [
+        "deployments",
+        "replicasets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "apps"
+      ],
+      "resources": [
+        "deployments/scale"
+      ],
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "events.k8s.io"
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create"
+      ]
+    },
+    {
+      "apiGroups": [
+        "build.openshift.io"
+      ],
+      "resources": [
+        "buildconfigs",
+        "buildconfigs/instantiate",
+        "builds"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "networking.k8s.io"
+      ],
+      "resources": [
+        "networkpolicies",
+        "ingresses"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "route.openshift.io"
+      ],
+      "resources": [
+        "routes",
+        "routes/custom-host"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "image.openshift.io"
+      ],
+      "resources": [
+        "imagestreams"
+      ],
+      "verbs": [
+        "get"
+      ]
+    },
+    {
+      "apiGroups": [
+        "policy"
+      ],
+      "resources": [
+        "poddisruptionbudgets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "gateway.networking.k8s.io"
+      ],
+      "resources": [
+        "tlsroutes"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "cert-manager.io"
+      ],
+      "resources": [
+        "certificates"
+      ],
+      "verbs": [
+        "get",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-global"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "storage.k8s.io"
+      ],
+      "resources": [
+        "storageclasses"
+      ],
+      "verbs": [
+        "get"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "nodes"
+      ],
+      "verbs": [
+        "list"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-leader-election"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "coordination.k8s.io"
+      ],
+      "resources": [
+        "leases"
+      ],
+      "verbs": [
+        "create"
+      ]
+    },
+    {
+      "apiGroups": [
+        "coordination.k8s.io"
+      ],
+      "resourceNames": [
+        "strimzi-cluster-operator"
+      ],
+      "resources": [
+        "leases"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "delete",
+        "patch",
+        "update"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-watched"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "pods"
+      ],
+      "verbs": [
+        "watch",
+        "list"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkas",
+        "kafkanodepools",
+        "kafkaconnects",
+        "kafkaconnectors",
+        "kafkabridges",
+        "kafkamirrormaker2s",
+        "kafkarebalances"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkas/status",
+        "kafkanodepools/status",
+        "kafkaconnects/status",
+        "kafkaconnectors/status",
+        "kafkabridges/status",
+        "kafkamirrormaker2s/status",
+        "kafkarebalances/status"
+      ],
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkas/finalizers",
+        "kafkanodepools/finalizers",
+        "kafkaconnects/finalizers",
+        "kafkaconnectors/finalizers",
+        "kafkabridges/finalizers",
+        "kafkamirrormaker2s/finalizers",
+        "kafkarebalances/finalizers"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "core.strimzi.io"
+      ],
+      "resources": [
+        "strimzipodsets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "core.strimzi.io"
+      ],
+      "resources": [
+        "strimzipodsets/status"
+      ],
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "core.strimzi.io"
+      ],
+      "resources": [
+        "strimzipodsets/finalizers"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkarebalances"
+      ],
+      "verbs": [
+        "delete"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "broker-role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-kafka-broker"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "nodes"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "entity-operator-role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-entity-operator"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkatopics"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "patch",
+        "update",
+        "delete"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkausers"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkatopics/status",
+        "kafkausers/status"
+      ],
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        "kafka.strimzi.io"
+      ],
+      "resources": [
+        "kafkatopics/finalizers",
+        "kafkausers/finalizers"
+      ],
+      "verbs": [
+        "update"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "secrets"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "delete",
+        "patch",
+        "update"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "client-role",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-kafka-client"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "nodes"
+      ],
+      "verbs": [
+        "get"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-cluster-operator-global"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "broker-role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-kafka-broker-delegation"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-kafka-broker"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "client-role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-kafka-client-delegation"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-kafka-client"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator",
+    "namespace": "kafka"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-cluster-operator-namespaced"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-leader-election",
+    "namespace": "kafka"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-cluster-operator-leader-election"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-watched",
+    "namespace": "kafka"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-cluster-operator-watched"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "entity-operator-role-binding",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator-entity-operator-delegation",
+    "namespace": "kafka"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "strimzi-entity-operator"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "strimzi-cluster-operator",
+      "namespace": "kafka"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "labels": {
+      "app": "strimzi",
+      "chart": "strimzi-kafka-operator-1.3.0",
+      "component": "deployment",
+      "heritage": "Helm",
+      "release": "strimzi"
+    },
+    "name": "strimzi-cluster-operator",
+    "namespace": "kafka"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "name": "strimzi-cluster-operator",
+        "strimzi.io/kind": "cluster-operator"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "name": "strimzi-cluster-operator",
+          "strimzi.io/kind": "cluster-operator"
+        }
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "args": [
+              "/opt/strimzi/bin/cluster_operator_run.sh"
+            ],
+            "env": [
+              {
+                "name": "STRIMZI_NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "STRIMZI_FULL_RECONCILIATION_INTERVAL_MS",
+                "value": "120000"
+              },
+              {
+                "name": "STRIMZI_OPERATION_TIMEOUT_MS",
+                "value": "300000"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE",
+                "value": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE",
+                "value": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+              },
+              {
+                "name": "STRIMZI_KAFKA_IMAGES",
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+              },
+              {
+                "name": "STRIMZI_KAFKA_CONNECT_IMAGES",
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+              },
+              {
+                "name": "STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES",
+                "value": "4.2.0=quay.io/strimzi/kafka:1.3.0-kafka-4.2.0@sha256:1d67e7fdcb364e16b632d3a7642661bcfe08e140ca6311ed9b9d011793f6c6cb\n4.2.1=quay.io/strimzi/kafka:1.3.0-kafka-4.2.1@sha256:5b4ebbe9b4f00eb76622e14daddc10927e341fbc3692ea0af0cc07157fb13a57\n4.2.2=quay.io/strimzi/kafka:1.3.0-kafka-4.2.2@sha256:b9b9e37491ce17c1b2722b3668661de91430d9437acf18c5f5bafaef38138652\n4.3.0=quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4\n4.3.1=quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE",
+                "value": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_USER_OPERATOR_IMAGE",
+                "value": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_KAFKA_INIT_IMAGE",
+                "value": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE",
+                "value": "quay.io/strimzi/kafka-bridge:1.2.0@sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_BUILDAH_IMAGE",
+                "value": "quay.io/strimzi/buildah:1.3.0@sha256:3ac4d8fde6eca2ad837dc5258390f5ea704949b0539c77a394eb33a63c806b97"
+              },
+              {
+                "name": "STRIMZI_DEFAULT_MAVEN_BUILDER",
+                "value": "quay.io/strimzi/maven-builder:1.3.0@sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba"
+              },
+              {
+                "name": "STRIMZI_OPERATOR_NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "STRIMZI_FEATURE_GATES",
+                "value": ""
+              },
+              {
+                "name": "STRIMZI_CREATE_GLOBAL_RESOURCES",
+                "value": "false"
+              },
+              {
+                "name": "STRIMZI_LEADER_ELECTION_ENABLED",
+                "value": "true"
+              },
+              {
+                "name": "STRIMZI_LEADER_ELECTION_LEASE_NAME",
+                "value": "strimzi-cluster-operator"
+              },
+              {
+                "name": "STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "STRIMZI_LEADER_ELECTION_IDENTITY",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "image": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/healthy",
+                "port": "http"
+              },
+              "initialDelaySeconds": 10,
+              "periodSeconds": 30
+            },
+            "name": "strimzi-cluster-operator",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "http"
+              }
+            ],
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/ready",
+                "port": "http"
+              },
+              "initialDelaySeconds": 10,
+              "periodSeconds": 30
+            },
+            "resources": {
+              "limits": {
+                "cpu": "1000m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": "kube-api-access",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/tmp",
+                "name": "strimzi-tmp"
+              },
+              {
+                "mountPath": "/opt/strimzi/custom-config/",
+                "name": "co-config-volume"
+              }
+            ]
+          }
+        ],
+        "nodeSelector": {
+          "node-role.local/compute": "true"
+        },
+        "securityContext": {
+          "runAsNonRoot": true,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccountName": "strimzi-cluster-operator",
+        "volumes": [
+          {
+            "name": "kube-api-access",
+            "projected": {
+              "defaultMode": 420,
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "kube-root-ca.crt"
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        },
+                        "path": "namespace"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "emptyDir": {
+              "medium": "Memory",
+              "sizeLimit": "1Mi"
+            },
+            "name": "strimzi-tmp"
+          },
+          {
+            "configMap": {
+              "name": "strimzi-cluster-operator"
+            },
+            "name": "co-config-volume"
+          }
+        ]
+      }
+    }
+  }
+}

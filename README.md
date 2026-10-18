@@ -12,6 +12,7 @@ Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)�
 2. [接入自己的 Go Web/API 应用](docs/application-delivery.md)：工作区模板、离线镜像、
    可读计划、部署、更新、状态、访问与日志。
 3. [应用排障与支持边界](docs/application-delivery.md#状态访问与排障)。
+4. [常驻 HTTPS 管理入口候选](docs/management-access.md)：Grafana、Argo CD、Prometheus、Alertmanager、S3；部署前需审查。
 
 普通业务入口：
 
@@ -27,6 +28,9 @@ atlas-platform app open --service experiment-archive
 首次使用先按接入文档创建工作区。app 命令当前是源码构建候选，配置/范围由
 [Proposed ADR-0018](docs/adr/0018-ordinary-application-delivery.md) 单独审查；
 本地检查不代表真实业务交付闭环已经通过。普通部署完成与业务功能验收分开报告。
+
+新安装的平台 namespace 使用职责或组件名，不带 `atlas-` 前缀；名称对应、组件扩展
+与旧实例边界见 [平台 namespace 约定](docs/platform-namespaces.md)。
 
 ## 维护与验证
 
@@ -46,3 +50,5 @@ task build
 - [原 Atlas cutover](docs/go-bootstrap-cutover-contract.md)：独立决策，尚未执行
 
 历史证据保持原提交绑定；新业务路径不改写 r7，不默认新建一轮验收集群。
+
+数据基础设施候选：见 [PostgreSQL / Redis / Kafka / Flink / Loki](docs/data-platform.md)。默认未启用；本地验证与部署审查分开。

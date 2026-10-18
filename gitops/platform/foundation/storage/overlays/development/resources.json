@@ -6,7 +6,7 @@
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
-        "name": "atlas-storage",
+        "name": "object-storage",
         "labels": {
           "atlas.local/owner": "platform",
           "pod-security.kubernetes.io/enforce": "restricted"
@@ -21,7 +21,7 @@
       "kind": "ResourceQuota",
       "metadata": {
         "name": "platform-budget",
-        "namespace": "atlas-storage"
+        "namespace": "object-storage"
       },
       "spec": {
         "hard": {
@@ -39,7 +39,7 @@
       "kind": "LimitRange",
       "metadata": {
         "name": "defaults",
-        "namespace": "atlas-storage"
+        "namespace": "object-storage"
       },
       "spec": {
         "limits": [
@@ -61,7 +61,7 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "s3-default-deny",
-        "namespace": "atlas-storage"
+        "namespace": "object-storage"
       },
       "spec": {
         "podSelector": {},
@@ -76,7 +76,7 @@
       "kind": "NetworkPolicy",
       "metadata": {
         "name": "s3-clients",
-        "namespace": "atlas-storage"
+        "namespace": "object-storage"
       },
       "spec": {
         "podSelector": {
@@ -115,7 +115,7 @@
               {
                 "namespaceSelector": {
                   "matchLabels": {
-                    "kubernetes.io/metadata.name": "atlas-monitoring"
+                    "kubernetes.io/metadata.name": "monitoring"
                   }
                 },
                 "podSelector": {
@@ -157,7 +157,7 @@
               {
                 "namespaceSelector": {
                   "matchLabels": {
-                    "kubernetes.io/metadata.name": "atlas-storage"
+                    "kubernetes.io/metadata.name": "object-storage"
                   }
                 },
                 "podSelector": {

@@ -103,6 +103,12 @@ func compileFixture(t *testing.T) (CompileContext, *Model) {
 			f[name] = b
 		}
 	}
+	// Model a completed D1 instance without reusing public instance ciphertext.
+	f[CredentialsPath] = JSON(Object{"apiVersion": "v1", "kind": "List", "items": []Object{
+		syntheticSealed("object-storage", "seaweedfs-auth", "seaweedfs_s3_config"),
+		syntheticSealed("monitoring", "grafana-admin", "admin-user", "admin-password"),
+		syntheticSealed("workload-web", "s3-client", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"),
+	}})
 	signal := "gitops/platform/management/argocd-self/overlays/development/signal.json"
 	f[signal] = JSON(resource("v1", "ConfigMap", "argocd", "atlas-refactor-adoption-signal", nil))
 	model, e := p.ObservationResourceModel()
@@ -119,7 +125,7 @@ func syntheticSealed(ns, name string, keys ...string) Object {
 	return Object{"apiVersion": "bitnami.com/v1alpha1", "kind": "SealedSecret", "metadata": Object{"name": name, "namespace": ns}, "spec": Object{"encryptedData": data, "template": Object{"metadata": Object{"name": name, "namespace": ns}, "type": "Opaque"}}}
 }
 func artifactFixture(c CompileContext, m *Model) *Artifacts {
-	a := &Artifacts{Schema: 1, InstallID: c.InstallID, CertificateSHA256: c.CertificateSHA256, IntentSHA256: Digest(JSON(m.Intent)), Provider: syntheticSealed("atlas-storage", "seaweedfs-auth", "seaweedfs_s3_config"), Clients: map[string]Object{}}
+	a := &Artifacts{Schema: 1, InstallID: c.InstallID, CertificateSHA256: c.CertificateSHA256, IntentSHA256: Digest(JSON(m.Intent)), Provider: syntheticSealed("object-storage", "seaweedfs-auth", "seaweedfs_s3_config"), Clients: map[string]Object{}}
 	for _, b := range m.Intent.Bindings {
 		a.Clients[b.ID()] = syntheticSealed(b.Project, b.Secret(), "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 	}

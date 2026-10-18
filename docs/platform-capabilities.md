@@ -1,13 +1,12 @@
 # 平台能力扩展与首批监测 / S3
 
-状态：已在 `atlas-refactor-test-dev02` 启用监测、告警、Grafana、S3 和密钥物化。
-24 个 Application 已完成 GitOps 同步；运行结果与首次发布操作见
-[dev02 启用记录](platform-dev02-activation.md)。
-规范提议见 [ADR-0006](adr/0006-declarative-platform-capabilities.md)。
+当前源模板采用 [无产品前缀的 namespace](platform-namespaces.md)，不包含实例密文。
+新增或启用组件先审查 catalog、权限和依赖；实际安装仍使用 D1 实例流程。
+能力投影设计见 [ADR-0006](adr/0006-declarative-platform-capabilities.md) 与
+[ADR-0007](adr/0007-platform-contract-hardening.md)。
 
-本分支另含 [AH-1～AH-4 候选](adr/0007-platform-contract-hardening.md)：catalog schema 2、单调启用、
-GVK scope 与三个 foundation。该布局尚未部署；dev02 仍运行上面的 24 个应用旧布局。
-不得直接推送此候选到运行分支，必须先完成 ADR-0007 的 owner 迁移审查。
+历史 dev02 启用记录及下文历史命令保持当时 namespace/提交绑定，
+不能直接用于当前新安装或旧实例迁移。
 
 ## 日常入口
 
@@ -26,8 +25,11 @@ ATLAS_TEST_KUBESEAL="$PWD/.state/tools/kubeseal" task quality
 git diff --stat
 ```
 
-仓库已包含仅供当前 dev02 解密的 3 个 SealedSecret、共 5 个键。新集群必须先建立
-自己的 Trust Root，再按审核流程重新封装；不能把静态密文检查通过当作解密成功。
+当前源模板不含 SealedSecret 密文。新集群必须先建立自己的 Trust Root，完成
+备份后按实例 namespace/name 封装；不能复制 dev02/r3 密文或只修改其 metadata。
+离线 `render` / `check` 与 D1 产品构建验证模板和权限投影，不要求实例凭据。
+此时 `plan` 明确报告缺失的 5 个键，`readyToEnable=false`；`select` 和正常 Bootstrap
+activation 仍拒绝缺失凭据。模板检查通过不代表可以直接发布。
 `readyToEnable` 表示静态凭据要求齐备且选择未缩减；不能替代控制器实际解密与运行时健康检查。
 `select` 比较依赖闭包，只允许保持或增加能力；退役在运行工具或写文件前拒绝。
 旧生成投影也参与比较，手改 enabled.json 后 render 不能隐式移除 Application。
@@ -52,11 +54,11 @@ Application 和精确 AppProject 类型/namespace 增量由目录生成，需在
 
 | 能力 | 实现及用途 | 调度 / 持久化 |
 | --- | --- | --- |
-| 指标 | kube-prometheus-stack 91.7.0；Prometheus、kube-state-metrics、node-exporter；节点、Pod、kubelet/cAdvisor、API Server、CoreDNS 指标 | Operator/KSM 在 compute；exporter 覆盖 4 节点；Prometheus 在 data，8Gi PVC，24h / 4GB retention |
+| 指标 | kube-prometheus-stack 92.3.0；Prometheus、kube-state-metrics、node-exporter；节点、Pod、kubelet/cAdvisor、API Server、CoreDNS 指标 | Operator/KSM 在 compute；exporter 覆盖 4 节点；Prometheus 在 data，8Gi PVC，24h / 4GB retention |
 | 告警 | 上游 Kubernetes/Prometheus 规则、Alertmanager、S3 指标端点缺失与卷可用空间规则 | Alertmanager 在 data，1Gi PVC；当前 receiver 为 local-only，尚无外部通知渠道 |
 | 看板 | Grafana 及上游 Kubernetes 看板；Atlas 节点、Pod、PVC、S3 抓取状态看板 | data，2Gi PVC；登录使用 SealedSecret 引用；禁用匿名登录和在线插件安装 |
 | 对象存储 | SeaweedFS 4.48 mini，S3 path-style API，预建 uploads 桶；上传、下载、附件、预签名和分段上传 | data，16Gi Retain PVC；单副本；bucket 范围 Read/Write/List/Tagging 权限 |
-| 凭据物化 | Sealed Secrets 0.40.0 / chart 2.20.0；只管理 atlas-secrets、atlas-monitoring、atlas-storage、workload-web | compute；不授予 argocd / kube-system Secret 写权限；自动 key renewal 关闭，变更另行审核 |
+| 凭据物化 | Sealed Secrets 0.40.0 / chart 2.20.0；基础范围为 sealed-secrets、monitoring、object-storage、workload-web；业务 Project 另经受限发布授权 | compute；不授予 argocd / kube-system Secret 写权限；自动 key renewal 关闭，变更另行审核 |
 
 此 profile 没有 Loki、Tempo、HPA、数据库、HA、远端备份或生产发布承诺。
 Kind 的 etcd、scheduler、controller-manager、kube-proxy 私有指标端点未启用抓取，避免把不可达目标
@@ -71,7 +73,7 @@ local-path 的申请容量不构成目录硬配额；SeaweedFS 另外固定 128M
 
 - S3 Service 只发布 8333 和 9324，均为 ClusterIP。管理、filer、master 等内部端口没有 Service。
   WebDAV、Admin UI、Iceberg、Lance、IAM 写入口关闭。mini 仍包含内部管理进程，不宣称只监听两个端口。
-- `atlas-storage` 默认拒绝 ingress/egress。只有 `workload-web` 中标记
+- `object-storage` 默认拒绝 ingress/egress。只有 `workload-web` 中标记
   `atlas.local/s3-client=true` 的 Pod 可访问 S3；其对应 egress 也由平台显式授予。
   Prometheus 按 namespace + Pod 身份访问指标。没有内部 IP/CIDR 授权。
 - 监测服务的 ingress 仅允许监测 namespace 内部访问；Operator webhook 保留 API Server 访问路径。
@@ -80,18 +82,14 @@ local-path 的申请容量不构成目录硬配额；SeaweedFS 另外固定 128M
   Kind kubelet 自签证书沿用 chart 的 skip-verify 开发设置；API Server 验证集群 CA。
 - Grafana sidecar 只读取监测 namespace 的 ConfigMap，不跨 namespace 读取 Secret。
 
-当前可在三个独立终端使用以下访问方式：
+浏览器与 S3 的常驻 HTTPS 入口见 [管理入口](management-access.md)。namespace 名不决定
+外部域名或端口；入口仍需通过专门的 GitOps 变更生成和发布，不能靠新名称推断已开放。
 
-```sh
-kubectl --context kind-atlas-refactor-test-dev02 -n atlas-monitoring port-forward --address 127.0.0.1 svc/atlas-monitoring-grafana 3000:80
-kubectl --context kind-atlas-refactor-test-dev02 -n atlas-monitoring port-forward --address 127.0.0.1 svc/atlas-monitoring-prometheus 9090:9090
-kubectl --context kind-atlas-refactor-test-dev02 -n atlas-storage port-forward --address 127.0.0.1 svc/seaweedfs 8333:8333
-```
-
-业务连接：`http://seaweedfs.atlas-storage.svc.cluster.local:8333`，region `us-east-1`，
-bucket `uploads`，强制 path-style；凭据从本 namespace 的 `s3-client` Secret 引用。
-预签名时必须使用客户端实际访问的 host/port，不能把集群内 DNS 签名 URL 原样交给宿主机浏览器。
-Grafana 密码和本地 S3 凭据位于私有 `.state/capabilities/credentials.json`，不通过 CLI stdout 输出。
+新安装的集群内业务端点是 `http://seaweedfs.object-storage.svc.cluster.local:8333`，
+region `us-east-1`、bucket `uploads`、path-style；业务通过 Binding 获得配置与自己的
+Secret 引用，不应手写 provider namespace。旧实例仍使用其原端点。
+预签名必须使用客户端实际访问的 host/port，不能把集群内 DNS 签名 URL 原样交给浏览器。
+凭据保存在实例私有目录，不通过 CLI stdout 输出。
 
 ## 历史首次接入流程（dev02 旧布局已执行，不适用于新布局 owner 迁移）
 
@@ -144,7 +142,7 @@ HA、离线恢复或生产就绪证明。后续基础能力优先级见 [组件�
 
 ## 上游依据
 
-- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-91.7.0/charts/kube-prometheus-stack)
+- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-92.3.0/charts/kube-prometheus-stack)
 - [Prometheus Operator compatibility](https://prometheus-operator.dev/docs/getting-started/compatibility/)
 - [SeaweedFS 4.47](https://github.com/seaweedfs/seaweedfs/releases/tag/4.47)
 - [Sealed Secrets 0.40.0](https://github.com/bitnami/sealed-secrets/releases/tag/v0.40.0)

@@ -1,0 +1,29 @@
+{
+  "watchAnyNamespace": false,
+  "watchNamespaces": [],
+  "createAggregateRoles": false,
+  "nodeSelector": {
+    "node-role.local/compute": "true"
+  },
+  "resources": {
+    "requests": {
+      "cpu": "100m",
+      "memory": "256Mi"
+    },
+    "limits": {
+      "memory": "512Mi"
+    }
+  },
+  "podSecurityContext": {
+    "runAsNonRoot": true,
+    "seccompProfile": {
+      "type": "RuntimeDefault"
+    }
+  },
+  "extraEnvs": [
+    {
+      "name": "STRIMZI_CREATE_GLOBAL_RESOURCES",
+      "value": "false"
+    }
+  ]
+}
