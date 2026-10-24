@@ -94,3 +94,10 @@ Sources: [manager setup](https://github.com/cloudnative-pg/cloudnative-pg/blob/v
 Static permission checks do not establish controller startup or runtime readiness.
 Neither successful current-process evidence nor these tests proves every optional
 CNPG plugin configuration is supported.
+
+## Runtime result
+
+The [r2 acceptance summary](../../docs/namespace-layout-r2-runtime-validation.md)
+records the completed checks, exact implementation and evidence digests, retained
+STOPs, and private-runner limitations. Completion used explicitly reviewed finite
+continuations on the same instance; it is not an uninterrupted clean-run claim.

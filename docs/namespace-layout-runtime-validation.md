@@ -1,5 +1,7 @@
 # Namespace 与数据平台组合候选：运行验收 PASS
 
+> 后续主线实例结果见 [r2 运行验收 PASS](namespace-layout-r2-runtime-validation.md)。本页保留 r1 的原始验证绑定。
+
 2026-10-19 00:23:48 +08:00。适用范围：单所有者、本机 OrbStack 四节点开发集群。
 这是 PR #11 数据能力与 PR #12 YAML/namespace 布局的组合验收；经过已审查修正与续行完成，
 不是未经中断的单次安装，也不是 PR #11 原共 namespace 布局的独立 Runtime PASS。
