@@ -1,5 +1,7 @@
 # 本机管理入口（r3 已发布，验收 STOP，排序修复待审）
 
+当前日常使用与 r2 增量状态见 [本机组件入口](local-platform-access.md)。本文保留早期管理入口的设计与 r3 绑定，不能把其端口/STOP 状态套用到 r2。
+
 本轮为现有平台准备五个常驻入口，复用 Envoy Gateway，无需 port-forward。
 架构与限制见 [ADR-0019](adr/0019-local-management-https.md)。
 

@@ -1,11 +1,11 @@
 package workload
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/platform"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -116,7 +116,7 @@ func compileFixture(t *testing.T) (CompileContext, *Model) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	return CompileContext{Base: f, Repository: "https://github.com/snkio027/atlas-refactor.git", Branch: "codex/development-platform", ProductSHA256: strings.Repeat("1", 64), CompilerSHA256: strings.Repeat("2", 64), InstallID: strings.Repeat("3", 32), CertificateSHA256: strings.Repeat("4", 64), HTTPSPort: 8443, ResourceModel: model}, resolved(t, fixture(t))
+	return CompileContext{Base: f, Repository: "https://github.com/snkio027/atlas.git", Branch: "codex/development-platform", ProductSHA256: strings.Repeat("1", 64), CompilerSHA256: strings.Repeat("2", 64), InstallID: strings.Repeat("3", 32), CertificateSHA256: strings.Repeat("4", 64), HTTPSPort: 8443, ResourceModel: model}, resolved(t, fixture(t))
 }
 func syntheticSealed(ns, name string, keys ...string) Object {
 	data := Object{}

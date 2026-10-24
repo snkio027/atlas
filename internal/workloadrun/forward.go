@@ -1,10 +1,10 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/platformnames"
 	"bufio"
 	"context"
 	"errors"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"net"
 	"net/http"
 	"os"

@@ -12,7 +12,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/foundation/overlays/development
       destination:
@@ -37,7 +37,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/networking/cilium/overlays/development
       destination:
@@ -62,7 +62,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/management/argocd-self/overlays/development
       destination:
@@ -87,7 +87,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/management/cert-manager/overlays/development
       destination:
@@ -112,7 +112,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/networking/gateway-api/overlays/development
       destination:
@@ -137,7 +137,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/networking/envoy-crds/overlays/development
       destination:
@@ -162,7 +162,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/networking/envoy-gateway/overlays/development
       destination:
@@ -187,7 +187,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/storage/local-path/overlays/development
       destination:
@@ -212,7 +212,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/management/local-pki/overlays/development
       destination:
@@ -237,7 +237,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/networking/edge/overlays/development
       destination:

@@ -1,8 +1,6 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/observation"
 	"bufio"
 	"bytes"
 	"context"
@@ -11,6 +9,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/observation"
 	"io"
 	"net"
 	"net/http"

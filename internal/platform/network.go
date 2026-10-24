@@ -1,10 +1,10 @@
 package platform
 
 import (
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/platformnames"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/platformnames"
 )
 
 // labelMatch covers this profile's exact namespace identity selectors. New

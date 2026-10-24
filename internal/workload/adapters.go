@@ -1,12 +1,12 @@
 package workload
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"path"
 	"sort"
 	"strings"
@@ -300,7 +300,7 @@ func InventoryOf(files Files, model *platform.ResourceModel) ([]OwnedResource, e
 				if o["kind"] == "Secret" {
 					return nil, errors.New("plaintext Secret in deployment")
 				}
-				if o["kind"] == "NetworkPolicy" && bytes.Contains(JSON(o), []byte(`"ipBlock"`)) {
+				if o["kind"] == "NetworkPolicy" && bytes.Contains(JSON(o), []byte(`"ipBlock"`)) && !localDataIngress(o, owner, file) {
 					return nil, errors.New("internal network policy uses IP authorization")
 				}
 				if a := apps[owner]; a != nil {

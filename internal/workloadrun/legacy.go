@@ -1,13 +1,13 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/installation"
-	"atlas-refactor/internal/webslice"
-	"atlas-refactor/internal/workload"
 	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/installation"
+	"github.com/snkio027/atlas/internal/webslice"
+	"github.com/snkio027/atlas/internal/workload"
 	"net/http"
 	"path/filepath"
 )

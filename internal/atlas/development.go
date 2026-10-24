@@ -1,12 +1,12 @@
 package atlas
 
 import (
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/platform"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/platform"
 	"reflect"
 	"regexp"
 	"sort"
@@ -257,10 +257,10 @@ func (a *App) developmentAuthorityIntact(ctx context.Context, self, signal *Live
 }
 
 func (a *App) developmentIdentity(d map[string]string) {
-	d["schema"] = "atlas-refactor/identity/v2-development"
+	d["schema"] = "github.com/snkio027/atlas/identity/v2-development"
 	d["substrateProfile"] = "kind-cilium-ipv4-development/v1"
 	if a.Config.fourNodeProfile() {
-		d["schema"] = "atlas-refactor/identity/v3-development"
+		d["schema"] = "github.com/snkio027/atlas/identity/v3-development"
 		d["substrateProfile"] = "kind-cilium-ipv4-four-node/v1"
 	}
 	if a.Config.Revision == developmentprofile.OT1Revision {
@@ -268,7 +268,7 @@ func (a *App) developmentIdentity(d map[string]string) {
 	}
 	d["platformSHA256"] = a.development.baselineFingerprint
 	if a.installation != nil {
-		d["schema"] = "atlas-refactor/identity/v4-installation"
+		d["schema"] = "github.com/snkio027/atlas/identity/v4-installation"
 		d["productSHA256"] = a.installation.ProductSHA256
 		d["binarySHA256"] = a.installation.BinarySHA256
 		d["installID"] = a.installation.InstallID

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"atlas-refactor/internal/workload"
-	"atlas-refactor/internal/workloadrun"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/workload"
+	"github.com/snkio027/atlas/internal/workloadrun"
 	"os"
 	"os/signal"
 	"syscall"

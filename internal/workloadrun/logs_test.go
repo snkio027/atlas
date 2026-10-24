@@ -1,7 +1,7 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/workload"
+	"github.com/snkio027/atlas/internal/workload"
 	"strings"
 	"testing"
 )

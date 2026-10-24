@@ -1,12 +1,12 @@
 package main
 
 import (
-	"atlas-refactor/internal/managementaccess"
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/workload"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/managementaccess"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/workload"
 	"io"
 )
 
@@ -15,6 +15,7 @@ func runManagementAccess(args []string, out io.Writer) error {
 	root := fs.String("root", ".", "compiler source checkout with locked CRD schemas")
 	input := fs.String("deployment-dir", "", "local export of the exact deployed Git commit")
 	output := fs.String("output", "", "new local review directory; never a deployment checkout")
+	flink := fs.Bool("flink-overview", false, "include the installed Flink read-only overview")
 	port := fs.Int("https-port", 0, "existing installation loopback HTTPS port")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -29,6 +30,11 @@ func runManagementAccess(args []string, out io.Writer) error {
 	if err = p.VerifyArtifacts(); err != nil {
 		return err
 	}
+	// Load locked schemas for optional installed data services without activating them.
+	p.Capabilities.Active, err = p.ResolveCapabilities(append(p.Capabilities.Active, "postgresql", "redis", "kafka", "flink", "data-observability"))
+	if err != nil {
+		return err
+	}
 	model, err := p.ObservationResourceModel()
 	if err != nil {
 		return err
@@ -37,7 +43,11 @@ func runManagementAccess(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	result, err := managementaccess.Render(base, model, *port)
+	render := managementaccess.Render
+	if *flink {
+		render = managementaccess.RenderWithFlink
+	}
+	result, err := render(base, model, *port)
 	if err != nil {
 		return err
 	}
@@ -48,7 +58,7 @@ func runManagementAccess(args []string, out io.Writer) error {
 	for k, v := range result.Routes {
 		files["02-routes/"+k] = v
 	}
-	report := map[string]any{"baseGitOpsSHA256": platform.BundleDigest(base), "httpsPort": *port, "endpoints": managementaccess.Endpoints(), "prerequisiteFilesSHA256": platform.BundleDigest(result.Prerequisites), "routeFilesSHA256": platform.BundleDigest(result.Routes), "clusterOperations": 0, "publication": "not performed", "precondition": "completed D1 and reviewed exact Git parent; certificate Ready Gate before routes", "compatibility": "historical app plans remain immutable; they reject a subsequent platform maintenance commit"}
+	report := map[string]any{"baseGitOpsSHA256": platform.BundleDigest(base), "httpsPort": *port, "flinkOverview": *flink, "endpoints": managementaccess.Endpoints(), "prerequisiteFilesSHA256": platform.BundleDigest(result.Prerequisites), "routeFilesSHA256": platform.BundleDigest(result.Routes), "clusterOperations": 0, "publication": "not performed", "precondition": "completed D1 and reviewed exact Git parent; certificate Ready Gate before routes", "compatibility": "historical app plans remain immutable; they reject a subsequent platform maintenance commit"}
 	files["summary.json"] = workload.JSON(report)
 	if err = managementaccess.WriteNew(*output, files); err != nil {
 		return err

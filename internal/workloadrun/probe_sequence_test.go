@@ -1,9 +1,9 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/observation"
 	"context"
 	"errors"
+	"github.com/snkio027/atlas/internal/observation"
 	"path/filepath"
 	"strings"
 	"testing"

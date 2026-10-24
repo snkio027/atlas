@@ -1,8 +1,8 @@
 package main
 
 import (
-	"atlas-refactor/internal/ot1"
 	"context"
+	"github.com/snkio027/atlas/internal/ot1"
 	"testing"
 	"time"
 )

@@ -1,12 +1,12 @@
 package workload
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"regexp"
 	"strings"
 )

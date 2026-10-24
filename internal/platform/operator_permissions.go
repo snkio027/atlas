@@ -1,8 +1,8 @@
 package platform
 
 import (
-	"atlas-refactor/internal/platformnames"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"strings"
 )
 

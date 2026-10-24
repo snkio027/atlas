@@ -4,14 +4,14 @@ package main
 
 import (
 	"archive/tar"
-	"atlas-refactor/internal/installation"
-	"atlas-refactor/internal/platform"
 	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/installation"
+	"github.com/snkio027/atlas/internal/platform"
 	"io"
 	"os"
 	"os/exec"

@@ -1,12 +1,12 @@
 package installation
 
 import (
-	"atlas-refactor/internal/atlas"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
 	"net"
 	"os"
 	"os/exec"

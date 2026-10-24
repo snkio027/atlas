@@ -16,7 +16,7 @@ import (
 )
 
 const RootPath = "gitops/root/overlays/development"
-const SourceRepository = "https://github.com/snkio027/atlas-refactor.git"
+const SourceRepository = "https://github.com/snkio027/atlas.git"
 const SourceRevision = "codex/development-platform"
 const CredentialPath = "gitops/platform/management/platform-credentials/overlays/development/resources.json"
 

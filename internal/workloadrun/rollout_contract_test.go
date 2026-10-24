@@ -1,10 +1,10 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/workload"
 	"context"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/workload"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,7 +34,7 @@ func compiledRollout(t *testing.T) (workload.CompileContext, map[string]workload
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := workload.CompileContext{Base: base, ResourceModel: model, Repository: "https://github.com/snkio027/atlas-refactor.git", Branch: "codex/development-platform", ProductSHA256: strings.Repeat("1", 64), CompilerSHA256: strings.Repeat("2", 64), InstallID: strings.Repeat("3", 32), CertificateSHA256: strings.Repeat("4", 64), HTTPSPort: 8443}
+	c := workload.CompileContext{Base: base, ResourceModel: model, Repository: "https://github.com/snkio027/atlas.git", Branch: "codex/development-platform", ProductSHA256: strings.Repeat("1", 64), CompilerSHA256: strings.Repeat("2", 64), InstallID: strings.Repeat("3", 32), CertificateSHA256: strings.Repeat("4", 64), HTTPSPort: 8443}
 	intent, err := workload.ReadIntent("../../examples/s2")
 	if err != nil {
 		t.Fatal(err)

@@ -3,13 +3,13 @@
 package appworkspace
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/oci"
-	"atlas-refactor/internal/workload"
-	"atlas-refactor/internal/workloadrun"
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/oci"
+	"github.com/snkio027/atlas/internal/workload"
+	"github.com/snkio027/atlas/internal/workloadrun"
 	"os"
 	"path/filepath"
 	"strings"

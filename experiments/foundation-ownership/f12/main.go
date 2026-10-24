@@ -4,14 +4,14 @@
 package main
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/ot1"
-	"atlas-refactor/internal/platform"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/ot1"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/signal"
 	"path/filepath"

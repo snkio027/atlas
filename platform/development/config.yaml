@@ -1,5 +1,5 @@
 schema: 2
-repositoryURL: https://github.com/snkio027/atlas-refactor.git
+repositoryURL: https://github.com/snkio027/atlas.git
 revision: codex/development-platform
 rootPath: gitops/root/overlays/development
 components:

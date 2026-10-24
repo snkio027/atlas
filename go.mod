@@ -1,4 +1,4 @@
-module atlas-refactor
+module github.com/snkio027/atlas
 
 go 1.27.2
 

@@ -1,8 +1,8 @@
 package installation
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"strings"
 	"testing"
 )

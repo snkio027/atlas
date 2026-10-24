@@ -1,17 +1,17 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/installation"
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
-	"atlas-refactor/internal/workload"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/installation"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
+	"github.com/snkio027/atlas/internal/workload"
 	"path/filepath"
 	"sort"
 	"strings"

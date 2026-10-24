@@ -2,9 +2,9 @@
 package main
 
 import (
-	"atlas-refactor/internal/oci"
 	"encoding/json"
 	"fmt"
+	"github.com/snkio027/atlas/internal/oci"
 	"os"
 	"path/filepath"
 	"strings"

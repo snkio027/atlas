@@ -12,7 +12,7 @@ items:
     spec:
       project: workload-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/workloads/web-smoke/overlays/development
       destination:

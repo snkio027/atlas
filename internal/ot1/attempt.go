@@ -1,9 +1,9 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/observation"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/observation"
 	"os"
 	"path/filepath"
 	"time"

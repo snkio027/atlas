@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"atlas-refactor/internal/developmentprofile"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -9,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/developmentprofile"
 	"path/filepath"
 	"regexp"
 	"sort"

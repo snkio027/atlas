@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"atlas-refactor/internal/workload"
+	"github.com/snkio027/atlas/internal/workload"
 )
 
 // A real child process exercises pipe draining, loopback HTTP, cancellation,

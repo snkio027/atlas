@@ -1,10 +1,10 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/observation"
 	"context"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/observation"
 	"os"
 	"path/filepath"
 	"testing"

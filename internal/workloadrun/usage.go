@@ -1,12 +1,12 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/workload"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/workload"
 	"io"
 	"net"
 	"net/http"

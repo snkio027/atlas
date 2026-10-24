@@ -1,11 +1,11 @@
 package atlas
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"regexp"
 	"strings"
 )

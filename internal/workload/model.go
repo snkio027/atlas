@@ -3,14 +3,14 @@
 package workload
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"io"
 	"os"
 	"path/filepath"

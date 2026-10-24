@@ -2,10 +2,10 @@ package atlas
 
 import (
 	"archive/zip"
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/platform"
 	"bytes"
 	"context"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/platform"
 	"io"
 	"os"
 	"path/filepath"

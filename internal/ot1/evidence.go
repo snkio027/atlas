@@ -1,10 +1,10 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/observation"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/observation"
 	"reflect"
 	"sort"
 	"strings"

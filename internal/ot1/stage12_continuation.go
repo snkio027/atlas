@@ -5,12 +5,12 @@ package ot1
 // This fixed experiment entry is excluded from normal binaries. It cannot choose
 // another incident, starting stage, source revision or target.
 import (
-	"atlas-refactor/internal/observation"
 	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/observation"
 	"os"
 	"path/filepath"
 	"strings"

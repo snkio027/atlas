@@ -45,6 +45,7 @@ tasks:
       - task: ot1:contracts
       - task: experiments:check
       - task: data:contracts
+      - env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s packaging -v
   build:
     cmds:
       - task: toolchain

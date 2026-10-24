@@ -1,15 +1,15 @@
 package main
 
 import (
-	"atlas-refactor/internal/appworkspace"
-	"atlas-refactor/internal/workload"
-	"atlas-refactor/internal/workloadrun"
 	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/appworkspace"
+	"github.com/snkio027/atlas/internal/workload"
+	"github.com/snkio027/atlas/internal/workloadrun"
 	"io"
 	"os"
 	"os/signal"

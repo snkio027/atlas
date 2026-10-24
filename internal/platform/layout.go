@@ -1,9 +1,9 @@
 package platform
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/platformnames"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"path/filepath"
 )
 
