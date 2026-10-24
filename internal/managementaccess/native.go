@@ -167,14 +167,26 @@ func RenderLocalData(base Files, model *platform.ResourceModel, c LocalDataConfi
 	if err != nil {
 		return fail(err)
 	}
-	if at(pool, "spec", "replicas") != float64(1) || at(pool, "metadata", "labels", "strimzi.io/cluster") != "kafka" {
+	if at(pool, "spec", "replicas") != float64(1) || at(pool, "metadata", "labels", "strimzi.io/cluster") != "kafka" || at(cr, "spec", "kafka", "rack") != nil {
 		return fail(errors.New("local Kafka access requires reviewed single broker 0; live nodeIds must be checked before publication"))
 	}
 	listeners := arr(at(cr, "spec", "kafka", "listeners"))
 	if len(listeners) != 1 || at(obj(listeners[0]), "name") != "tls" || at(obj(listeners[0]), "type") != "internal" || at(obj(listeners[0]), "tls") != true || at(obj(listeners[0]), "authentication", "type") != "tls" || at(cr, "spec", "kafka", "authorization", "type") != "simple" {
 		return fail(errors.New("Kafka TLS/ACL baseline differs or listener already exists"))
 	}
-	obj(at(cr, "spec", "kafka"))["listeners"] = append(listeners, Object{"name": "local", "port": 9094, "type": "nodeport", "tls": true, "authentication": Object{"type": "tls"}, "networkPolicyPeers": []any{Object{"ipBlock": Object{"cidr": c.ClientAddress + "/32"}}}, "configuration": Object{"externalTrafficPolicy": "Local", "bootstrap": Object{"nodePort": KafkaBootstrapPort, "alternativeNames": []string{c.NodeHost}}, "brokers": []any{Object{"broker": 0, "nodePort": KafkaBrokerPort, "advertisedHost": c.NodeHost, "advertisedPort": KafkaBrokerPort}}}})
+	// Strimzi's nodeport type requires a cluster-scoped init binding even with
+	// explicit advertised addresses. Its internal listener supports the same
+	// advertisedHost/Port and certificate SAN overrides without node discovery.
+	// Keep that runtime listener Operator-owned and own only supplementary,
+	// distinctly named Services in Git, as we already do for CNPG and Redis.
+	obj(at(cr, "spec", "kafka"))["listeners"] = append(listeners, Object{"name": "local", "port": 9094, "type": "internal", "tls": true, "authentication": Object{"type": "tls"}, "networkPolicyPeers": []any{Object{"ipBlock": Object{"cidr": c.ClientAddress + "/32"}}}, "configuration": Object{"bootstrap": Object{"alternativeNames": []string{c.NodeHost}}, "brokers": []any{Object{"broker": 0, "advertisedHost": c.NodeHost, "advertisedPort": KafkaBrokerPort}}}})
+	for _, target := range []struct {
+		name string
+		port int
+	}{{"kafka-local-bootstrap", KafkaBootstrapPort}, {"kafka-local-0", KafkaBrokerPort}} {
+		selector := Object{"strimzi.io/cluster": "kafka", "strimzi.io/kind": "Kafka", "strimzi.io/pool-name": "single", "strimzi.io/broker-role": "true", "strimzi.io/pod-name": "kafka-single-0"}
+		kafka = append(kafka, resource("v1", "Service", platformnames.Kafka, target.name, Object{"type": "NodePort", "externalTrafficPolicy": "Local", "internalTrafficPolicy": "Cluster", "sessionAffinity": "None", "selector": selector, "ports": []any{Object{"name": "tls", "protocol": "TCP", "port": 9094, "targetPort": 9094, "nodePort": target.port}}}))
+	}
 	r.Services[KafkaPath] = list(kafka)
 	if err := validatePhases(base, model, r.Certificates, r.Services); err != nil {
 		return fail(fmt.Errorf("local data access: %w", err))

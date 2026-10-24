@@ -54,8 +54,10 @@ func (p *Project) hardenDataOperator(release string, o Object) error {
 		}
 	}
 	if release == "strimzi" && o["kind"] == "ClusterRole" && name == "strimzi-cluster-operator-global" {
-		// STRIMZI_CREATE_GLOBAL_RESOURCES=false: no NodePort/rack binding
-		// creation. Keep only upstream read-only node/storage discovery.
+		// Keep global binding writes outside the Operator's authority. The
+		// CREATE_GLOBAL_RESOURCES flag does not suppress per-Kafka NodePort/rack
+		// binding reconciliation; supported listeners must not require it.
+		// Keep only upstream read-only node/storage discovery.
 		rules := []any{}
 		for _, raw := range slice(o["rules"]) {
 			if !contains(field(mapping(raw), "resources"), "clusterrolebindings") {

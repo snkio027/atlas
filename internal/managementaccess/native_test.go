@@ -62,7 +62,7 @@ func TestNativeDataPreservesOwnershipAuthAndInternalListeners(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(final) != len(original)+4 {
+	if len(final) != len(original)+6 {
 		t.Fatal("unexpected new identities")
 	}
 	// Every historical object is preserved; only cert SAN/Redis restart/Kafka
@@ -107,8 +107,24 @@ func TestNativeDataPreservesOwnershipAuthAndInternalListeners(t *testing.T) {
 	}
 	local := obj(listeners[1])
 	broker := obj(arr(at(local, "configuration", "brokers"))[0])
-	if at(local, "authentication", "type") != "tls" || local["tls"] != true || broker["advertisedHost"] != config.NodeHost || broker["advertisedPort"] != float64(KafkaBrokerPort) {
+	if at(local, "authentication", "type") != "tls" || local["tls"] != true || local["type"] != "internal" || broker["advertisedHost"] != config.NodeHost || broker["advertisedPort"] != float64(KafkaBrokerPort) {
 		t.Fatal("native metadata/TLS invalid")
+	}
+	// NodePort belongs to our supplementary Services, never to Strimzi's
+	// listener configuration: that mode requires forbidden cluster RBAC.
+	if at(local, "configuration", "externalTrafficPolicy") != nil || broker["nodePort"] != nil || at(local, "configuration", "bootstrap", "nodePort") != nil {
+		t.Fatal("Strimzi node discovery configuration leaked into the listener")
+	}
+	if !reflect.DeepEqual(at(local, "configuration", "bootstrap", "alternativeNames"), []any{config.NodeHost}) {
+		t.Fatal("bootstrap certificate hostname lost")
+	}
+	for name, port := range map[string]int{"kafka-local-bootstrap": KafkaBootstrapPort, "kafka-local-0": KafkaBrokerPort} {
+		svc := mustGet(t, decode(t, r.Services[KafkaPath]), "Service", "service-kafka", name)
+		wantSelector := Object{"strimzi.io/cluster": "kafka", "strimzi.io/kind": "Kafka", "strimzi.io/pool-name": "single", "strimzi.io/broker-role": "true", "strimzi.io/pod-name": "kafka-single-0"}
+		wantPort := []any{Object{"name": "tls", "protocol": "TCP", "port": float64(9094), "targetPort": float64(9094), "nodePort": float64(port)}}
+		if at(svc, "spec", "type") != "NodePort" || at(svc, "spec", "externalTrafficPolicy") != "Local" || !reflect.DeepEqual(at(svc, "spec", "selector"), wantSelector) || !reflect.DeepEqual(at(svc, "spec", "ports"), wantPort) {
+			t.Fatal("supplementary Kafka Service does not reach exactly broker 0 with source preservation")
+		}
 	}
 	if _, err := RenderLocalData(overlay(base, r.Certificates, r.Services), model, config); err == nil {
 		t.Fatal("accepted duplicate enablement")
@@ -135,7 +151,7 @@ func TestNativeDataRejectsScopeAndAuthDrift(t *testing.T) {
 			t.Fatal("accepted unsafe config", config)
 		}
 	}
-	for _, test := range []string{"pg-tls", "pg-certificate", "redis-plaintext", "redis-duplicate", "multi-broker", "listener", "missing-data"} {
+	for _, test := range []string{"pg-tls", "pg-certificate", "redis-plaintext", "redis-duplicate", "multi-broker", "rack-discovery", "listener", "missing-data"} {
 		t.Run(test, func(t *testing.T) {
 			base, model := dataFixture(t)
 			switch test {
@@ -159,11 +175,14 @@ func TestNativeDataRejectsScopeAndAuthDrift(t *testing.T) {
 				}
 				obj(cm["data"])["redis.conf"] = conf
 				base[RedisPath] = list(xs)
-			case "multi-broker", "listener":
+			case "multi-broker", "rack-discovery", "listener":
 				xs := decode(t, base[KafkaPath])
 				if test == "multi-broker" {
 					pool := mustGet(t, xs, "KafkaNodePool", "service-kafka", "single")
 					obj(pool["spec"])["replicas"] = 2
+				} else if test == "rack-discovery" {
+					cr := mustGet(t, xs, "Kafka", "service-kafka", "kafka")
+					obj(at(cr, "spec", "kafka"))["rack"] = Object{"topologyKey": "topology.kubernetes.io/zone"}
 				} else {
 					cr := mustGet(t, xs, "Kafka", "service-kafka", "kafka")
 					obj(arr(at(cr, "spec", "kafka", "listeners"))[0])["tls"] = false

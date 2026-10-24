@@ -30,6 +30,13 @@ PostgreSQL/Redis/Kafka 的 Mac 原生客户端使用 OrbStack 原生容器网络
 不新增端口转发进程、不重建 Kind、不把数据库协议冒充 HTTPRoute。
 TLS 及 PostgreSQL SCRAM、Redis ACL、Kafka mTLS/ACL 保留；Kafka 必须显式声明可达的
 bootstrap 与 broker advertised address。Operator 生成的 Service 由 Operator 管理。
+Kafka 使用额外的内部 TLS listener，加上由现有 kafka Application 独立拥有的两个
+NodePort Service；固定 advertisedHost/Port，同时将 advertisedHost 纳入服务器证书 SAN。
+不使用 Strimzi 的 `type: nodeport`：锁定的 1.3.0 即使已有固定地址，也会调谐
+kafka-init ClusterRoleBinding 并启用节点地址发现。这超出当前 Operator 的权限边界。
+不能只补一个 GET 再逐项扩大权限，也不能让 Argo 与 Operator 共同维护同一个绑定。
+本方案保留原 9093 listener、CA、用户、ACL、Operator RBAC 与其生成 Service 的归属；
+只支持已核验的单节点池 single、broker 0、无 rack discovery 拓扑。
 原生入口 opt-in；仅限已审核单数据节点拓扑。网络权限由实际源地址和精确服务端口定义，
 不能因开启 NodePort 取消 namespace 默认拒绝或开放所有业务 Pod。
 Inventory 的 IP policy 禁止规则只对 `postgresql`/`redis` 两个已有 owner 在各自
@@ -47,3 +54,6 @@ Strimzi listener 的 networkPolicyPeers 声明，由 Operator 生成策略。
 本地回归、真实渲染/CRD 默认值检查和完整质量检查 → PR CI → 精确同集群部署审查 →
 实际 TLS/认证/负例/地址及旧业务不回归验证 → 使用指南核对 → 稳定制品与来源验证 → 发布。
 历史 r2 PASS 仍绑定其原实现；新入口不能借历史结果声称已经部署或验证。
+
+锁定上游依据：[内部 listener 的 advertised 地址、端口及 SAN 处理](https://github.com/strimzi/strimzi-kafka-operator/blob/1.3.0/cluster-operator/src/main/java/io/strimzi/operator/cluster/operator/assembly/KafkaListenersReconciler.java)，
+[NodePort/rack 触发 ClusterRoleBinding](https://github.com/strimzi/strimzi-kafka-operator/blob/1.3.0/cluster-operator/src/main/java/io/strimzi/operator/cluster/model/KafkaCluster.java)。

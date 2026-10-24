@@ -3,9 +3,11 @@
 适用范围：单所有者 macOS arm64 / OrbStack 开发实例。以下以现存
 `atlas-layout-r2` 为例。数据仍只有单副本和本机持久卷，不是 HA 或独立灾备。
 
-**发布状态：常驻入口增量待部署审查。** r2 已通过数据平台验收，但目前只有
-`web.atlas.test:48443` 已开放。下面的管理域名、数据库 NodePort 是本轮候选，
-不能把清单编译成功当成已经可连接。完成实测后更新此状态，不需要重建集群。
+**发布状态：访问增量尚未完成验收。** r2 已通过原数据平台验收，六个管理 HTTPS 入口
+及证书已完成 GitOps Gate；本机信任、登录和数据库原生直连仍待完整验证。
+Kafka 原生入口的首个候选触发 Operator 权限依赖并 STOP，修复候选保持原 RBAC。
+下面是目标使用方式，不能把已发布清单当成端到端可用。参见
+[本轮访问验证记录](local-access-validation.md)。不需要重建集群。
 
 ## 入口与登录
 
@@ -140,6 +142,8 @@ printf '%s\n' 'hello atlas' | kcat -F "$ATLAS_CLIENT/kcat.conf" -P -t YOUR_TOPIC
 
 自动创建 topic 已关闭。topic 由明确的业务管理操作建立；默认数据保留期为 24 小时。
 bootstrap 成功但生产/消费失败时，先检查返回的 broker 地址是否为同一 `.orb.local:30994`。
+两个额外 NodePort Service 由 GitOps 管理，连接同一受限 TLS listener；Strimzi 自有
+Service 保持原归属。不需要授予 Operator 创建集群级角色绑定的权限。
 `platform-admin` 的 ACL 不包含 transactional ID；需要事务时另行设计授权，不关闭 ACL。
 
 ## Flink
