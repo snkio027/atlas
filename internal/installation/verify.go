@@ -1,14 +1,14 @@
 package installation
 
 import (
-	"atlas-refactor/internal/platformcheck"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platformcheck"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"io"
 	"net/http"
 	"net/url"

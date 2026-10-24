@@ -3,8 +3,8 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/observation"
 	"context"
+	"github.com/snkio027/atlas/internal/observation"
 	"path/filepath"
 	"testing"
 )

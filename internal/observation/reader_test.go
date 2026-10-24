@@ -1,8 +1,8 @@
 package observation
 
 import (
-	"atlas-refactor/internal/platform"
 	"context"
+	"github.com/snkio027/atlas/internal/platform"
 	"net/http"
 	"net/http/httptest"
 	"os"

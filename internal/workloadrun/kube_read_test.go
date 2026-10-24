@@ -1,9 +1,9 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/installation"
-	"atlas-refactor/internal/workload"
 	"context"
+	"github.com/snkio027/atlas/internal/installation"
+	"github.com/snkio027/atlas/internal/workload"
 	"net/http"
 	"net/http/httptest"
 	"os"

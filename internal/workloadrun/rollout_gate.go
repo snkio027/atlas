@@ -1,12 +1,12 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platformnames"
-	"atlas-refactor/internal/workload"
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platformnames"
+	"github.com/snkio027/atlas/internal/workload"
 	"sort"
 	"strings"
 	"time"

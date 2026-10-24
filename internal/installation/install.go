@@ -1,12 +1,12 @@
 package installation
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"path/filepath"
 	"reflect"
 	"strings"

@@ -3,12 +3,12 @@
 package main
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/installation"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/installation"
 	"os"
 	"os/signal"
 	"path/filepath"

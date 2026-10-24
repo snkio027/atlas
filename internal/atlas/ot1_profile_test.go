@@ -1,7 +1,7 @@
 package atlas
 
 import (
-	"atlas-refactor/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/developmentprofile"
 	"testing"
 )
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"atlas-refactor/internal/webslice"
 	"fmt"
+	"github.com/snkio027/atlas/internal/webslice"
 	"os"
 )
 

@@ -1,8 +1,8 @@
 package workload
 
 import (
-	"atlas-refactor/internal/platform"
 	"bytes"
+	"github.com/snkio027/atlas/internal/platform"
 	"strings"
 	"testing"
 )

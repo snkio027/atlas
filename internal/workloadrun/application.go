@@ -1,10 +1,10 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/workload"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/workload"
 	"io"
 	"net/http"
 	"os"

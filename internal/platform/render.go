@@ -3,9 +3,6 @@
 package platform
 
 import (
-	"atlas-refactor/internal/authored"
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -13,6 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"io"
 	"os"
 	"os/exec"
@@ -85,7 +85,12 @@ func Load(root string, t Tools) (*Project, error) {
 	if (p.Config.Schema != 1 && p.Config.Schema != 2) || p.Lock.Schema != 1 {
 		return nil, errors.New("unsupported platform schema")
 	}
-	if p.Config.RootPath != "gitops/root/overlays/development" || p.Config.RepositoryURL != "https://github.com/snkio027/atlas-refactor.git" || !reviewedDevelopmentRevision(p.Config.Revision) {
+	expectedRepository := "https://github.com/snkio027/atlas.git"
+	// Historical schema-1 ceremony source stays bound to its original repository URL.
+	if p.Config.Schema == 1 {
+		expectedRepository = "https://github.com/snkio027/atlas-refactor.git"
+	}
+	if p.Config.RootPath != "gitops/root/overlays/development" || p.Config.RepositoryURL != expectedRepository || !reviewedDevelopmentRevision(p.Config.Revision) {
 		return nil, errors.New("unreviewed development target")
 	}
 	expected := map[string]string{"foundation": "foundation", "cilium": "networking/cilium", "argocd-self": "management/argocd-self", "cert-manager": "management/cert-manager", "gateway-api": "networking/gateway-api", "envoy-crds": "networking/envoy-crds", "envoy-gateway": "networking/envoy-gateway", "local-storage": "storage/local-path", "local-pki": "management/local-pki", "edge": "networking/edge"}

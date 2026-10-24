@@ -20,7 +20,7 @@
         "project": "atlas-bootstrap",
         "source": {
           "path": "gitops/platform/management/projects/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -55,7 +55,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/applications/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -90,7 +90,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/workloads/applications/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {

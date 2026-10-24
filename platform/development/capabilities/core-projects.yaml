@@ -8,7 +8,7 @@ items:
       namespace: platform-argocd
     spec:
       sourceRepos:
-        - https://github.com/snkio027/atlas-refactor.git
+        - https://github.com/snkio027/atlas.git
       destinations:
         - server: https://kubernetes.default.svc
           namespace: platform-argocd
@@ -89,7 +89,7 @@ items:
       namespace: platform-argocd
     spec:
       sourceRepos:
-        - https://github.com/snkio027/atlas-refactor.git
+        - https://github.com/snkio027/atlas.git
       destinations:
         - server: https://kubernetes.default.svc
           namespace: project-platform-smoke

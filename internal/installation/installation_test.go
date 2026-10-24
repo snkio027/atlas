@@ -2,11 +2,11 @@ package installation
 
 import (
 	"archive/tar"
-	"atlas-refactor/internal/platform"
 	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/exec"
 	"path/filepath"

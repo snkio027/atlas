@@ -1,9 +1,9 @@
 package atlas
 
 import (
-	"atlas-refactor/internal/oci"
 	"context"
 	"fmt"
+	"github.com/snkio027/atlas/internal/oci"
 	"os"
 	"path/filepath"
 	"strings"

@@ -1,12 +1,12 @@
 package installation
 
 import (
-	"atlas-refactor/internal/kubeconfig"
-	"atlas-refactor/internal/observation"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/kubeconfig"
+	"github.com/snkio027/atlas/internal/observation"
 	"io"
 	"net/http"
 	"path/filepath"

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"atlas-refactor/internal/observation"
+	"github.com/snkio027/atlas/internal/observation"
 )
 
 const F12Manifest = "57a0e0f74aaa11220a0f37625da0f2b0035060b5faf6e66d6259355534a7a806"

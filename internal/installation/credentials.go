@@ -1,8 +1,6 @@
 package installation
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/platformnames"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -12,6 +10,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"os"
 	"path/filepath"
 	"time"

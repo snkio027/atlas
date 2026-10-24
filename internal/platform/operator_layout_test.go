@@ -1,9 +1,9 @@
 package platform
 
 import (
-	"atlas-refactor/internal/platformnames"
 	"context"
 	"encoding/json"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"os"
 	"path/filepath"
 	"strings"

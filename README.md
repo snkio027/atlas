@@ -1,7 +1,9 @@
 # Atlas
 
 Atlas 是一个 Go 实现的本地 Web/API 开发平台：有限 Bootstrap 建立控制面，
-Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)。
+Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)。正式仓库为 [`snkio027/atlas`](https://github.com/snkio027/atlas)，
+原 Shell 项目保留于 [`atlas-legacy`](https://github.com/snkio027/atlas-legacy)。
+Go module 为 `github.com/snkio027/atlas`；首个本地开发稳定版 `v0.1.0` 正在准备，尚未发布。
 
 当前支持单所有者、macOS arm64 + OrbStack 四节点环境，HTTPS、指标/看板和
 独立 S3 Binding。不是生产或多租户托管平台；不支持自动恢复、业务退役和跨集群。
@@ -12,7 +14,7 @@ Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)�
 2. [接入自己的 Go Web/API 应用](docs/application-delivery.md)：工作区模板、离线镜像、
    可读计划、部署、更新、状态、访问与日志。
 3. [应用排障与支持边界](docs/application-delivery.md#状态访问与排障)。
-4. [常驻 HTTPS 管理入口候选](docs/management-access.md)：Grafana、Argo CD、Prometheus、Alertmanager、S3；部署前需审查。
+4. [组件入口、登录与常用命令](docs/local-platform-access.md)：浏览器、数据库原生 TLS、Flink 与日志；新入口增量待部署审查。
 
 普通业务入口：
 
@@ -27,11 +29,11 @@ atlas-platform app open --service experiment-archive
 
 首次使用先按接入文档创建工作区。app 命令当前是源码构建候选，配置/范围由
 [Proposed ADR-0018](docs/adr/0018-ordinary-application-delivery.md) 单独审查；
-本地检查不代表真实业务交付闭环已经通过。普通部署完成与业务功能验收分开报告。
+真实业务首次部署与两次更新已通过 [r3 验收](docs/application-delivery-validation.md)。普通部署完成与业务功能验收分开报告。
 
 新安装采用 `platform-* / service-* / project-*`，系统 namespace 保留原名。人工配置使用 YAML，锁、计划与证据使用 JSON；名称对应、组件扩展
 与旧实例边界见 [平台 namespace 约定](docs/platform-namespaces.md)。
-新布局与数据能力组合候选已完成[运行验收 PASS](docs/namespace-layout-runtime-validation.md)；
+新布局与数据能力组合候选已完成[运行验收 PASS](docs/namespace-layout-r2-runtime-validation.md)；
 历史 STOP 保留，新实例与已有实例操作分别审查。
 
 ## 维护与验证

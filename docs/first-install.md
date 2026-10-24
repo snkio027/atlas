@@ -1,7 +1,7 @@
-# D1 first installation — role-scoped layout candidate
+# First installation — Atlas local development
 
 This guide now describes product schema 2, role-scoped-v1 namespaces and YAML configuration.
-The new layout has local validation only; its Runtime acceptance has not run.
+The role-scoped layout and data platform passed the [r2 runtime acceptance](namespace-layout-r2-runtime-validation.md). A new release archive still needs its own source/attestation verification; this does not rewrite the tested runtime commit.
 Use a matching reviewed package. Older products and instance evidence are not upgraded by these commands.
 
 Historical context: the owner-selected same-host runtime acceptance passed for `v0.1.0-d1.4`;
@@ -34,8 +34,8 @@ Before extracting or executing it, verify both content and build identity:
 ```sh
 shasum -a 256 -c atlas-VERSION-darwin-arm64.tar.gz.sha256
 gh attestation verify atlas-VERSION-darwin-arm64.tar.gz \
-  --repo snkio027/atlas-refactor \
-  --signer-workflow snkio027/atlas-refactor/.github/workflows/release.yml \
+  --repo snkio027/atlas \
+  --signer-workflow snkio027/atlas/.github/workflows/release.yml \
   --source-ref refs/tags/VERSION
 mkdir atlas-preview
 tar -xzf atlas-VERSION-darwin-arm64.tar.gz -C atlas-preview
@@ -79,7 +79,15 @@ not authorize deleting old clusters, adopting existing ones or rotating keys.
 Keep terminal output: it reports the dedicated kubeconfig, private credentials,
 CA, backup and supported access commands without printing passwords.
 
-## Access and repeat verification
+## Permanent local access
+
+The installer archive creates the D1 base. Optional data capabilities and permanent
+management/native-client access are post-install changes; they are not silently
+included in Tier-0. See [component access](local-platform-access.md) for the
+current r2 endpoints, login methods and deployment status. That path uses no
+port-forward process. The commands below remain optional foreground D1 diagnostics.
+
+## Foreground D1 diagnostics and repeat verification
 
 ```sh
 ./atlas-install access --config installation.yaml --service web

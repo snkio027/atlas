@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"atlas-refactor/internal/platformnames"
+	"github.com/snkio027/atlas/internal/platformnames"
 )
 
 func TestDataCapabilitySelectionIsOptInAndCredentialGated(t *testing.T) {

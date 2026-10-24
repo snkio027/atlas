@@ -20,7 +20,7 @@
         "project": "workload-project",
         "source": {
           "path": "gitops/workloads/web-smoke/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {

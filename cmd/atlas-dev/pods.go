@@ -1,6 +1,6 @@
 package main
 
-import "atlas-refactor/internal/platformcheck"
+import "github.com/snkio027/atlas/internal/platformcheck"
 
 type runtimePod = platformcheck.Pod
 

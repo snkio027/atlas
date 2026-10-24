@@ -1,9 +1,9 @@
 package workloadrun
 
 import (
-	"atlas-refactor/internal/workload"
 	"encoding/json"
 	"errors"
+	"github.com/snkio027/atlas/internal/workload"
 	"testing"
 )
 

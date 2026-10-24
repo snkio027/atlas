@@ -1,11 +1,11 @@
 package observation
 
 import (
-	kubeconfigtransport "atlas-refactor/internal/kubeconfig"
-	"atlas-refactor/internal/platform"
 	"context"
 	"errors"
 	"fmt"
+	kubeconfigtransport "github.com/snkio027/atlas/internal/kubeconfig"
+	"github.com/snkio027/atlas/internal/platform"
 	"io"
 	"net/http"
 	"os"

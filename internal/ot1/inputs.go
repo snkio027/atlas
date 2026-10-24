@@ -1,10 +1,10 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
 	"context"
 	"errors"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"path/filepath"
 )

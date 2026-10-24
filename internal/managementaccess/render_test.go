@@ -1,9 +1,9 @@
 package managementaccess
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/workload"
 	"bytes"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/workload"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"atlas-refactor/internal/workload"
+	"github.com/snkio027/atlas/internal/workload"
 )
 
 func TestMetricGate(t *testing.T) {

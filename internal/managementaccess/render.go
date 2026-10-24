@@ -3,13 +3,13 @@
 package managementaccess
 
 import (
-	"atlas-refactor/internal/platform"
-	"atlas-refactor/internal/platformnames"
-	"atlas-refactor/internal/workload"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
+	"github.com/snkio027/atlas/internal/platformnames"
+	"github.com/snkio027/atlas/internal/workload"
 	"reflect"
 	"slices"
 	"sort"
@@ -88,6 +88,15 @@ func get(xs []Object, kind, ns, name string) (Object, error) {
 // reviewed files. Both phases are validated before producing any output. It
 // does not activate an incomplete monitoring/storage installation.
 func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, error) {
+	return renderBrowser(base, model, httpsPort, Endpoints())
+}
+
+// RenderWithFlink adds a bounded overview, not an anonymous job-management API.
+func RenderWithFlink(base Files, model *platform.ResourceModel, httpsPort int) (Result, error) {
+	return renderBrowser(base, model, httpsPort, append(Endpoints(), flinkEndpoint()))
+}
+
+func renderBrowser(base Files, model *platform.ResourceModel, httpsPort int, endpoints []Endpoint) (Result, error) {
 	if httpsPort < 1024 || httpsPort > 65535 {
 		return Result{}, errors.New("expected unprivileged loopback HTTPS port")
 	}
@@ -113,7 +122,13 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 		}
 		objects = append(objects, xs...)
 	}
-	for _, e := range Endpoints() {
+	for _, e := range endpoints {
+		if e.Name == "flink" {
+			if err := validateFlink(base); err != nil {
+				return Result{}, err
+			}
+			continue // REST Service is Operator-owned; validate its CR, never forge a Git owner.
+		}
 		svc, err := get(objects, "Service", e.Namespace, e.Service)
 		if err != nil {
 			return Result{}, err
@@ -156,7 +171,7 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 		return Result{}, errors.New("development CA issuer differs")
 	}
 	listeners := arr(at(gateway, "spec", "listeners"))
-	for _, e := range Endpoints() {
+	for _, e := range endpoints {
 		name := "management-" + e.Name
 		host := e.Name + ".atlas.test"
 		for _, l := range listeners {
@@ -181,6 +196,9 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 			matches := []any{Object{"path": Object{"type": "PathPrefix", "value": "/"}}}
 			if e.ReadOnly {
 				matches = []any{Object{"path": Object{"type": "PathPrefix", "value": "/"}, "method": "GET"}, Object{"path": Object{"type": "PathPrefix", "value": "/"}, "method": "HEAD"}}
+			}
+			if e.Name == "flink" {
+				matches = flinkReadMatches()
 			}
 			rule := Object{"matches": matches}
 			if protocol == "http" {
@@ -226,55 +244,8 @@ func Render(base Files, model *platform.ResourceModel, httpsPort int) (Result, e
 		prerequisites[workload.ProjectsPath] = list(projects)
 	}
 	result := Result{Prerequisites: prerequisites, Routes: Files{workload.EdgePath: list(edge), workload.MonitorPath: monitoring}}
-	// Validate defaults against the deployed CRDs, not an unrelated new schema.
-	before := map[string]Object{}
-	for _, o := range objects {
-		before[id(o)] = o
-	}
-	for _, phase := range []Files{result.Prerequisites, result.Routes} {
-		for _, path := range sortedPaths(phase) {
-			b := phase[path]
-			xs, err := platform.DecodeJSONManifests(b)
-			if err != nil {
-				return Result{}, err
-			}
-			for _, o := range xs {
-				if reflect.DeepEqual(before[id(o)], o) {
-					continue
-				}
-				typ, err := model.Resolve(o)
-				if err != nil {
-					return Result{}, err
-				}
-				if typ.Schema != nil {
-					if err = checkDeployedSchema(base, model, o); err != nil {
-						return Result{}, err
-					}
-				}
-				if err = model.ValidateCRDDefaultStability(before[id(o)], o); err != nil {
-					return Result{}, err
-				}
-			}
-		}
-	}
-	cumulative := Files{}
-	for k, v := range base {
-		cumulative[k] = v
-	}
-	for _, phase := range []Files{result.Prerequisites, result.Routes} {
-		for k, v := range phase {
-			cumulative[k] = v
-		}
-		next, err := workload.InventoryOf(cumulative, model)
-		if err != nil {
-			return Result{}, err
-		}
-		for _, old := range inv {
-			i := slices.IndexFunc(next, func(n workload.OwnedResource) bool { return n.Identity == old.Identity })
-			if i < 0 || next[i].Owner != old.Owner || next[i].Path != old.Path {
-				return Result{}, errors.New("existing ownership changed")
-			}
-		}
+	if err := validatePhases(base, model, result.Prerequisites, result.Routes); err != nil {
+		return Result{}, err
 	}
 	return result, nil
 }
@@ -414,4 +385,68 @@ func sortedPaths(files Files) []string {
 	}
 	sort.Strings(paths)
 	return paths
+}
+
+func validatePhases(base Files, model *platform.ResourceModel, phases ...Files) error {
+	inv, err := workload.InventoryOf(base, model)
+	if err != nil {
+		return err
+	}
+	// Validate defaults against the deployed CRDs, not an unrelated new schema.
+	before := map[string]Object{}
+	for _, b := range base {
+		xs, err := platform.DecodeJSONManifests(b)
+		if err != nil {
+			continue
+		}
+		for _, o := range xs {
+			before[id(o)] = o
+		}
+	}
+	for _, phase := range phases {
+		for _, path := range sortedPaths(phase) {
+			b := phase[path]
+			xs, err := platform.DecodeJSONManifests(b)
+			if err != nil {
+				return err
+			}
+			for _, o := range xs {
+				if reflect.DeepEqual(before[id(o)], o) {
+					continue
+				}
+				typ, err := model.Resolve(o)
+				if err != nil {
+					return err
+				}
+				if typ.Schema != nil {
+					if err = checkDeployedSchema(base, model, o); err != nil {
+						return err
+					}
+				}
+				if err = model.ValidateCRDDefaultStability(before[id(o)], o); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	cumulative := Files{}
+	for k, v := range base {
+		cumulative[k] = v
+	}
+	for _, phase := range phases {
+		for k, v := range phase {
+			cumulative[k] = v
+		}
+		next, err := workload.InventoryOf(cumulative, model)
+		if err != nil {
+			return err
+		}
+		for _, old := range inv {
+			i := slices.IndexFunc(next, func(n workload.OwnedResource) bool { return n.Identity == old.Identity })
+			if i < 0 || next[i].Owner != old.Owner || next[i].Path != old.Path {
+				return errors.New("existing ownership changed")
+			}
+		}
+	}
+	return nil
 }

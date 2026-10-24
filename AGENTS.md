@@ -1,7 +1,8 @@
-# Atlas Refactor contributor contract
+# Atlas contributor contract
 
-This is an independent Go implementation, not the authoritative engine of the
-original Atlas repository. Read `docs/architecture.md` and `docs/adr/` first.
+Atlas is the Go implementation for single-owner local development. The original
+Shell project is archived as `snkio027/atlas-legacy`; its history and uncommitted
+local work remain preserved. Read `docs/architecture.md` and `docs/adr/` first.
 Design proposals and implementation status must remain distinguishable.
 
 - Inspect existing changes; preserve unrelated work.
@@ -27,7 +28,8 @@ Design proposals and implementation status must remain distinguishable.
   evidence and a reviewed recovery decision. Never automatically clear a STOP lock.
   Final Gate PASS and credential/Trust Root evidence remain fully retained.
 - Do not import old Atlas live state, credentials, approvals, or cluster names.
-  Do not alter the old repository as part of work here.
+  The approved repository rename/archive preserves that history; further legacy
+  code or state changes require their own scope.
 - Review changes to authority, configuration, deployment scope, or recovery in
   a dedicated ADR. Initial design ADRs remain Proposed pending owner review.
 

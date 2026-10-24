@@ -3,14 +3,14 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/exec"
 	"path/filepath"

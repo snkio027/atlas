@@ -1,9 +1,9 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/atlas"
 	"context"
 	"errors"
+	"github.com/snkio027/atlas/internal/atlas"
 	"strings"
 )
 

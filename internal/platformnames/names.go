@@ -3,13 +3,13 @@
 package platformnames
 
 import (
-	"atlas-refactor/internal/authored"
 	"bytes"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/snkio027/atlas/internal/authored"
 	"strings"
 )
 

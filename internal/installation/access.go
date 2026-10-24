@@ -1,13 +1,13 @@
 package installation
 
 import (
-	"atlas-refactor/internal/platformnames"
 	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"io"
 	"net"
 	"net/http"

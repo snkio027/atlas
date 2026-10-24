@@ -3,12 +3,12 @@
 package main
 
 import (
-	"atlas-refactor/internal/platform"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +17,14 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "local-data-access" {
+		if err := runLocalDataAccess(os.Args[2:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if len(os.Args) > 1 && os.Args[1] == "management-access" {
 		if err := runManagementAccess(os.Args[2:], os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

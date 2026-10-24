@@ -20,7 +20,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/foundation/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -55,7 +55,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/networking/cilium/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -90,7 +90,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/argocd-self/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -125,7 +125,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/cert-manager/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -160,7 +160,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/networking/gateway-api/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -195,7 +195,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/networking/envoy-crds/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -230,7 +230,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/networking/envoy-gateway/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -265,7 +265,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/storage/local-path/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -300,7 +300,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/local-pki/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -335,7 +335,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/networking/edge/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -370,7 +370,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/foundation/observability/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -405,7 +405,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/foundation/secrets/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -440,7 +440,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/foundation/storage/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -475,7 +475,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/sealed-secrets-crds/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -510,7 +510,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/sealed-secrets/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -545,7 +545,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/management/platform-credentials/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -580,7 +580,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/observability/crds/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -615,7 +615,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/observability/operator/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -650,7 +650,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/observability/stack/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -685,7 +685,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/storage/seaweedfs/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {
@@ -720,7 +720,7 @@
         "project": "platform-project",
         "source": {
           "path": "gitops/platform/observability/storage/overlays/development",
-          "repoURL": "https://github.com/snkio027/atlas-refactor.git",
+          "repoURL": "https://github.com/snkio027/atlas.git",
           "targetRevision": "codex/development-platform"
         },
         "syncPolicy": {

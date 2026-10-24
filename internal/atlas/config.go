@@ -1,13 +1,13 @@
 package atlas
 
 import (
-	"atlas-refactor/internal/developmentprofile"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/developmentprofile"
 	"io"
 	"net/url"
 	"os"
@@ -227,5 +227,5 @@ func (l Lock) Validate() error {
 
 func (c Config) Identity() map[string]string {
 	// Timeout is an execution preference, not part of cluster ownership.
-	return map[string]string{"schema": "atlas-refactor/identity/v1", "cluster": c.Cluster, "repositoryURL": c.RepositoryURL, "revision": c.Revision, "gitopsPath": c.GitOpsPath, "dockerContext": c.DockerContext}
+	return map[string]string{"schema": "github.com/snkio027/atlas/identity/v1", "cluster": c.Cluster, "repositoryURL": c.RepositoryURL, "revision": c.Revision, "gitopsPath": c.GitOpsPath, "dockerContext": c.DockerContext}
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"atlas-refactor/internal/atlas"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
 	"os"
 	"os/signal"
 	"path/filepath"

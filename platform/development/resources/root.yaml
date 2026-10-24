@@ -12,7 +12,7 @@ items:
     spec:
       project: atlas-bootstrap
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/management/projects/overlays/development
       destination:
@@ -37,7 +37,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/platform/applications/overlays/development
       destination:
@@ -62,7 +62,7 @@ items:
     spec:
       project: platform-project
       source:
-        repoURL: https://github.com/snkio027/atlas-refactor.git
+        repoURL: https://github.com/snkio027/atlas.git
         targetRevision: codex/development-platform
         path: gitops/workloads/applications/overlays/development
       destination:

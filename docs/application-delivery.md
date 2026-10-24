@@ -35,7 +35,7 @@ P0 仍从经过审核的 Atlas 源码构建 `bin/atlas-platform`，Go/Task 仅�
 ```sh
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o /absolute/build/archive ./cmd/experiment-archive
 
-/absolute/atlas-refactor/bin/atlas-platform app image \
+/absolute/atlas/bin/atlas-platform app image \
   --binary /absolute/build/archive \
   --tag atlas.local/experiment-archive:v1 \
   --out /absolute/artifacts/archive-v1
@@ -51,7 +51,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o /absolute/build/arch
 bin/atlas-platform app init \
   --workspace /absolute/workspaces/archive \
   --instance /absolute/instances/archive-dev \
-  --product-source /absolute/atlas-refactor \
+  --product-source /absolute/atlas \
   --artifact /absolute/artifacts/archive-v1/image.json \
   --owner your-name --project archive --name experiment-archive --s3
 ```
@@ -65,9 +65,9 @@ init 创建新工作区，不复制旧实例状态、不创建集群、不使用
 
 ```sh
 cd /absolute/workspaces/archive
-/absolute/atlas-refactor/bin/atlas-platform app check
-/absolute/atlas-refactor/bin/atlas-platform app plan
-/absolute/atlas-refactor/bin/atlas-platform app deploy
+/absolute/atlas/bin/atlas-platform app check
+/absolute/atlas/bin/atlas-platform app plan
+/absolute/atlas/bin/atlas-platform app deploy
 ```
 
 check 校验类型、引用、预算与离线制品；plan 核对远端 parent/发布权限及完整 consumer

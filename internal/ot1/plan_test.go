@@ -1,11 +1,11 @@
 package ot1
 
 import (
-	"atlas-refactor/internal/developmentprofile"
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
 	"context"
 	"encoding/base64"
+	"github.com/snkio027/atlas/internal/developmentprofile"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"path/filepath"
 	"strings"

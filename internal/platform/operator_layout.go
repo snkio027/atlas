@@ -1,10 +1,10 @@
 package platform
 
 import (
-	"atlas-refactor/internal/platformnames"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/platformnames"
 	"sort"
 	"strings"
 )

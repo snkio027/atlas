@@ -3,8 +3,6 @@
 package main
 
 import (
-	"atlas-refactor/internal/atlas"
-	"atlas-refactor/internal/developmentprofile"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -15,6 +13,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/atlas"
+	"github.com/snkio027/atlas/internal/developmentprofile"
 	"io"
 	"maps"
 	"net"

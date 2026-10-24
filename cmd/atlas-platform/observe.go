@@ -1,11 +1,11 @@
 package main
 
 import (
-	"atlas-refactor/internal/observation"
-	"atlas-refactor/internal/platform"
 	"context"
 	"flag"
 	"fmt"
+	"github.com/snkio027/atlas/internal/observation"
+	"github.com/snkio027/atlas/internal/platform"
 	"os"
 	"os/signal"
 	"path/filepath"
