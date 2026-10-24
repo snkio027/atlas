@@ -107,6 +107,39 @@
               "port": 9093,
               "tls": true,
               "type": "internal"
+            },
+            {
+              "authentication": {
+                "type": "tls"
+              },
+              "configuration": {
+                "bootstrap": {
+                  "alternativeNames": [
+                    "atlas-layout-r2-worker3.orb.local"
+                  ],
+                  "nodePort": 30993
+                },
+                "brokers": [
+                  {
+                    "advertisedHost": "atlas-layout-r2-worker3.orb.local",
+                    "advertisedPort": 30994,
+                    "broker": 0,
+                    "nodePort": 30994
+                  }
+                ],
+                "externalTrafficPolicy": "Local"
+              },
+              "name": "local",
+              "networkPolicyPeers": [
+                {
+                  "ipBlock": {
+                    "cidr": "192.168.97.1/32"
+                  }
+                }
+              ],
+              "port": 9094,
+              "tls": true,
+              "type": "nodeport"
             }
           ],
           "metadataVersion": "4.3-IV0",

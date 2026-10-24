@@ -247,6 +247,75 @@
           "Egress"
         ]
       }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "postgresql-local",
+        "namespace": "service-postgresql"
+      },
+      "spec": {
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tls",
+            "nodePort": 30432,
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "cnpg.io/cluster": "postgresql",
+          "cnpg.io/instanceRole": "primary"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "postgresql-local",
+        "namespace": "service-postgresql"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "ipBlock": {
+                  "cidr": "192.168.97.1/32"
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "cnpg.io/cluster": "postgresql",
+            "cnpg.io/instanceRole": "primary"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
     }
   ],
   "kind": "List"
