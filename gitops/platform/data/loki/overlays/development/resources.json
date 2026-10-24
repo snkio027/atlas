@@ -1,0 +1,306 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Delete=false,Prune=confirm"
+        },
+        "name": "loki-data",
+        "namespace": "platform-logging"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "8Gi"
+          }
+        },
+        "storageClassName": "atlas-local-retain"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "loki.yaml": "auth_enabled: false\nserver:\n  http_listen_port: 3100\n  grpc_listen_port: 9095\ncommon:\n  path_prefix: /data\n  instance_addr: 127.0.0.1\n  replication_factor: 1\n  ring:\n    kvstore:\n      store: inmemory\n  storage:\n    filesystem:\n      chunks_directory: /data/chunks\n      rules_directory: /data/rules\nschema_config:\n  configs:\n    - from: 2026-01-01\n      store: tsdb\n      object_store: filesystem\n      schema: v13\n      index:\n        prefix: index_\n        period: 24h\ncompactor:\n  working_directory: /data/compactor\n  retention_enabled: true\n  delete_request_store: filesystem\nlimits_config:\n  retention_period: 72h\n  ingestion_rate_mb: 2\n  ingestion_burst_size_mb: 4\n  max_query_parallelism: 4\n  max_query_series: 500\n  max_global_streams_per_user: 5000\nanalytics:\n  reporting_enabled: false\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "loki-config",
+        "namespace": "platform-logging"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/name": "loki"
+        },
+        "name": "loki",
+        "namespace": "platform-logging"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "port": 3100,
+            "targetPort": "http"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "loki"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/name": "loki"
+        },
+        "name": "loki-headless",
+        "namespace": "platform-logging"
+      },
+      "spec": {
+        "clusterIP": "None",
+        "ports": [
+          {
+            "name": "http",
+            "port": 3100,
+            "targetPort": "http"
+          }
+        ],
+        "publishNotReadyAddresses": true,
+        "selector": {
+          "app.kubernetes.io/name": "loki"
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "loki",
+        "namespace": "platform-logging"
+      },
+      "spec": {
+        "persistentVolumeClaimRetentionPolicy": {
+          "whenDeleted": "Retain",
+          "whenScaled": "Retain"
+        },
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "loki"
+          }
+        },
+        "serviceName": "loki-headless",
+        "template": {
+          "metadata": {
+            "annotations": {
+              "checksum/config": "61d301bc8b1e344e8141afc0b54070ef77459ac10c251649be2d48855e177783"
+            },
+            "labels": {
+              "app.kubernetes.io/name": "loki"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "args": [
+                  "-config.file=/config/loki.yaml"
+                ],
+                "image": "docker.io/grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193",
+                "livenessProbe": {
+                  "failureThreshold": 6,
+                  "httpGet": {
+                    "path": "/ready",
+                    "port": "http"
+                  },
+                  "periodSeconds": 20,
+                  "timeoutSeconds": 5
+                },
+                "name": "loki",
+                "ports": [
+                  {
+                    "containerPort": 3100,
+                    "name": "http"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/ready",
+                    "port": "http"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "768Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "startupProbe": {
+                  "failureThreshold": 60,
+                  "httpGet": {
+                    "path": "/ready",
+                    "port": "http"
+                  },
+                  "periodSeconds": 5
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp",
+                    "readOnly": false
+                  },
+                  {
+                    "mountPath": "/data",
+                    "name": "data",
+                    "readOnly": false
+                  },
+                  {
+                    "mountPath": "/config",
+                    "name": "loki-config",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "nodeSelector": {
+              "kubernetes.io/os": "linux",
+              "node-role.local/data": "true"
+            },
+            "securityContext": {
+              "fsGroup": 10001,
+              "runAsGroup": 10001,
+              "runAsNonRoot": true,
+              "runAsUser": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 60,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.local/data",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              },
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "loki-data"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 292,
+                  "name": "loki-config"
+                },
+                "name": "loki-config"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "loki-ingress",
+        "namespace": "platform-logging"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-logging"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/name": "alloy"
+                  }
+                }
+              },
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/name": "grafana"
+                  }
+                }
+              },
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app.kubernetes.io/name": "prometheus"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 3100,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "loki"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    }
+  ],
+  "kind": "List"
+}
