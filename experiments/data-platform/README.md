@@ -60,15 +60,26 @@ by the target adapter. It never reads Secret objects or uses ambient kubeconfig.
 
 `kafka_contract` fixes the locked Kafka image and modern consumer flags. Its
 preflight validates command capabilities before create/produce operations. The
-transaction CLI prints the exception **message**, not its class name; a separate
-adapter checks the exit code, exact transaction identity and known output. Unknown
-or changed output fails closed. Do not add substring allowances to an execution
-script. Upgrade this adapter and its fixtures alongside the image.
+transaction CLI prints the exception **message** to stderr, not its class name.
+The adapter consumes the non-TTY `kubectl exec` capture: empty stdout, Kafka
+stderr followed by kubectl’s exact remote-exit diagnostic, and exit code 1. It
+checks the exact transaction identity and both process layers without merging
+streams, stripping warnings, or treating an arbitrary nonzero exit as denial.
+Unknown or changed output fails closed. Do not add substring allowances to an
+execution script. Upgrade this adapter and its capture fixture alongside the
+image and kubectl.
+
+A clean-install run exposed an incorrect stdout-only fixture. The broker had
+returned the intended authorization denial; the verifier rejected its stderr
+representation. The sanitized captured-result regression preserves the actual
+stream/exit envelope. Original STOP evidence remains unchanged; correcting this
+read-only classifier does not authorize replaying any probe or continuing a run.
 
 Sources: [Kafka 4.3.1 TransactionsCommand](https://github.com/apache/kafka/blob/4.3.1/tools/src/main/java/org/apache/kafka/tools/TransactionsCommand.java),
-[CoordinatorStrategy](https://github.com/apache/kafka/blob/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/CoordinatorStrategy.java).
-No runtime outputs, credentials, kubeconfig or installation-specific identifiers
-are committed as fixtures.
+[CoordinatorStrategy](https://github.com/apache/kafka/blob/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/CoordinatorStrategy.java),
+[kubectl error handling](https://github.com/kubernetes/kubectl/blob/v0.37.1/pkg/cmd/util/helpers.go).
+Only the sanitized denial envelope is committed as a fixture. Credentials,
+kubeconfig and installation-specific identifiers remain private.
 
 ## Operator installation contract
 
@@ -83,3 +94,10 @@ Sources: [manager setup](https://github.com/cloudnative-pg/cloudnative-pg/blob/v
 Static permission checks do not establish controller startup or runtime readiness.
 Neither successful current-process evidence nor these tests proves every optional
 CNPG plugin configuration is supported.
+
+## Runtime result
+
+The [r2 acceptance summary](../../docs/namespace-layout-r2-runtime-validation.md)
+records the completed checks, exact implementation and evidence digests, retained
+STOPs, and private-runner limitations. Completion used explicitly reviewed finite
+continuations on the same instance; it is not an uninterrupted clean-run claim.

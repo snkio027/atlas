@@ -1,6 +1,6 @@
 # YAML / namespace 布局本地验证
 
-> 最新结果：组合候选已完成[运行验收 PASS](namespace-layout-runtime-validation.md)。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
+> 最新结果：合并主线的新实例已完成 [r2 运行验收 PASS](namespace-layout-r2-runtime-validation.md)；[r1 组合候选结果](namespace-layout-runtime-validation.md)保留。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
 
 2026-10-16。实现：`af32f9ac8e65c103d765659f2cc5653bbab122a8`；分支 `codex/namespace-ownership-layout`。
 **Local PASS，Runtime NOT RUN。** 未访问或修改当前 atlas-data-r1，未发布 GitOps、生成私钥或使用凭据。

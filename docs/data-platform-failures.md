@@ -1,6 +1,6 @@
 # 数据平台首次部署：失败经验
 
-> 最新结果：组合候选已完成[运行验收 PASS](namespace-layout-runtime-validation.md)。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
+> 最新结果：合并主线的新实例已完成 [r2 运行验收 PASS](namespace-layout-r2-runtime-validation.md)；[r1 组合候选结果](namespace-layout-runtime-validation.md)保留。以下原阶段记录保留其日期、提交与当时状态；NOT RUN/STOP 不倒改为历史 PASS。
 
 适用范围：单所有者本地开发。首次运行实现 `8d0741f`，不是数据平台 Runtime PASS。
 D1 已经完成正常交接续行及功能检查；原中断记录保留，不能描述为未中断的单次安装。
@@ -60,3 +60,15 @@ the actual entry point with injected failures. `task quality` runs these tests.
 CNPG installation checks cover its complete reviewed control-plane permission set,
 rather than only the informer that most recently failed. Existing runtime STOPs
 remain historical facts; these local tests do not retroactively turn them into PASS.
+
+## r2 收口经验（2026-10-24）
+
+[r2 最终验收](namespace-layout-r2-runtime-validation.md)经批准的有限续行完成；以下问题不改写历史 STOP。
+
+| 问题 | 根因与影响 | 修正与验证边界 |
+| --- | --- | --- |
+| 正确的 Kafka 授权拒绝被判失败 | 非 TTY kubectl exec 把 Kafka stderr 与自身退出诊断放在 stderr；旧 fixture 只模拟了错误的 stdout。 | `2308a1b` 修正 `transactional_denial`；`test_captured_kubectl_authorization_denial` 与 `test_authorization_result_is_version_bound_and_fail_closed` 读取脱敏真实捕获并拒绝错 ID、错退出码、缺失/重复诊断、混合流及未知文本。仓库 `task data:contracts` / `task quality` 覆盖。 |
+| 旧消息不能用于后续持久性测试 | 执行暂停已超过 24 小时保留期；测试数据生命周期短于验收间隔。在 broker 替换前停止。 | 私有计划使用独立 topic / 新消息连续完成前读、一次替换、后读，再精确清理；不修改服务保留策略、不补写旧消息。持久性证据仅针对新 fixture。 |
+| 清理前 Git 只读查询连接重置 | 真实网络传输错误；不代表 parent 漂移，也不代表写入结果未知。 | 私有收尾入口仅对明确的只读传输错误作最多三次有界重试；复核已完成证据后只做剩余清理与验收，不重放已完成的 Kafka 操作。 |
+
+私有编排的本地回归不等于仓库 CI 覆盖，不能以运行成功声称已经交付通用恢复能力。

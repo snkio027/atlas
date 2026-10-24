@@ -1,0 +1,5 @@
+{
+  "exitCode": 1,
+  "stderr": "Failed to describe transaction state of transactional-id `atlas-probe-forbidden`: FindCoordinator request for transactionalId `CoordinatorKey(idValue='atlas-probe-forbidden', type=TRANSACTION)` failed due to authorization failure. Enable debug logging for additional detail.\ncommand terminated with exit code 1\n",
+  "stdout": ""
+}
