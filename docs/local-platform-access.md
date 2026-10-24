@@ -3,15 +3,14 @@
 适用范围：单所有者 macOS arm64 / OrbStack 开发实例。以下以现存
 `atlas-layout-r2` 为例。数据仍只有单副本和本机持久卷，不是 HA 或独立灾备。
 
-**发布状态：访问增量尚未完成验收。** r2 已通过原数据平台验收，六个管理 HTTPS 入口
-及证书已完成 GitOps Gate；本机信任、登录和数据库原生直连仍待完整验证。
-Kafka 原生入口的首个候选触发 Operator 权限依赖并 STOP，修复候选保持原 RBAC。
-下面是目标使用方式，不能把已发布清单当成端到端可用。参见
-[本轮访问验证记录](local-access-validation.md)。不需要重建集群。
+**r2 常驻访问验收已通过。** 2026-10-24，`931431c` 完成六个管理 HTTPS 入口、
+本机 hosts/CA 信任、登录及数据库原生 TLS/认证验证。Kafka 修复保持原 Operator RBAC；
+历史 STOP 保留。下面的地址适用于这个现存实例，其他实例须先完成自身的精确访问部署。
+参见[本轮访问验证记录](local-access-validation.md)。发行或合并不重建、修改这个实例。
 
 ## 入口与登录
 
-| 能力 | 地址（增量部署后） | 认证与用途 |
+| 能力 | 已验证的 r2 地址 | 认证与用途 |
 |---|---|---|
 | Grafana | `https://grafana.atlas.test:48443` | `admin` + 本实例 grafana-admin Secret；指标、告警、Loki Explore |
 | Argo CD | `https://argocd.atlas.test:48443` | `admin` + 本实例初始管理员 Secret；首次登录后自行管理密码 |

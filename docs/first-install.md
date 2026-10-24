@@ -1,18 +1,18 @@
 # First installation — Atlas local development
 
 This guide now describes product schema 2, role-scoped-v1 namespaces and YAML configuration.
-The role-scoped layout and data platform passed the [r2 runtime acceptance](namespace-layout-r2-runtime-validation.md). A new release archive still needs its own source/attestation verification; this does not rewrite the tested runtime commit.
+The role-scoped layout and data platform passed the [r2 runtime acceptance](https://github.com/snkio027/atlas/blob/v0.1.0/docs/namespace-layout-r2-runtime-validation.md). Permanent component access subsequently passed its [same-instance validation](https://github.com/snkio027/atlas/blob/v0.1.0/docs/local-access-validation.md). The v0.1.0 release archive has a separate source/attestation verification boundary; it is not a new clean-install runtime test.
 Use a matching reviewed package. Older products and instance evidence are not upgraded by these commands.
 
-Historical context: the owner-selected same-host runtime acceptance passed for `v0.1.0-d1.4`;
-review and release promotion remain pending. Do not describe a draft as a public
-release. The measured host was Apple Silicon macOS 26.7 (25G229), OrbStack
+Historical context: the owner-selected same-host runtime acceptance passed for `v0.1.0-d1.4`.
+That draft and its evidence retain their original bindings; v0.1.0 is built separately from its own tag.
+The measured host was Apple Silicon macOS 26.7 (25G229), OrbStack
 2.2.3, 32 GiB host RAM, with Docker reporting 10 CPUs and about 15.66 GiB VM
 memory. These measurements are not minimum requirements. Only Apple Silicon
 macOS and a running OrbStack are targeted. No Intel/Linux,
 production, upgrade, existing-cluster adoption or recovery support is claimed.
 Exact artifact identity, measured capacities, timings and evidence are in
-[D1 acceptance](d1-validation.md).
+[D1 acceptance](https://github.com/snkio027/atlas/blob/v0.1.0/docs/d1-validation.md).
 
 ## Host prerequisites
 
@@ -28,7 +28,7 @@ The latter four are fetched by `prepare`, privately and with digest verification
 
 ## Authenticate the package before execution
 
-Download the candidate archive and checksum from the selected GitHub Release.
+Download the archive and checksum from the selected published GitHub Release.
 Before extracting or executing it, verify both content and build identity:
 
 ```sh
@@ -83,7 +83,7 @@ CA, backup and supported access commands without printing passwords.
 
 The installer archive creates the D1 base. Optional data capabilities and permanent
 management/native-client access are post-install changes; they are not silently
-included in Tier-0. See [component access](local-platform-access.md) for the
+included in Tier-0. See [component access](https://github.com/snkio027/atlas/blob/v0.1.0/docs/local-platform-access.md) for the
 current r2 endpoints, login methods and deployment status. That path uses no
 port-forward process. The commands below remain optional foreground D1 diagnostics.
 
@@ -132,10 +132,10 @@ The actual attested `v0.1.0-d1.4` package passed the selected current-host run:
 completed repeat. All 26 Applications were Synced/Healthy at the exact deployment
 commit. Five foreground access commands worked concurrently; 174 checked persistent
 UIDs and private credential/cipher digests remained stable on repeat, with no
-installer resource writes in the audit. See [the full acceptance record](d1-validation.md).
+installer resource writes in the audit. See [the full acceptance record](https://github.com/snkio027/atlas/blob/v0.1.0/docs/d1-validation.md).
 
-The candidate awaits review/promotion. The accepted archive must be promoted
-unchanged. This is not independent-machine, empty-cache or second-user evidence.
+This historical candidate remains distinct from v0.1.0; do not replace its bytes or
+reinterpret it as a new-tag test. This is not independent-machine, empty-cache or second-user evidence.
 Live interruptions at Kind/Root/key-backup/full-publication checkpoints were not
-injected in the successful run. S2 follows D1 review. Atlas code is distributed
+injected in the successful run. Atlas code is distributed
 under the bundled MIT LICENSE.

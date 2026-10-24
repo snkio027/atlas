@@ -1,6 +1,8 @@
 # ADR-0024：Atlas 正式项目身份与本地开发稳定版
 
-Status: Proposed。用户已明确批准仓库/目录更名与旧项目归档；原生直连及发行变更作为本轮候选审查。
+Status: Accepted（2026-10-24）。所有者已批准项目更名、同集群常驻访问计划，以及完成
+最终审查后合并并发布首个稳定版本。采用范围限于本文的单所有者本地开发模型；
+不包含现有实例升级、生产 cutover 或新的集群操作。
 
 ## 项目身份
 
@@ -54,6 +56,9 @@ Strimzi listener 的 networkPolicyPeers 声明，由 Operator 生成策略。
 本地回归、真实渲染/CRD 默认值检查和完整质量检查 → PR CI → 精确同集群部署审查 →
 实际 TLS/认证/负例/地址及旧业务不回归验证 → 使用指南核对 → 稳定制品与来源验证 → 发布。
 历史 r2 PASS 仍绑定其原实现；新入口不能借历史结果声称已经部署或验证。
+
+实际访问验收见 [r2 常驻访问报告](../local-access-validation.md)：`931431c` 同集群增量 PASS，
+旧 STOP 保留。新标签的制品来源校验与该运行记录分别保存；发布不能改写历史实测身份。
 
 锁定上游依据：[内部 listener 的 advertised 地址、端口及 SAN 处理](https://github.com/strimzi/strimzi-kafka-operator/blob/1.3.0/cluster-operator/src/main/java/io/strimzi/operator/cluster/operator/assembly/KafkaListenersReconciler.java)，
 [NodePort/rack 触发 ClusterRoleBinding](https://github.com/strimzi/strimzi-kafka-operator/blob/1.3.0/cluster-operator/src/main/java/io/strimzi/operator/cluster/model/KafkaCluster.java)。

@@ -3,7 +3,9 @@
 Atlas 是一个 Go 实现的本地 Web/API 开发平台：有限 Bootstrap 建立控制面，
 Git 定义平台与业务，Argo CD 持续调谐。代码采用 [MIT](LICENSE)。正式仓库为 [`snkio027/atlas`](https://github.com/snkio027/atlas)，
 原 Shell 项目保留于 [`atlas-legacy`](https://github.com/snkio027/atlas-legacy)。
-Go module 为 `github.com/snkio027/atlas`；首个本地开发稳定版 `v0.1.0` 正在准备，尚未发布。
+Go module 为 `github.com/snkio027/atlas`；本地开发发行线为 `v0.1.0`，制品与校验材料见
+[GitHub Releases](https://github.com/snkio027/atlas/releases)。支持范围与验证绑定见
+[v0.1.0 说明](docs/releases/v0.1.0.md)。
 
 当前支持单所有者、macOS arm64 + OrbStack 四节点环境，HTTPS、指标/看板和
 独立 S3 Binding。不是生产或多租户托管平台；不支持自动恢复、业务退役和跨集群。
@@ -14,7 +16,7 @@ Go module 为 `github.com/snkio027/atlas`；首个本地开发稳定版 `v0.1.0`
 2. [接入自己的 Go Web/API 应用](docs/application-delivery.md)：工作区模板、离线镜像、
    可读计划、部署、更新、状态、访问与日志。
 3. [应用排障与支持边界](docs/application-delivery.md#状态访问与排障)。
-4. [组件入口、登录与常用命令](docs/local-platform-access.md)：浏览器、数据库原生 TLS、Flink 与日志；新入口增量待部署审查。
+4. [组件入口、登录与常用命令](docs/local-platform-access.md)：浏览器、数据库原生 TLS、Flink 与日志；r2 同集群访问验收已通过。
 
 普通业务入口：
 
