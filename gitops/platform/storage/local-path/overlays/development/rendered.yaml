@@ -1,0 +1,248 @@
+{
+  "apiVersion": "v1",
+  "kind": "ServiceAccount",
+  "metadata": {
+    "name": "local-path-provisioner-service-account",
+    "namespace": "local-path-storage"
+  }
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "Role",
+  "metadata": {
+    "name": "local-path-provisioner-role",
+    "namespace": "local-path-storage"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "pods"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "patch",
+        "update",
+        "delete"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "name": "local-path-provisioner-role"
+  },
+  "rules": [
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "nodes",
+        "persistentvolumeclaims",
+        "configmaps",
+        "pods",
+        "pods/log"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "persistentvolumes"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch",
+        "create",
+        "patch",
+        "update",
+        "delete"
+      ]
+    },
+    {
+      "apiGroups": [
+        ""
+      ],
+      "resources": [
+        "events"
+      ],
+      "verbs": [
+        "create",
+        "patch"
+      ]
+    },
+    {
+      "apiGroups": [
+        "storage.k8s.io"
+      ],
+      "resources": [
+        "storageclasses"
+      ],
+      "verbs": [
+        "get",
+        "list",
+        "watch"
+      ]
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "RoleBinding",
+  "metadata": {
+    "name": "local-path-provisioner-bind",
+    "namespace": "local-path-storage"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "Role",
+    "name": "local-path-provisioner-role"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "local-path-provisioner-service-account",
+      "namespace": "local-path-storage"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRoleBinding",
+  "metadata": {
+    "name": "local-path-provisioner-bind"
+  },
+  "roleRef": {
+    "apiGroup": "rbac.authorization.k8s.io",
+    "kind": "ClusterRole",
+    "name": "local-path-provisioner-role"
+  },
+  "subjects": [
+    {
+      "kind": "ServiceAccount",
+      "name": "local-path-provisioner-service-account",
+      "namespace": "local-path-storage"
+    }
+  ]
+}
+---
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "local-path-provisioner",
+    "namespace": "local-path-storage"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "local-path-provisioner"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "local-path-provisioner"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "command": [
+              "local-path-provisioner",
+              "--debug",
+              "start",
+              "--helper-image",
+              "docker.io/kindest/local-path-helper:v20260131-7181c60a@sha256:ac7c7f08e86f7bef7d2ad6dee944ed89d3d2e7de0ebc00490d7ddf6c26628a06",
+              "--config",
+              "/etc/config/config.json"
+            ],
+            "env": [
+              {
+                "name": "POD_NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "CONFIG_MOUNT_PATH",
+                "value": "/etc/config/"
+              }
+            ],
+            "image": "docker.io/kindest/local-path-provisioner:v20260820-69b56db7@sha256:fdb5360219dcca6acc7967326f9e04c89b038e2c1e924463b2a41cad2dc752ab",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "local-path-provisioner",
+            "volumeMounts": [
+              {
+                "mountPath": "/etc/config/",
+                "name": "config-volume"
+              }
+            ]
+          }
+        ],
+        "nodeSelector": {
+          "kubernetes.io/os": "linux",
+          "node-role.local/compute": "true"
+        },
+        "serviceAccountName": "local-path-provisioner-service-account",
+        "tolerations": [
+          {
+            "effect": "NoSchedule",
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Equal"
+          },
+          {
+            "effect": "NoSchedule",
+            "key": "node-role.kubernetes.io/master",
+            "operator": "Equal"
+          }
+        ],
+        "volumes": [
+          {
+            "configMap": {
+              "name": "local-path-config"
+            },
+            "name": "config-volume"
+          }
+        ]
+      }
+    }
+  }
+}
+---
+{
+  "apiVersion": "v1",
+  "data": {
+    "config.json": "{\n        \"nodePathMap\":[\n        {\n                \"node\":\"DEFAULT_PATH_FOR_NON_LISTED_NODES\",\n                \"paths\":[\"/var/local-path-provisioner\"]\n        }\n        ]\n}",
+    "helperPod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: helper-pod\nspec:\n  priorityClassName: system-node-critical\n  tolerations:\n    - key: node-role.local/data\n      operator: Equal\n      value: \"true\"\n      effect: NoSchedule\n    - operator: Exists\n      effect: NoSchedule\n    - operator: Exists\n      effect: NoExecute\n  containers:\n  - name: helper-pod\n    image: docker.io/kindest/local-path-helper:v20260131-7181c60a@sha256:ac7c7f08e86f7bef7d2ad6dee944ed89d3d2e7de0ebc00490d7ddf6c26628a06\n    imagePullPolicy: IfNotPresent",
+    "setup": "#!/bin/sh\nset -eu\nmkdir -m 0777 -p \"$VOL_DIR\"",
+    "teardown": "#!/bin/sh\nset -eu\nrm -rf \"$VOL_DIR\""
+  },
+  "kind": "ConfigMap",
+  "metadata": {
+    "name": "local-path-config",
+    "namespace": "local-path-storage"
+  }
+}
