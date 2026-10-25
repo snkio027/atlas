@@ -80,7 +80,8 @@
           "redis",
           "redis.service-redis",
           "redis.service-redis.svc",
-          "redis.service-redis.svc.cluster.local"
+          "redis.service-redis.svc.cluster.local",
+          "atlas-local-worker3.orb.local"
         ],
         "duration": "2160h",
         "issuerRef": {

@@ -38,6 +38,11 @@
             }
           }
         },
+        "certificates": {
+          "serverAltDNSNames": [
+            "atlas-local-worker3.orb.local"
+          ]
+        },
         "enablePDB": true,
         "enableSuperuserAccess": false,
         "failoverDelay": 0,
