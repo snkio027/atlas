@@ -104,6 +104,7 @@
         "template": {
           "metadata": {
             "annotations": {
+              "atlas.local/local-access-host": "atlas-local-worker3.orb.local",
               "checksum/config": "448a077b7743c8028cf91d2a5ec4da01808f4ee244d800fd44b2d31c596b9b94"
             },
             "labels": {
@@ -323,6 +324,73 @@
                   "matchLabels": {
                     "atlas.local/data-admin": "redis"
                   }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 6379,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "redis"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "redis-local",
+        "namespace": "service-redis"
+      },
+      "spec": {
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tls",
+            "nodePort": 30679,
+            "port": 6379,
+            "protocol": "TCP",
+            "targetPort": 6379
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/name": "redis"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "redis-local",
+        "namespace": "service-redis"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "ipBlock": {
+                  "cidr": "192.168.97.1/32"
                 }
               }
             ],

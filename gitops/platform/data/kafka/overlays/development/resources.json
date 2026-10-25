@@ -107,6 +107,36 @@
               "port": 9093,
               "tls": true,
               "type": "internal"
+            },
+            {
+              "authentication": {
+                "type": "tls"
+              },
+              "configuration": {
+                "bootstrap": {
+                  "alternativeNames": [
+                    "atlas-local-worker3.orb.local"
+                  ]
+                },
+                "brokers": [
+                  {
+                    "advertisedHost": "atlas-local-worker3.orb.local",
+                    "advertisedPort": 30994,
+                    "broker": 0
+                  }
+                ]
+              },
+              "name": "local",
+              "networkPolicyPeers": [
+                {
+                  "ipBlock": {
+                    "cidr": "192.168.97.1/32"
+                  }
+                }
+              ],
+              "port": 9094,
+              "tls": true,
+              "type": "internal"
             }
           ],
           "metadataVersion": "4.3-IV0",
@@ -317,6 +347,72 @@
         "policyTypes": [
           "Egress"
         ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "kafka-local-bootstrap",
+        "namespace": "service-kafka"
+      },
+      "spec": {
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tls",
+            "nodePort": 30993,
+            "port": 9094,
+            "protocol": "TCP",
+            "targetPort": 9094
+          }
+        ],
+        "selector": {
+          "strimzi.io/broker-role": "true",
+          "strimzi.io/cluster": "kafka",
+          "strimzi.io/kind": "Kafka",
+          "strimzi.io/pod-name": "kafka-single-0",
+          "strimzi.io/pool-name": "single"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "kafka-local-0",
+        "namespace": "service-kafka"
+      },
+      "spec": {
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tls",
+            "nodePort": 30994,
+            "port": 9094,
+            "protocol": "TCP",
+            "targetPort": 9094
+          }
+        ],
+        "selector": {
+          "strimzi.io/broker-role": "true",
+          "strimzi.io/cluster": "kafka",
+          "strimzi.io/kind": "Kafka",
+          "strimzi.io/pod-name": "kafka-single-0",
+          "strimzi.io/pool-name": "single"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
       }
     }
   ],
