@@ -12,13 +12,13 @@ GitHub 迁移、候选验证及合并后 main 验证各自留证，不能用设�
 
 | 入口 | 实际职责 |
 | --- | --- |
-| `task quality:fast` | Go格式/vet、工作流计划与门禁回归；PR标题规范在CI中检查 |
+| `task quality:fast` | Go格式/vet、锁定actionlint工作流检查、计划与门禁回归；PR标题规范在CI中检查 |
 | `CI_PLAN_PATH=... task quality:plan` | 生成JSON计划，记录作者变更范围和当前候选，所有路径保守Full，不执行测试 |
 | `task quality:full` / `task quality` | Fast覆盖 + race测试 + 真实Helm/Kustomize与平台校验 + OT-1契约 + 实验入口 + 数据契约 + 包装检查 + Web OCI一致性 |
 
 本地证据位于 `.state/quality/<run>/`；不会访问运行集群、准备凭据或下载依赖。
 Go1.27.2、macOS arm64及锁定工具沿用仓库要求。CI准备工具与运行时下载严格分开；
-Draft准备器仅下载并校验Task，Full准备器校验完整工具集。每个检查保存日志与耗时。
+Draft准备器仅下载并校验Task与actionlint，Full准备器校验完整工具集。每个检查保存日志与耗时。
 
 本地可包含未提交修改，但报告明确标记并绑定实际文件摘要。计划不能跨源修改、base、环境、策略或验证器复用。
 计划缺失/非法拒绝执行；读取历史失败可生成明确Full回退，不能解释为空检查。

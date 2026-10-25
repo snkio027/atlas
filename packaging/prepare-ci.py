@@ -64,7 +64,8 @@ def main():
     locks = json.loads((root / "packaging/ci-tools.json").read_text())
     if fast:
         destination.mkdir(parents=True, exist_ok=True, mode=0o700)
-        prepare_extra_tool(next(t for t in locks if t["name"] == "task"), destination)
+        for name in ["task", "actionlint"]:
+            prepare_extra_tool(next(t for t in locks if t["name"] == name), destination)
         return
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     runtime_locks = json.loads((root / "packaging/tools-darwin-arm64.json").read_text())

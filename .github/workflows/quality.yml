@@ -32,8 +32,6 @@ jobs:
     name: Fast
     runs-on: macos-26
     timeout-minutes: 15
-    env:
-      CI_REPORT_DIR: ${{ runner.temp }}/quality-fast
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,8 +43,9 @@ jobs:
           go-version: '1.27.2'
           check-latest: false
           cache: false
-      - name: Prepare only the checksum-locked Task binary
+      - name: Prepare checksum-locked Fast tools
         run: |
+          echo "CI_REPORT_DIR=$RUNNER_TEMP/quality-fast" >> "$GITHUB_ENV"
           python3 packaging/prepare-ci.py --fast "$RUNNER_TEMP/atlas-ci-tools"
           echo "$RUNNER_TEMP/atlas-ci-tools" >> "$GITHUB_PATH"
       - name: Fast source and workflow checks
@@ -68,9 +67,6 @@ jobs:
     outputs:
       plan_result: ${{ steps.plan.outcome }}
       execution_result: ${{ steps.execute.outcome }}
-    env:
-      CI_PLAN_PATH: ${{ runner.temp }}/quality-full/plan.json
-      CI_REPORT_DIR: ${{ runner.temp }}/quality-full
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -84,6 +80,8 @@ jobs:
           cache: false
       - name: Prepare checksum-locked tools
         run: |
+          echo "CI_REPORT_DIR=$RUNNER_TEMP/quality-full" >> "$GITHUB_ENV"
+          echo "CI_PLAN_PATH=$RUNNER_TEMP/quality-full/plan.json" >> "$GITHUB_ENV"
           python3 packaging/prepare-ci.py "$RUNNER_TEMP/atlas-ci-tools"
           echo "$RUNNER_TEMP/atlas-ci-tools" >> "$GITHUB_PATH"
       - name: Plan coverage without executing tests

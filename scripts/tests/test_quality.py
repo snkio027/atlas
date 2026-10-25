@@ -181,5 +181,14 @@ class QualityContract(unittest.TestCase):
                 q.gate(root)
 
 
+    def test_actionlint_rejects_runner_context_before_job_assignment(self):
+        fixture = "name: fixture\non: push\njobs:\n  check:\n    runs-on: macos-26\n    env:\n      OUTPUT: ${{ runner.temp }}/output\n    steps:\n      - run: echo fixture\n"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml") as stream:
+            stream.write(fixture); stream.flush()
+            result = subprocess.run([os.environ.get("ACTIONLINT", "actionlint"), "-shellcheck=", "-pyflakes=", stream.name], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('context "runner" is not allowed here', result.stdout + result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

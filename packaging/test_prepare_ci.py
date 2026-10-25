@@ -11,10 +11,10 @@ spec.loader.exec_module(ci)
 
 
 class PreparationContract(unittest.TestCase):
-    def test_fast_prepares_task_only(self):
+    def test_fast_prepares_task_and_actionlint_only(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(ci.sys, "argv", ["prepare-ci.py", "--fast", directory]), patch.object(ci, "prepare_extra_tool") as prepare, patch.object(ci.subprocess, "check_output") as external:
             ci.main()
-            self.assertEqual([x.args[0]["name"] for x in prepare.call_args_list], ["task"])
+            self.assertEqual([x.args[0]["name"] for x in prepare.call_args_list], ["task", "actionlint"])
             external.assert_not_called()
 
     def test_full_preserves_runtime_and_historical_tool_preparation(self):
@@ -30,7 +30,7 @@ class PreparationContract(unittest.TestCase):
             commands = [x.args[0] for x in external.call_args_list]
             self.assertEqual(commands[0][:4], ["go", "run", "./cmd/atlas-release", "--prepare-tools"])
             self.assertGreater(copy.call_count, 0)
-            self.assertEqual([x.args[0]["name"] for x in prepare.call_args_list], ["task", "yq", "lua", "helm", "kubectl", "yq"])
+            self.assertEqual([x.args[0]["name"] for x in prepare.call_args_list], ["task", "yq", "lua", "actionlint", "helm", "kubectl", "yq"])
 
     def test_unknown_mode_refuses_before_download(self):
         with patch.object(ci.sys, "argv", ["prepare-ci.py", "--unknown", "/tmp/unused"]), patch.object(ci, "prepare_extra_tool") as prepare:

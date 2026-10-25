@@ -19,5 +19,12 @@
     "url": "https://www.lua.org/ftp/lua-5.5.1.tar.gz",
     "sha256": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce",
     "member": ""
+  },
+  {
+    "name": "actionlint",
+    "version": "1.7.12",
+    "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_arm64.tar.gz",
+    "sha256": "aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f",
+    "member": "actionlint"
   }
 ]

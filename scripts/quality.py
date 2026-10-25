@@ -25,7 +25,7 @@ FAST = ["source", "workflow"]
 FULL = FAST + ["race", "render", "ot1", "experiments", "data", "packaging", "web-oci"]
 COMMANDS = {
     "source": ["task", "check"],
-    "workflow": [sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"],
+    "workflow": ["task", "workflow:check"],
     "race": ["task", "test"],
     "render": ["task", "platform:check"],
     "ot1": ["task", "ot1:contracts"],
