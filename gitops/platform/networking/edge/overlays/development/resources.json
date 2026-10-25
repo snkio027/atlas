@@ -159,6 +159,330 @@
               ],
               "mode": "Terminate"
             }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "grafana.atlas.test",
+            "name": "management-grafana-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "grafana.atlas.test",
+            "name": "management-grafana-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-grafana-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-argocd"
+                  }
+                }
+              }
+            },
+            "hostname": "argocd.atlas.test",
+            "name": "management-argocd-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-argocd"
+                  }
+                }
+              }
+            },
+            "hostname": "argocd.atlas.test",
+            "name": "management-argocd-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-argocd-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "prometheus.atlas.test",
+            "name": "management-prometheus-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "prometheus.atlas.test",
+            "name": "management-prometheus-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-prometheus-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "alertmanager.atlas.test",
+            "name": "management-alertmanager-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-monitoring"
+                  }
+                }
+              }
+            },
+            "hostname": "alertmanager.atlas.test",
+            "name": "management-alertmanager-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-alertmanager-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "service-object-storage"
+                  }
+                }
+              }
+            },
+            "hostname": "s3.atlas.test",
+            "name": "management-s3-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "service-object-storage"
+                  }
+                }
+              }
+            },
+            "hostname": "s3.atlas.test",
+            "name": "management-s3-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-s3-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "service-flink-session"
+                  }
+                }
+              }
+            },
+            "hostname": "flink.atlas.test",
+            "name": "management-flink-http",
+            "port": 80,
+            "protocol": "HTTP"
+          },
+          {
+            "allowedRoutes": {
+              "kinds": [
+                {
+                  "group": "gateway.networking.k8s.io",
+                  "kind": "HTTPRoute"
+                }
+              ],
+              "namespaces": {
+                "from": "Selector",
+                "selector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "service-flink-session"
+                  }
+                }
+              }
+            },
+            "hostname": "flink.atlas.test",
+            "name": "management-flink-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "tls": {
+              "certificateRefs": [
+                {
+                  "group": "",
+                  "kind": "Secret",
+                  "name": "management-flink-tls"
+                }
+              ],
+              "mode": "Terminate"
+            }
           }
         ]
       }
@@ -183,6 +507,1102 @@
             "kind": "Gateway",
             "name": "development"
           }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-grafana-http",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "grafana.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-grafana-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-grafana-https",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "grafana.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-grafana-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "atlas-monitoring-grafana",
+                "port": 80,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-grafana-ingress",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 3000,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/instance": "atlas-monitoring",
+            "app.kubernetes.io/name": "grafana"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-argocd-http",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "hostnames": [
+          "argocd.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-argocd-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-argocd-https",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "hostnames": [
+          "argocd.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-argocd-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "atlas-refactor-argocd-server",
+                "port": 80,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-argocd-ingress",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8080,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/instance": "atlas-refactor-argocd",
+            "app.kubernetes.io/name": "argocd-server"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-prometheus-http",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "prometheus.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-prometheus-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-prometheus-https",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "prometheus.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-prometheus-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "atlas-monitoring-prometheus",
+                "port": 9090,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-prometheus-ingress",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 9090,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "prometheus",
+            "operator.prometheus.io/name": "atlas-monitoring-prometheus"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-alertmanager-http",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "alertmanager.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-alertmanager-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-alertmanager-https",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "hostnames": [
+          "alertmanager.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-alertmanager-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "atlas-monitoring-alertmanager",
+                "port": 9093,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-alertmanager-ingress",
+        "namespace": "platform-monitoring"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 9093,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "alertmanager": "atlas-monitoring-alertmanager",
+            "app.kubernetes.io/name": "alertmanager"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-s3-http",
+        "namespace": "service-object-storage"
+      },
+      "spec": {
+        "hostnames": [
+          "s3.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-s3-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-s3-https",
+        "namespace": "service-object-storage"
+      },
+      "spec": {
+        "hostnames": [
+          "s3.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-s3-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "seaweedfs",
+                "port": 8333,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-s3-ingress",
+        "namespace": "service-object-storage"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8333,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app.kubernetes.io/name": "seaweedfs"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-flink-http",
+        "namespace": "service-flink-session"
+      },
+      "spec": {
+        "hostnames": [
+          "flink.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-flink-http"
+          }
+        ],
+        "rules": [
+          {
+            "filters": [
+              {
+                "requestRedirect": {
+                  "port": 8443,
+                  "scheme": "https",
+                  "statusCode": 308
+                },
+                "type": "RequestRedirect"
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/index.html"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/index.html"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/config"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/config"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/overview"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/overview"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/jobs/overview"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/jobs/overview"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/taskmanagers"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/taskmanagers"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "RegularExpression",
+                  "value": "^/[A-Za-z0-9_.-]+\\.(js|css|woff2?|ttf|svg|png|ico)$"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "RegularExpression",
+                  "value": "^/[A-Za-z0-9_.-]+\\.(js|css|woff2?|ttf|svg|png|ico)$"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/assets/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/assets/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "gateway.networking.k8s.io/v1",
+      "kind": "HTTPRoute",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "3"
+        },
+        "name": "management-flink-https",
+        "namespace": "service-flink-session"
+      },
+      "spec": {
+        "hostnames": [
+          "flink.atlas.test"
+        ],
+        "parentRefs": [
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "Gateway",
+            "name": "development",
+            "namespace": "platform-gateway",
+            "sectionName": "management-flink-https"
+          }
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "group": "",
+                "kind": "Service",
+                "name": "flink-session-rest",
+                "port": 8081,
+                "weight": 1
+              }
+            ],
+            "matches": [
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/index.html"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/index.html"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/config"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/config"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/overview"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/overview"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/jobs/overview"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/jobs/overview"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "Exact",
+                  "value": "/taskmanagers"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "Exact",
+                  "value": "/taskmanagers"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "RegularExpression",
+                  "value": "^/[A-Za-z0-9_.-]+\\.(js|css|woff2?|ttf|svg|png|ico)$"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "RegularExpression",
+                  "value": "^/[A-Za-z0-9_.-]+\\.(js|css|woff2?|ttf|svg|png|ico)$"
+                }
+              },
+              {
+                "method": "GET",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/assets/"
+                }
+              },
+              {
+                "method": "HEAD",
+                "path": {
+                  "type": "PathPrefix",
+                  "value": "/assets/"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false"
+        },
+        "name": "management-flink-ingress",
+        "namespace": "service-flink-session"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "platform-gateway"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "gateway.envoyproxy.io/owning-gateway-name": "development",
+                    "gateway.envoyproxy.io/owning-gateway-namespace": "platform-gateway"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8081,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "flink-session",
+            "component": "jobmanager",
+            "type": "flink-standalone-kubernetes"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
         ]
       }
     }

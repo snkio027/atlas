@@ -2017,6 +2017,14 @@
               {
                 "name": "GOMEMLIMIT",
                 "value": "460MiB"
+              },
+              {
+                "name": "GF_SERVER_ROOT_URL",
+                "value": "https://grafana.atlas.test:8443/"
+              },
+              {
+                "name": "GF_SECURITY_COOKIE_SECURE",
+                "value": "true"
               }
             ],
             "image": "docker.io/grafana/grafana:13.2.3-distroless@sha256:202e5d5b3f8499e70ccac7991eea6d7da72d2790eb2e0597e7987acf724e7180",
@@ -2358,7 +2366,7 @@
       "name": "atlas-local-alerts"
     },
     "automountServiceAccountToken": true,
-    "externalUrl": "http://atlas-monitoring-alertmanager.platform-monitoring:9093",
+    "externalUrl": "https://alertmanager.atlas.test:8443",
     "image": "quay.io/prometheus/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a",
     "imagePullPolicy": "IfNotPresent",
     "listenLocal": false,
@@ -2487,7 +2495,7 @@
     "enableAdminAPI": false,
     "enableOTLPReceiver": false,
     "evaluationInterval": "30s",
-    "externalUrl": "http://atlas-monitoring-prometheus.platform-monitoring:9090",
+    "externalUrl": "https://prometheus.atlas.test:8443",
     "hostNetwork": false,
     "image": "quay.io/prometheus/prometheus:v3.15.0-distroless@sha256:b2a413d5a03ea6a76782a508d1c7947440bba3b973931a25676e278431891b01",
     "imagePullPolicy": "IfNotPresent",
