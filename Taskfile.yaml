@@ -8,6 +8,8 @@ env:
 
 vars:
   LOCAL_OT1_TOOLS: '{{.ROOT_DIR}}/.state/tools/ot1'
+  LOCAL_ACTIONLINT:
+    sh: 'if test -x "{{.ROOT_DIR}}/.state/tools/actionlint"; then printf "%s" "{{.ROOT_DIR}}/.state/tools/actionlint"; else printf "%s" "actionlint"; fi'
   LOCAL_HELM:
     sh: 'if test -x "{{.ROOT_DIR}}/.state/tools/helm"; then printf "%s" "{{.ROOT_DIR}}/.state/tools/helm"; else printf "%s" "helm"; fi'
   LOCAL_KUBECTL:
@@ -37,15 +39,36 @@ tasks:
       - task: toolchain
       # Full S1 fixture suites exceed Go's default 10m budget on hosted ARM runners.
       - go test -race -timeout 25m ./...
-  quality:
+  workflow:check:
+    env:
+      ACTIONLINT: '{{.ACTIONLINT | default .LOCAL_ACTIONLINT}}'
     cmds:
-      - task: check
-      - task: test
-      - task: platform:check
-      - task: ot1:contracts
-      - task: experiments:check
-      - task: data:contracts
-      - env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s packaging -v
+      - test "$("$ACTIONLINT" -version | head -n 1)" = "1.7.12"
+      - '"$ACTIONLINT" -shellcheck= -pyflakes= .github/workflows/*.yml'
+      - env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -v
+  quality:
+    desc: Complete offline verification; retains Full semantics
+    cmds:
+      - task: quality:full
+  quality:fast:
+    desc: Formatting, vet and workflow contracts; no cluster operations
+    cmds:
+      - env PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality.py fast
+  quality:plan:
+    desc: Record conservative Full coverage in CI_PLAN_PATH without executing tests
+    cmds:
+      - env PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality.py plan
+  quality:full:
+    desc: Run the full contract once and retain candidate-bound results and logs
+    env:
+      PLATFORM_HELM: '{{.PLATFORM_HELM | default .LOCAL_HELM}}'
+      PLATFORM_KUBECTL: '{{.PLATFORM_KUBECTL | default .LOCAL_KUBECTL}}'
+      PLATFORM_YQ: '{{.PLATFORM_YQ | default .LOCAL_YQ}}'
+      PLATFORM_LUA: '{{.PLATFORM_LUA | default "lua"}}'
+      KUBESEAL: '{{.KUBESEAL | default .LOCAL_KUBESEAL}}'
+      OT1_TOOLS: '{{.OT1_TOOLS | default .LOCAL_OT1_TOOLS}}'
+    cmds:
+      - env PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality.py full
   build:
     cmds:
       - task: toolchain

@@ -1,0 +1,10 @@
+# Policy ownership. With one maintainer, this is routing/documentation;
+# it cannot manufacture independent approval of the owner's own PR.
+/.github/                    @snkio027
+/ci/                         @snkio027
+/scripts/                    @snkio027
+/Taskfile.yaml                @snkio027
+/AGENTS.md                    @snkio027
+/CONTRIBUTING.md              @snkio027
+/packaging/                   @snkio027
+/docs/adr/                    @snkio027

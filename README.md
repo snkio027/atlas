@@ -38,6 +38,10 @@ atlas-platform app open --service experiment-archive
 新布局与数据能力组合候选已完成[运行验收 PASS](docs/namespace-layout-r2-runtime-validation.md)；
 历史 STOP 保留，新实例与已有实例操作分别审查。
 
+## 持续改进
+
+后续开发从真实使用反馈演进：[反馈与贡献流程](CONTRIBUTING.md)、[工作流采用与验证边界](docs/engineering-workflow.md)。
+
 ## 维护与验证
 
 ```sh

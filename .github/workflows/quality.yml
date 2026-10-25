@@ -1,22 +1,76 @@
-name: Quality
+name: Delivery
 on:
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  merge_group:
+    branches: [main]
+    types: [checks_requested]
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  GOTOOLCHAIN: local
+  GOPROXY: 'off'
+  GOSUMDB: 'off'
+  GOFLAGS: -mod=vendor
+  PYTHONDONTWRITEBYTECODE: '1'
+  CI_EVENT: ${{ github.event_name }}
+  CI_TEST_SHA: ${{ github.sha }}
+  CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+  CI_BASE_REF: ${{ github.event.pull_request.base.ref || github.event.merge_group.base_ref || github.ref }}
+  CI_PR_DRAFT: ${{ toJSON(github.event.pull_request.draft) }}
+  CI_PR_NUMBER: ${{ github.event.pull_request.number }}
+  CI_PR_TITLE: ${{ github.event.pull_request.title }}
 jobs:
-  quality:
+  fast:
+    name: Fast
     runs-on: macos-26
-    timeout-minutes: 45
-    env:
-      GOTOOLCHAIN: local
-      GOPROXY: 'off'
-      GOSUMDB: 'off'
-      GOFLAGS: -mod=vendor
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.2'
+          check-latest: false
+          cache: false
+      - name: Prepare checksum-locked Fast tools
+        run: |
+          echo "CI_REPORT_DIR=$RUNNER_TEMP/quality-fast" >> "$GITHUB_ENV"
+          python3 packaging/prepare-ci.py --fast "$RUNNER_TEMP/atlas-ci-tools"
+          echo "$RUNNER_TEMP/atlas-ci-tools" >> "$GITHUB_PATH"
+      - name: Fast source and workflow checks
+        run: task quality:fast
+      - name: Retain Fast evidence, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: quality-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/quality-fast/
+          if-no-files-found: error
+          retention-days: 30
+  validate:
+    name: Plan and Full
+    needs: [fast]
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    outputs:
+      plan_result: ${{ steps.plan.outcome }}
+      execution_result: ${{ steps.execute.outcome }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -25,20 +79,66 @@ jobs:
           check-latest: false
           cache: false
       - name: Prepare checksum-locked tools
-        run: python3 packaging/prepare-ci.py "$RUNNER_TEMP/atlas-ci-tools"
-      - name: Validate source, contracts and actual renders
         run: |
-          "$RUNNER_TEMP/atlas-ci-tools/task" quality \
-            PLATFORM_HELM="$RUNNER_TEMP/atlas-ci-tools/helm" \
-            PLATFORM_KUBECTL="$RUNNER_TEMP/atlas-ci-tools/kubectl" \
-            PLATFORM_YQ="$RUNNER_TEMP/atlas-ci-tools/yq" \
-            PLATFORM_LUA="$RUNNER_TEMP/atlas-ci-tools/lua" \
-            KUBESEAL="$RUNNER_TEMP/atlas-ci-tools/kubeseal" \
-            OT1_TOOLS="$RUNNER_TEMP/atlas-ci-tools/ot1"
-      - name: Build local Web OCI artifact twice
+          echo "CI_REPORT_DIR=$RUNNER_TEMP/quality-full" >> "$GITHUB_ENV"
+          echo "CI_PLAN_PATH=$RUNNER_TEMP/quality-full/plan.json" >> "$GITHUB_ENV"
+          python3 packaging/prepare-ci.py "$RUNNER_TEMP/atlas-ci-tools"
+          echo "$RUNNER_TEMP/atlas-ci-tools" >> "$GITHUB_PATH"
+      - name: Plan coverage without executing tests
+        id: plan
+        if: ${{ github.event_name == 'pull_request' }}
+        run: task quality:plan
+      - name: Execute the complete contract once
+        id: execute
+        env:
+          PLATFORM_HELM: ${{ runner.temp }}/atlas-ci-tools/helm
+          PLATFORM_KUBECTL: ${{ runner.temp }}/atlas-ci-tools/kubectl
+          PLATFORM_YQ: ${{ runner.temp }}/atlas-ci-tools/yq
+          PLATFORM_LUA: ${{ runner.temp }}/atlas-ci-tools/lua
+          KUBESEAL: ${{ runner.temp }}/atlas-ci-tools/kubeseal
+          OT1_TOOLS: ${{ runner.temp }}/atlas-ci-tools/ot1
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false \
-            -ldflags=-buildid= -o "$RUNNER_TEMP/atlas-web" ./cmd/atlas-web
-          go run ./cmd/atlas-web-image --binary "$RUNNER_TEMP/atlas-web" --out "$RUNNER_TEMP/first.oci.tar"
-          go run ./cmd/atlas-web-image --binary "$RUNNER_TEMP/atlas-web" --out "$RUNNER_TEMP/second.oci.tar"
-          cmp "$RUNNER_TEMP/first.oci.tar" "$RUNNER_TEMP/second.oci.tar"
+          if test "$CI_EVENT" != pull_request; then unset CI_PLAN_PATH; fi
+          task quality:full
+      - name: Retain plan and execution evidence, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: quality-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/quality-full/
+          if-no-files-found: error
+          retention-days: 30
+  quality:
+    name: ${{ github.event_name == 'pull_request' && 'Delivery / Quality / pr-full-standard-v1' || format('Delivery / Quality / {0}-full-standard-v1', github.event_name) }}
+    needs: [fast, validate]
+    if: ${{ always() }}
+    runs-on: macos-26
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      FAST_RESULT: ${{ needs.fast.result }}
+      VALIDATE_RESULT: ${{ needs.validate.result }}
+      PLAN_RESULT: ${{ needs.validate.outputs.plan_result }}
+      EXECUTION_RESULT: ${{ needs.validate.outputs.execution_result }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Reject Draft, unknown, failed, cancelled or missing required stages
+        run: python3 scripts/quality.py phase
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: quality-fast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/quality-evidence/fast
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: quality-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/quality-evidence/full
+      - name: Check candidate, coverage, plan, environment and current PR state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/quality.py gate --reports "$RUNNER_TEMP/quality-evidence"

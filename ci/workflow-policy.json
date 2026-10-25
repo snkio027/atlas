@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "profile": "pr-full",
+  "assurance": "standard",
+  "epoch": "v1",
+  "context": "Delivery / Quality / pr-full-standard-v1",
+  "base_branch": "main",
+  "environment": {"system": "Darwin", "machine": "arm64", "go": "go1.27.2", "runner": "macos-26"},
+  "fast": ["source", "workflow"],
+  "full": ["source", "workflow", "race", "render", "ot1", "experiments", "data", "packaging", "web-oci"],
+  "standard_reference": {
+    "version": "1.1",
+    "sha256": "de77bfd55da3811ed553985db8d61938467a2a3b2c0215e225b607428b667a86"
+  }
+}

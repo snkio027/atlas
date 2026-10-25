@@ -6,6 +6,9 @@ local work remain preserved. Read `docs/architecture.md` and `docs/adr/` first.
 Design proposals and implementation status must remain distinguishable.
 
 - Inspect existing changes; preserve unrelated work.
+- Follow CONTRIBUTING.md for usage-driven changes and docs/engineering-workflow.md
+  for the repository verification contract. Fast feedback is not Full or runtime
+  acceptance. Keep product branches separate from instance deployment branches.
 - Keep normal Bootstrap, recovery, and drill capabilities separate. This first
   milestone implements normal Bootstrap only, for disposable test clusters.
 - No plaintext credentials, kubeconfig, private keys, or generated Secret data
