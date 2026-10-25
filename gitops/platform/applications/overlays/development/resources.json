@@ -812,6 +812,111 @@
       "metadata": {
         "annotations": {
           "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "-85"
+        },
+        "name": "flink-crds",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "destination": {
+          "namespace": "platform-flink-operator",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "platform-project",
+        "source": {
+          "path": "gitops/platform/data/flink-crds/overlays/development",
+          "repoURL": "https://github.com/snkio027/atlas.git",
+          "targetRevision": "atlas-local-20261025"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": true,
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "FailOnSharedResource=true"
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "-85"
+        },
+        "name": "kafka-crds",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "destination": {
+          "namespace": "platform-strimzi-operator",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "platform-project",
+        "source": {
+          "path": "gitops/platform/data/kafka-crds/overlays/development",
+          "repoURL": "https://github.com/snkio027/atlas.git",
+          "targetRevision": "atlas-local-20261025"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": true,
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "FailOnSharedResource=true"
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
+          "argocd.argoproj.io/sync-wave": "-85"
+        },
+        "name": "postgresql-crds",
+        "namespace": "platform-argocd"
+      },
+      "spec": {
+        "destination": {
+          "namespace": "platform-cnpg-operator",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "platform-project",
+        "source": {
+          "path": "gitops/platform/data/postgresql-crds/overlays/development",
+          "repoURL": "https://github.com/snkio027/atlas.git",
+          "targetRevision": "atlas-local-20261025"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": true,
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "FailOnSharedResource=true"
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=confirm,Delete=false",
           "argocd.argoproj.io/sync-wave": "-80"
         },
         "name": "platform-credentials",
