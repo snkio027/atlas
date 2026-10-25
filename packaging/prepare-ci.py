@@ -11,30 +11,6 @@ import sys
 import tarfile
 import urllib.request
 
-root = Path(__file__).resolve().parent.parent
-destination = Path(sys.argv[1]).resolve()
-destination.mkdir(parents=True, exist_ok=True, mode=0o700)
-runtime_locks = json.loads((root / "packaging/tools-darwin-arm64.json").read_text())
-cache = destination / "runtime-cache"
-cache.mkdir(parents=True, exist_ok=True, mode=0o700)
-cache.chmod(0o700)
-(cache / "downloads").mkdir(parents=True, exist_ok=True, mode=0o700)
-# Reuse only previously checksum-verified archives, never arbitrary PATH tools.
-for tool in runtime_locks:
-    old = destination / (tool["name"] + ".download")
-    if old.exists() and hashlib.sha256(old.read_bytes()).hexdigest() == tool["sha256"]:
-        cached = cache / "downloads" / (tool["sha256"] + ".part")
-        cached.write_bytes(old.read_bytes())
-        cached.chmod(0o600)
-prepared = subprocess.check_output([
-    "go", "run", "./cmd/atlas-release", "--prepare-tools", "--output", str(cache)
-], cwd=root, text=True).strip()
-for tool in runtime_locks:
-    binary = Path(prepared) / tool["name"]
-    shutil.copyfile(binary, destination / tool["name"])
-    os.chmod(destination / tool["name"], 0o700)
-    print("Prepared " + tool["name"] + " " + tool["version"], flush=True)
-locks = json.loads((root / "packaging/ci-tools.json").read_text())
 def prepare_extra_tool(tool, destination):
     archive_path = destination / (tool["name"] + ".download")
     if not archive_path.exists():
@@ -77,18 +53,57 @@ def prepare_extra_tool(tool, destination):
     print("Prepared " + tool["name"] + " " + tool["version"], flush=True)
 
 
-for tool in locks:
-    prepare_extra_tool(tool, destination)
 
-# Historical render fixtures use their own immutable toolchain, never the new
-# product tools. These executables are not shipped in installation packages.
-frozen_commit = "697ebf04e9362abcce9a4b8db005ee747493417d"
-frozen_locks = []
-for path in ("packaging/tools-darwin-arm64.json", "packaging/ci-tools.json"):
-    frozen_locks.extend(json.loads(subprocess.check_output(
-        ["git", "show", frozen_commit + ":" + path], cwd=root, text=True)))
-historical = destination / "ot1"
-historical.mkdir(parents=True, exist_ok=True, mode=0o700)
-for name in ("helm", "kubectl", "yq"):
-    tool = next(t for t in frozen_locks if t["name"] == name)
-    prepare_extra_tool(tool, historical)
+def main():
+    root = Path(__file__).resolve().parent.parent
+    args = sys.argv[1:]
+    fast = len(args) == 2 and args[0] == "--fast"
+    if not (len(args) == 1 or fast):
+        raise SystemExit("usage: prepare-ci.py [--fast] DESTINATION")
+    destination = Path(args[-1]).resolve()
+    locks = json.loads((root / "packaging/ci-tools.json").read_text())
+    if fast:
+        destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+        prepare_extra_tool(next(t for t in locks if t["name"] == "task"), destination)
+        return
+    destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+    runtime_locks = json.loads((root / "packaging/tools-darwin-arm64.json").read_text())
+    cache = destination / "runtime-cache"
+    cache.mkdir(parents=True, exist_ok=True, mode=0o700)
+    cache.chmod(0o700)
+    (cache / "downloads").mkdir(parents=True, exist_ok=True, mode=0o700)
+    # Reuse only previously checksum-verified archives, never arbitrary PATH tools.
+    for tool in runtime_locks:
+        old = destination / (tool["name"] + ".download")
+        if old.exists() and hashlib.sha256(old.read_bytes()).hexdigest() == tool["sha256"]:
+            cached = cache / "downloads" / (tool["sha256"] + ".part")
+            cached.write_bytes(old.read_bytes())
+            cached.chmod(0o600)
+    prepared = subprocess.check_output([
+        "go", "run", "./cmd/atlas-release", "--prepare-tools", "--output", str(cache)
+    ], cwd=root, text=True).strip()
+    for tool in runtime_locks:
+        binary = Path(prepared) / tool["name"]
+        shutil.copyfile(binary, destination / tool["name"])
+        os.chmod(destination / tool["name"], 0o700)
+        print("Prepared " + tool["name"] + " " + tool["version"], flush=True)
+
+    for tool in locks:
+        prepare_extra_tool(tool, destination)
+
+    # Historical render fixtures use their own immutable toolchain, never the new
+    # product tools. These executables are not shipped in installation packages.
+    frozen_commit = "697ebf04e9362abcce9a4b8db005ee747493417d"
+    frozen_locks = []
+    for path in ("packaging/tools-darwin-arm64.json", "packaging/ci-tools.json"):
+        frozen_locks.extend(json.loads(subprocess.check_output(
+            ["git", "show", frozen_commit + ":" + path], cwd=root, text=True)))
+    historical = destination / "ot1"
+    historical.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for name in ("helm", "kubectl", "yq"):
+        tool = next(t for t in frozen_locks if t["name"] == name)
+        prepare_extra_tool(tool, historical)
+
+
+if __name__ == "__main__":
+    main()

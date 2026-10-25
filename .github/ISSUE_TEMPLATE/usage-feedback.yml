@@ -1,0 +1,47 @@
+name: 实际使用反馈
+description: 记录真实场景中的问题、阻力或改进机会，推动下一步演进。
+title: "feedback: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先描述你要完成的事情和遇到的阻力，暂时不必设计解决方案。
+        请勿上传凭据、私钥、kubeconfig、Secret 数据或原始私有证据；只提供脱敏摘要与证据编号。
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 反馈类型
+      options: [功能错误, 使用阻力, 能力缺口, 性能或等待, 文档问题]
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景与实际结果
+      description: 要完成什么？执行了哪些步骤？实际发生了什么？
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果与影响
+      description: 什么结果才算解决？发生频率、阻塞程度和现有绕行方式是什么？
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本与环境
+      description: Atlas release 或 source SHA、操作系统、相关组件版本；不知道的项请写未知。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏证据与复现条件
+      description: 错误摘要、精确时间、可公开的最小复现、现有 Issue 或 PR。私有原始记录继续保留在本地。
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 如何用实际使用验证改进
+      description: 提供一条能观察到前后差异的使用路径；也可以先写待讨论。
