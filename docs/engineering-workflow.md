@@ -35,7 +35,7 @@ Draft准备器仅下载并校验Task与actionlint，Full准备器校验完整工
 
 Required context 为 `Delivery / Quality / pr-full-standard-v1`，实际生产者与规则绑定以迁移报告为准。
 PR按 workflow/event/PR 分组取消过时运行；merge-group与main按run ID隔离。
-描述编辑目前保守重跑；记录成本后再决定是否分流。重跑旧run不保证候选最新，聚合必须重读当前PR。
+描述编辑目前保守重跑；记录成本后再决定是否分流。重跑旧run不保证候选最新，聚合必须重读当前PR及main实际Git ref；PR内base SHA可能仍是旧快照。
 
 报告包括实际test SHA/tree、head/base、环境、策略与验证器摘要、run/attempt、每项结果和耗时；
 CI artifact默认保留30天。采用/发布/失败处置的长期摘要另记仓库，必要的完整私有证据继续保留。

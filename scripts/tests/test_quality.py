@@ -172,7 +172,7 @@ class QualityContract(unittest.TestCase):
                     q.save(root / mode / "plan.json", plan)
                 q.save(root / mode / (mode + ".json"), report)
             live = {"title": "ci: fixture", "state": "open", "draft": False, "head": {"sha": self.c["head"]}, "base": {"sha": self.c["base"], "ref": "main"}}
-            with patch.object(q.subprocess, "check_output", return_value=q.encode(live)):
+            with patch.object(q.subprocess, "check_output", side_effect=[q.encode(live), q.encode({"ref": "refs/heads/main", "object": {"type": "commit", "sha": self.c["base"]}})]):
                 q.gate(root)
             with patch.object(q.subprocess, "check_output", side_effect=subprocess.CalledProcessError(1, "gh")), self.assertRaises(subprocess.CalledProcessError):
                 q.gate(root)
@@ -188,6 +188,13 @@ class QualityContract(unittest.TestCase):
             result = subprocess.run([os.environ.get("ACTIONLINT", "actionlint"), "-shellcheck=", "-pyflakes=", stream.name], capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('context "runner" is not allowed here', result.stdout + result.stderr)
+
+
+    def test_live_branch_ref_rejects_stale_pr_base_snapshot(self):
+        q.validate_current_base({"ref": "refs/heads/main", "object": {"type": "commit", "sha": self.c["base"]}}, self.c)
+        for live in [{}, {"ref": "refs/heads/other", "object": {"type": "commit", "sha": self.c["base"]}}, {"ref": "refs/heads/main", "object": {"type": "commit", "sha": "f" * 40}}, {"ref": "refs/heads/main", "object": {"type": "tag", "sha": self.c["base"]}}]:
+            with self.subTest(live=live), self.assertRaises(ValueError):
+                q.validate_current_base(live, self.c)
 
 
 if __name__ == "__main__":

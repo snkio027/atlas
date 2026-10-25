@@ -273,6 +273,10 @@ def validate_current_pr(live, current):
     require(live["state"] == "open" and live["draft"] is False and live["head"]["sha"] == current["head"] and live["base"]["sha"] == current["base"] and live["base"]["ref"] == "main", "PR candidate or phase is no longer current")
 
 
+def validate_current_base(live, current):
+    require(live.get("ref") == "refs/heads/main" and live.get("object", {}).get("type") == "commit" and live["object"]["sha"] == current["base"], "target branch advanced or is unavailable; PR base snapshot is not current authority")
+
+
 def gate(directory):
     p, current = policy(), candidate()
     phase_gate(current["event"], os.environ.get("CI_PR_DRAFT"), os.environ.get("FAST_RESULT"), os.environ.get("VALIDATE_RESULT"), os.environ.get("PLAN_RESULT"), os.environ.get("EXECUTION_RESULT"))
@@ -289,6 +293,10 @@ def gate(directory):
         require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) and number.isdigit(), "invalid PR identity")
         live = strict_json(subprocess.check_output(["gh", "api", "repos/" + repo + "/pulls/" + number], stderr=subprocess.PIPE))
         validate_current_pr(live, current)
+        # GitHub's PR base.sha can remain the event snapshot after main advances.
+        # Read the actual branch ref as well; native strict rules close later races.
+        live_base = strict_json(subprocess.check_output(["gh", "api", "repos/" + repo + "/git/ref/heads/main"], stderr=subprocess.PIPE))
+        validate_current_base(live_base, current)
     print("Standard PR-full evidence PASS; owner review and repository rules still apply.")
 
 
