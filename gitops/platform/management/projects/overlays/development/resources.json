@@ -245,6 +245,10 @@
           {
             "group": "postgresql.cnpg.io",
             "kind": "Cluster"
+          },
+          {
+            "group": "gateway.networking.k8s.io",
+            "kind": "HTTPRoute"
           }
         ],
         "sourceRepos": [
