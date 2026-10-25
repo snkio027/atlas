@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 SOURCE = Path(__file__).resolve().parents[1] / "quality.py"
 spec = importlib.util.spec_from_file_location("quality", SOURCE)
@@ -195,6 +195,18 @@ class QualityContract(unittest.TestCase):
         for live in [{}, {"ref": "refs/heads/other", "object": {"type": "commit", "sha": self.c["base"]}}, {"ref": "refs/heads/main", "object": {"type": "commit", "sha": "f" * 40}}, {"ref": "refs/heads/main", "object": {"type": "tag", "sha": self.c["base"]}}]:
             with self.subTest(live=live), self.assertRaises(ValueError):
                 q.validate_current_base(live, self.c)
+
+
+    def test_timed_out_process_is_terminated_and_failure_propagates(self):
+        process = Mock(pid=424242)
+        process.poll.return_value = None
+        process.wait.side_effect = [subprocess.TimeoutExpired("fixture", 1), 0]
+        with tempfile.TemporaryFile() as log, patch.object(q.subprocess, "Popen", return_value=process) as start, patch.object(q.os, "killpg") as terminate:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                q.run_command(["fixture-check"], log, {})
+            start.assert_called_once()
+            terminate.assert_called_once_with(process.pid, q.signal.SIGTERM)
+            self.assertEqual(process.wait.call_count, 2)
 
 
 if __name__ == "__main__":

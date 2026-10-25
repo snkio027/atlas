@@ -169,7 +169,10 @@ def validate_plan(plan, p, current):
 def run_command(command, log, env):
     process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     try:
-        code = process.wait(timeout=1800)
+        # Go's 25m limit is per package, not the whole invocation. Real hosted
+        # CI took 1768s: a 30m wrapper left only 32s for normal variation.
+        # Keep a bounded 40m command budget within the existing 45m CI job.
+        code = process.wait(timeout=2400)
         require(code == 0, "check exited " + str(code))
     except BaseException:
         if process.poll() is None:
