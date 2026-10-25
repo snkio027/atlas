@@ -14,9 +14,15 @@
           ],
           "resourceNames": [
             "platform-sealed-secrets",
+            "platform-cnpg-operator",
+            "platform-flink-operator",
             "platform-monitoring",
+            "platform-strimzi-operator",
             "project-platform-smoke",
-            "service-object-storage"
+            "service-flink-session",
+            "service-object-storage",
+            "service-postgresql",
+            "service-redis"
           ],
           "resources": [
             "namespaces"
