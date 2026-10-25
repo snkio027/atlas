@@ -59,7 +59,7 @@ required approval 为 0、关闭 auto-merge；不能声称已经强制独立批�
 最近四个Quality run（40090352313、40095746656、40099718247、40102232018）的创建至结束约30–37分钟；
 这是不同候选的历史观察，不是受控前后性能比较，也不是runner计费分钟。
 
-待迁移记录逐项填写：
+已观察事实和失败处置见 [迁移记录](engineering-workflow-migration.md)。最终候选仍须逐项核对：
 
 - 本地Fast/Full、计划与失败回归的实际结果和输入绑定。
 - Draft Fast与非成功聚合；无新commit转Ready产生Plan/Full。
