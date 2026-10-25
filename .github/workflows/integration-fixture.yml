@@ -1,0 +1,24 @@
+name: Migration integration fixture
+on:
+  pull_request:
+    branches: [codex/workflow-integration-fixture-base]
+permissions:
+  contents: read
+jobs:
+  combined:
+    name: Migration / combined-fixture-v1
+    runs-on: macos-26
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Reject the deliberately incompatible combination
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          a = Path('.migration-fixture/A').exists()
+          b = Path('.migration-fixture/B').exists()
+          print({'A': a, 'B': b})
+          assert not (a and b), 'controlled incompatible combination'
+          PY
