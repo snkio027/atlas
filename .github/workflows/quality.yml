@@ -59,11 +59,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   validate:
-    name: Plan and Full
+    name: Rejection probe / ${{ matrix.fault }}
     needs: [fast]
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        fault: [plan-failure, missing-plan, malformed-plan, empty-plan, wrong-candidate, unknown-policy, unknown-mode, execution-failure, missing-artifact]
     outputs:
       plan_result: ${{ steps.plan.outcome }}
       execution_result: ${{ steps.execute.outcome }}
@@ -78,35 +82,48 @@ jobs:
           go-version: '1.27.2'
           check-latest: false
           cache: false
-      - name: Prepare checksum-locked tools
+      - name: Prepare bounded rejection probe
+        env:
+          FAULT: ${{ matrix.fault }}
         run: |
           echo "CI_REPORT_DIR=$RUNNER_TEMP/quality-full" >> "$GITHUB_ENV"
           echo "CI_PLAN_PATH=$RUNNER_TEMP/quality-full/plan.json" >> "$GITHUB_ENV"
-          python3 packaging/prepare-ci.py "$RUNNER_TEMP/atlas-ci-tools"
+          echo "FAULT=$FAULT" >> "$GITHUB_ENV"
+          python3 packaging/prepare-ci.py --fast "$RUNNER_TEMP/atlas-ci-tools"
           echo "$RUNNER_TEMP/atlas-ci-tools" >> "$GITHUB_PATH"
-      - name: Plan coverage without executing tests
+      - name: Generate or deliberately reject a real candidate plan
         id: plan
-        if: ${{ github.event_name == 'pull_request' }}
-        run: task quality:plan
-      - name: Execute the complete contract once
-        id: execute
-        env:
-          PLATFORM_HELM: ${{ runner.temp }}/atlas-ci-tools/helm
-          PLATFORM_KUBECTL: ${{ runner.temp }}/atlas-ci-tools/kubectl
-          PLATFORM_YQ: ${{ runner.temp }}/atlas-ci-tools/yq
-          PLATFORM_LUA: ${{ runner.temp }}/atlas-ci-tools/lua
-          KUBESEAL: ${{ runner.temp }}/atlas-ci-tools/kubeseal
-          OT1_TOOLS: ${{ runner.temp }}/atlas-ci-tools/ot1
         run: |
-          if test "$CI_EVENT" != pull_request; then unset CI_PLAN_PATH; fi
+          if test "$FAULT" = plan-failure; then exit 42; fi
+          if test "$FAULT" = unknown-policy; then
+            python3 -c 'import json; from pathlib import Path; p=Path("ci/workflow-policy.json"); d=json.loads(p.read_text()); d["profile"]="unknown"; p.write_text(json.dumps(d))'
+          fi
+          task quality:plan
+      - name: Deliberate missing artifact transport
+        if: ${{ matrix.fault == 'missing-artifact' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: deliberately-absent-${{ github.run_id }}
+          path: ${{ runner.temp }}/absent
+      - name: Exercise fail-closed execution entry
+        id: execute
+        run: |
+          case "$FAULT" in
+            missing-plan) rm "$CI_PLAN_PATH" ;;
+            malformed-plan) printf '{"full_required":' > "$CI_PLAN_PATH" ;;
+            empty-plan) printf '{}' > "$CI_PLAN_PATH" ;;
+            wrong-candidate) python3 -c 'import json,os; from pathlib import Path; p=Path(os.environ["CI_PLAN_PATH"]); d=json.loads(p.read_text()); d["candidate"]["head"]="f"*40; p.write_text(json.dumps(d))' ;;
+            unknown-mode) python3 scripts/quality.py not-a-mode; exit 93 ;;
+            execution-failure) exit 43 ;;
+          esac
           task quality:full
       - name: Retain plan and execution evidence, including failures
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: quality-full-${{ github.run_id }}-${{ github.run_attempt }}
+          name: rejection-${{ matrix.fault }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/quality-full/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
   quality:
     name: ${{ github.event_name == 'pull_request' && 'Delivery / Quality / pr-full-standard-v1' || format('Delivery / Quality / {0}-full-standard-v1', github.event_name) }}

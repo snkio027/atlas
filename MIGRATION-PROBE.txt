@@ -1,0 +1,1 @@
+Controlled rejection candidate. Never merge. Tests actual GitHub job and artifact rejection paths under the main maintenance lock.
