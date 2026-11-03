@@ -22,7 +22,7 @@ vars:
 tasks:
   toolchain:
     cmds:
-      - test "$(go env GOVERSION)" = "go1.27.2"
+      - test "$(go env GOVERSION)" = "go1.27.3"
   check:
     cmds:
       - task: toolchain

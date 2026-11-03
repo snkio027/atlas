@@ -98,7 +98,6 @@
     "envoy-base-id": "0",
     "envoy-keep-cap-netbindservice": "false",
     "envoy-node-locality-enabled": "false",
-    "envoy-xds-mode": "ads",
     "external-envoy-proxy": "false",
     "health-check-icmp-failure-threshold": "3",
     "http-retry-count": "3",
@@ -184,7 +183,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium"
   },
@@ -346,7 +345,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-operator"
   },
@@ -712,7 +711,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium"
   },
@@ -736,7 +735,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-operator"
   },
@@ -760,7 +759,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-config-agent",
     "namespace": "kube-system"
@@ -788,7 +787,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-operator-ztunnel",
     "namespace": "kube-system"
@@ -831,7 +830,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-config-agent",
     "namespace": "kube-system"
@@ -856,7 +855,7 @@
   "metadata": {
     "labels": {
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2"
+      "helm.sh/chart": "cilium-1.20.4"
     },
     "name": "cilium-operator-ztunnel",
     "namespace": "kube-system"
@@ -882,7 +881,7 @@
     "labels": {
       "app.kubernetes.io/name": "cilium-agent",
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2",
+      "helm.sh/chart": "cilium-1.20.4",
       "k8s-app": "cilium"
     },
     "name": "cilium",
@@ -902,7 +901,7 @@
         "labels": {
           "app.kubernetes.io/name": "cilium-agent",
           "app.kubernetes.io/part-of": "cilium",
-          "helm.sh/chart": "cilium-1.20.2",
+          "helm.sh/chart": "cilium-1.20.4",
           "k8s-app": "cilium"
         }
       },
@@ -971,7 +970,7 @@
                 "value": "120"
               }
             ],
-            "image": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
+            "image": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
             "imagePullPolicy": "IfNotPresent",
             "lifecycle": {
               "postStart": {
@@ -1134,7 +1133,7 @@
                 }
               }
             ],
-            "image": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
+            "image": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
             "imagePullPolicy": "IfNotPresent",
             "name": "config",
             "securityContext": {
@@ -1160,7 +1159,7 @@
                 "value": "/opt/cni/bin"
               }
             ],
-            "image": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
+            "image": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
             "imagePullPolicy": "IfNotPresent",
             "name": "apply-sysctl-overwrites",
             "securityContext": {
@@ -1214,7 +1213,7 @@
                 }
               }
             ],
-            "image": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
+            "image": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
             "imagePullPolicy": "IfNotPresent",
             "name": "clean-cilium-state",
             "securityContext": {
@@ -1241,7 +1240,7 @@
             "command": [
               "/install-plugin.sh"
             ],
-            "image": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
+            "image": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
             "imagePullPolicy": "IfNotPresent",
             "name": "install-cni-binaries",
             "resources": {
@@ -1431,7 +1430,7 @@
     "labels": {
       "app.kubernetes.io/name": "cilium-operator",
       "app.kubernetes.io/part-of": "cilium",
-      "helm.sh/chart": "cilium-1.20.2",
+      "helm.sh/chart": "cilium-1.20.4",
       "io.cilium/app": "operator",
       "name": "cilium-operator"
     },
@@ -1462,7 +1461,7 @@
         "labels": {
           "app.kubernetes.io/name": "cilium-operator",
           "app.kubernetes.io/part-of": "cilium",
-          "helm.sh/chart": "cilium-1.20.2",
+          "helm.sh/chart": "cilium-1.20.4",
           "io.cilium/app": "operator",
           "name": "cilium-operator"
         }
@@ -1522,7 +1521,7 @@
                 }
               }
             ],
-            "image": "quay.io/cilium/operator-generic:v1.20.2@sha256:64d8798350e8569b8e7622563fed6e44dce2625f311e4651b774816516c744fc",
+            "image": "quay.io/cilium/operator-generic:v1.20.4@sha256:7a7a3489dc66ad67e420d285c8a8d2e169b0957ad15e120f593d27081bf38d82",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "httpGet": {

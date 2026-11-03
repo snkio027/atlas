@@ -49,7 +49,7 @@ task quality
 task build
 ```
 
-构建需要 Go 1.27.2 和锁定工具；运行时不下载依赖。详细要求、原始 Bootstrap
+构建需要 Go 1.27.3 和锁定工具；运行时不下载依赖。详细要求、原始 Bootstrap
 命令、历史验收和 cutover 状态放在 [维护者入口](docs/maintainer-entrypoint.md)。
 
 - [当前依赖候选与验证边界](docs/dependency-upgrade-20261010.md)

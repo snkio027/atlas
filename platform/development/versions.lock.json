@@ -1,36 +1,36 @@
 {
   "schema": 1,
-  "helm": "4.3.0",
-  "kubectl": "1.37.1",
+  "helm": "4.3.1",
+  "kubectl": "1.37.2",
   "yq": "4.54.1",
   "kubernetes": "1.37.0",
   "images": {
-    "envoyGateway": "docker.io/envoyproxy/gateway:v1.9.2@sha256:9d67017c442a70e6ae9f1a358e6c80eb653c67c2e40823d9a991e0daf37ba926",
-    "envoyProxy": "docker.io/envoyproxy/envoy:distroless-v1.39.3@sha256:7369b033550a14997e5d698677b7b51f0210a80754f5d084c5caa1a78268267b",
-    "ratelimit": "docker.io/envoyproxy/ratelimit:0482748e@sha256:5fdd8e3ae335ab6d64316f8d2fd9a886830075cbbb40a1d8065c869275909162",
-    "certManager": "quay.io/jetstack/cert-manager-controller:v1.21.2@sha256:70f532fd9cfde0b09d55687200942399d89838bc2d5d5b45152eb799a15912b8",
-    "certWebhook": "quay.io/jetstack/cert-manager-webhook:v1.21.2@sha256:a60e2dac46dbb8a7f3df95c54ce941012f54c2fe022f0ee55aaa1ab40ed957ae",
-    "certCAInjector": "quay.io/jetstack/cert-manager-cainjector:v1.21.2@sha256:c85268c64f2e0e76684bf5fe8906caff34b82523561c6affe0fae3546bd87562",
-    "certACMESolver": "quay.io/jetstack/cert-manager-acmesolver:v1.21.2@sha256:699b40d622211ab7accad8a21b04c5fbaa1841ef7a12621e8de492dbe27b2503",
+    "envoyGateway": "docker.io/envoyproxy/gateway:v1.9.3@sha256:192fc9bdadb6d2462e8cf7bd702ce3dd9648f3310c6038787448a1f509b7cd9f",
+    "envoyProxy": "docker.io/envoyproxy/envoy:distroless-v1.39.6@sha256:1cac8b3a2f72d5a0918f54d7b49e68aae0b0ba325c2d50c8a9a3fff7a4d1f994",
+    "ratelimit": "docker.io/envoyproxy/ratelimit:5ae0682e@sha256:b95206e32b1a5f824fb06062fbb85bbdfb7f5de54135e92afe8462f22c979681",
+    "certManager": "quay.io/jetstack/cert-manager-controller:v1.21.3@sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc",
+    "certWebhook": "quay.io/jetstack/cert-manager-webhook:v1.21.3@sha256:055ac8e9de6a0ba6763794838fe38944acc650f68ebe1b01dd8be079e580f458",
+    "certCAInjector": "quay.io/jetstack/cert-manager-cainjector:v1.21.3@sha256:083d0e906f8eb44e255fe4ff817ae54e49f9ed82e22f1011bb4e9e4f4b8a641f",
+    "certACMESolver": "quay.io/jetstack/cert-manager-acmesolver:v1.21.3@sha256:c8c1225bb2fe8ab37a330b77f0d8c2ee6a41210fcb54fc07ca606ab9a022b8b7",
     "web": "docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e",
     "localPath": "docker.io/kindest/local-path-provisioner:v20260820-69b56db7@sha256:fdb5360219dcca6acc7967326f9e04c89b038e2c1e924463b2a41cad2dc752ab",
     "localPathHelper": "docker.io/kindest/local-path-helper:v20260131-7181c60a@sha256:ac7c7f08e86f7bef7d2ad6dee944ed89d3d2e7de0ebc00490d7ddf6c26628a06",
-    "cilium": "quay.io/cilium/cilium:v1.20.2@sha256:2939231d0d3e3ebddcd80fffa168b7ddcc78fdf0dc864d1c8c126ff523c54f01",
-    "ciliumOperator": "quay.io/cilium/operator-generic:v1.20.2@sha256:64d8798350e8569b8e7622563fed6e44dce2625f311e4651b774816516c744fc",
-    "argo": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
-    "redis": "ecr-public.aws.com/docker/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "ciliumOperator": "quay.io/cilium/operator-generic:v1.20.4@sha256:7a7a3489dc66ad67e420d285c8a8d2e169b0957ad15e120f593d27081bf38d82",
+    "argo": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
+    "redis": "ecr-public.aws.com/docker/library/redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
     "node": "docker.io/kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5"
   },
   "artifacts": {
-    "vendor/platform/cilium-1.20.2.tgz": {
-      "sha256": "b2afd87b7f75f875f92a14559f14f59b7babbb479d968e3fd625a20bf30ec20e",
-      "source": "https://helm.cilium.io/cilium-1.20.2.tgz",
-      "verification": "helm.cilium.io/index.yaml entries.cilium[1.20.2].digest"
+    "vendor/platform/cilium-1.20.4.tgz": {
+      "source": "https://helm.cilium.io/cilium-1.20.4.tgz",
+      "sha256": "505abff8385811df1a949776fc42e9f10697989a332acc86d6e8933efcb855ed",
+      "verification": "https://helm.cilium.io/index.yaml entries.cilium[1.20.4].digest"
     },
-    "vendor/platform/cert-manager-v1.21.2.tgz": {
-      "sha256": "73a56e1728edd6c99f1f31082618c3259d279a76b7ebd3d4bdc5475c2442d34a",
-      "source": "https://charts.jetstack.io/charts/cert-manager-v1.21.2.tgz",
-      "verification": "charts.jetstack.io/index.yaml entries.cert-manager[v1.21.2].digest"
+    "vendor/platform/cert-manager-v1.21.3.tgz": {
+      "source": "https://charts.jetstack.io/charts/cert-manager-v1.21.3.tgz",
+      "sha256": "9ec67938b2981d8b333af61b3fcf53e26b4f6f5deb7ccda3de4ea116bb373a17",
+      "verification": "https://charts.jetstack.io/index.yaml entries.cert-manager[v1.21.3].digest"
     },
     "vendor/platform/kind-storage.go": {
       "sha256": "a50b6d4360d96d90005e8ea76f0d5c5171fd51c1c33ecc7a8049dfa32f3d6803",
@@ -43,18 +43,18 @@
       "verification": "versions.lock.json from 0ef9188 baseline"
     },
     "assets/argocd-values.yaml": {
-      "sha256": "66b25e9dc81425a911acc2feb5a7d1c38034ae93a2bc83a0f2ce99d08c1eb4d6",
+      "sha256": "6ca83ebdd34fadd53a1ca46c88eb94f09f7838c50e8a03c46b7533ac14269aef",
       "source": "repository authored values",
       "verification": "versions.lock.json current candidate"
     },
-    "vendor/platform/gateway-helm-v1.9.2.tgz": {
-      "sha256": "1079cad009e0885f6e10e5f712257d8e5fdaf911d2ceb3fa1b78632c8f29bbf9",
-      "source": "oci://docker.io/envoyproxy/gateway-helm:v1.9.2",
-      "verification": "OCI manifest sha256:be034275b55deeddd6b7bc1f4da6eeb02b8efc418a4a29e2b1977851b24b1e63"
+    "vendor/platform/gateway-helm-v1.9.3.tgz": {
+      "source": "oci://docker.io/envoyproxy/gateway-helm:v1.9.3",
+      "sha256": "1a152513adbcdb0527d7bbe3ea9b090abeb87e4ec9f34b2c18ac8c37f3177541",
+      "verification": "OCI manifest sha256:be1b8f163a338f94e7d6532336c08d6856fc70a0b790ac14a2826a54d23e0dd3"
     },
-    "vendor/platform/envoy-gateway-v1.9.2-install.yaml": {
-      "sha256": "0412a72907e57ff9b73c56a7bf6df5190bf0f6e4f8bb4bba34e38630bbab5778",
-      "source": "https://github.com/envoyproxy/gateway/releases/download/v1.9.2/install.yaml",
+    "vendor/platform/envoy-gateway-v1.9.3-install.yaml": {
+      "source": "https://github.com/envoyproxy/gateway/releases/download/v1.9.3/install.yaml",
+      "sha256": "ac89b0b564e52c97c97a3f8b4d82bb594a0fbc810431fb2e6ffd91702aabebfb",
       "verification": "GitHub release asset digest"
     },
     "vendor/platform/gateway-api-v1.6.3-standard.yaml": {
@@ -62,10 +62,10 @@
       "source": "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.3/standard-install.yaml",
       "verification": "GitHub release asset digest"
     },
-    "vendor/charts/argo-cd-10.10.2.tgz": {
-      "sha256": "1f2bdb0e23b87fdac5222d99d1acf6964e670db9bf63912c58ab4677e505638b",
-      "source": "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.10.2/argo-cd-10.10.2.tgz",
-      "verification": "GitHub release asset digest"
+    "vendor/charts/argo-cd-10.11.6.tgz": {
+      "source": "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.11.6/argo-cd-10.11.6.tgz",
+      "sha256": "d8f096d87513b41ff754053a7f9604c943bf29c15436a79226fd51595ea67d05",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
     }
   }
 }

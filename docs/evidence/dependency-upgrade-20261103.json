@@ -1,0 +1,855 @@
+{
+  "schema": 1,
+  "checkedOn": "2026-11-03",
+  "base": "8586a3efe4627144f4750e6e513ac6c9a2dbd973",
+  "scope": "Current product source only; no deployment or live credential use",
+  "tools": [
+    {
+      "name": "helm",
+      "version": "4.3.1",
+      "url": "https://get.helm.sh/helm-v4.3.1-darwin-arm64.tar.gz",
+      "sha256": "6b4e61c8cd27d99e5a801e63ff25dd5c70b36875c2cd659d3e9ce6b76fc23198",
+      "member": "darwin-arm64/helm",
+      "binarySHA256": "c62da98a8e5728f5acc08b66bbe5c3ad1cb6b71d3d31b7bf939d9f4b6628c96d"
+    },
+    {
+      "name": "kind",
+      "version": "0.33.0",
+      "url": "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-darwin-arm64",
+      "sha256": "0c8c7dbe5e23594a198b786c4bc13dacc101fa6196b0cb0b23a1ca44e61f4b4f",
+      "member": "",
+      "binarySHA256": "0c8c7dbe5e23594a198b786c4bc13dacc101fa6196b0cb0b23a1ca44e61f4b4f"
+    },
+    {
+      "name": "kubectl",
+      "version": "1.37.2",
+      "url": "https://dl.k8s.io/release/v1.37.2/bin/darwin/arm64/kubectl",
+      "sha256": "55701af0d51815ee335f240e48acf0959c3c23017ed3fa816e880c4a92bae581",
+      "member": "",
+      "binarySHA256": "55701af0d51815ee335f240e48acf0959c3c23017ed3fa816e880c4a92bae581"
+    },
+    {
+      "name": "kubeseal",
+      "version": "0.41.2",
+      "url": "https://github.com/bitnami/sealed-secrets/releases/download/v0.41.2/kubeseal-0.41.2-darwin-arm64.tar.gz",
+      "sha256": "4f9ce57bb69c419f1a94e88e0d2d5755b395f7926e34d99bf91bc8e084e27ae4",
+      "member": "kubeseal",
+      "binarySHA256": "24b3aab32fd0a1aa678b39457fb95b3e214a4ee264743a405a2e4aa59f8343f7"
+    }
+  ],
+  "egctl": {
+    "version": "1.9.3",
+    "archive": "https://github.com/envoyproxy/gateway/releases/download/v1.9.3/egctl_v1.9.3_darwin_arm64.tar.gz",
+    "archiveSHA256": "276a8b0cb060f0e915d83ca4b399373675c8d296cb82eef283ec5510caf75626",
+    "binarySHA256": "c5d05a85637638b8b2a94e1891a325ad4ad12dc496f7907d3b84c0c197cfffe0"
+  },
+  "artifacts": {
+    "argo-cd-10.11.6.tgz": {
+      "source": "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.11.6/argo-cd-10.11.6.tgz",
+      "sha256": "d8f096d87513b41ff754053a7f9604c943bf29c15436a79226fd51595ea67d05",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
+    },
+    "kube-prometheus-stack-92.17.1.tgz": {
+      "source": "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-92.17.1/kube-prometheus-stack-92.17.1.tgz",
+      "sha256": "fc8fe107f94a3009c04af63a03fb811393970db0eb973a9c513941acfce565c1",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
+    },
+    "sealed-secrets-2.22.0.tgz": {
+      "source": "https://github.com/bitnami/sealed-secrets/releases/download/helm-v2.22.0/sealed-secrets-2.22.0.tgz",
+      "sha256": "1ed23bb224652aa6c8477979d4bddccd207205b27b12b120f62f360890c80606",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
+    },
+    "cilium-1.20.4.tgz": {
+      "source": "https://helm.cilium.io/cilium-1.20.4.tgz",
+      "sha256": "505abff8385811df1a949776fc42e9f10697989a332acc86d6e8933efcb855ed",
+      "verification": "https://helm.cilium.io/index.yaml entries.cilium[1.20.4].digest"
+    },
+    "cert-manager-v1.21.3.tgz": {
+      "source": "https://charts.jetstack.io/charts/cert-manager-v1.21.3.tgz",
+      "sha256": "9ec67938b2981d8b333af61b3fcf53e26b4f6f5deb7ccda3de4ea116bb373a17",
+      "verification": "https://charts.jetstack.io/index.yaml entries.cert-manager[v1.21.3].digest"
+    },
+    "flink-kubernetes-operator-1.16.1-helm.tgz": {
+      "source": "https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.16.1/flink-kubernetes-operator-1.16.1-helm.tgz",
+      "sha256": "e3e107e7bf0a9e9762d699f81d782991a974d3193532e4953a4d4a8e3e9d8579",
+      "sha512": "c10d08e6246c987bc4513fb198112a52903eccec5616161e429c4f4a466c9181266c226509f591ec26e45a3ffb104febd5bb7c371c3c8132fe58cac40603d4fe",
+      "verification": "Apache release SHA-512"
+    },
+    "envoy-gateway-v1.9.3-install.yaml": {
+      "source": "https://github.com/envoyproxy/gateway/releases/download/v1.9.3/install.yaml",
+      "sha256": "ac89b0b564e52c97c97a3f8b4d82bb594a0fbc810431fb2e6ffd91702aabebfb",
+      "verification": "GitHub release asset digest"
+    },
+    "gateway-helm-v1.9.3.tgz": {
+      "source": "oci://docker.io/envoyproxy/gateway-helm:v1.9.3",
+      "sha256": "1a152513adbcdb0527d7bbe3ea9b090abeb87e4ec9f34b2c18ac8c37f3177541",
+      "verification": "OCI manifest sha256:be1b8f163a338f94e7d6532336c08d6856fc70a0b790ac14a2826a54d23e0dd3"
+    }
+  },
+  "images": {
+    "quay.io/cilium/cilium:v1.20.4": {
+      "image": "quay.io/cilium/cilium:v1.20.4",
+      "digest": "sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+      "arm64Manifest": "sha256:1615b8097f64e1461cd55bd2037b817484d3586d1e065b88014463c797d0832a",
+      "arm64Config": "sha256:2b6c65a9d6388212bb4d36834201ad7f307852ffd134552486da33313a068b2a"
+    },
+    "quay.io/argoproj/argocd:v3.5.7": {
+      "image": "quay.io/argoproj/argocd:v3.5.7",
+      "digest": "sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
+      "arm64Manifest": "sha256:d858fe2b772874df58672a82e82137b53a59a80f5bf7e8b1b0f8a0f29eccb7dd",
+      "arm64Config": "sha256:160654a6cb0cd2d32ddb4602c566f503ba4f3ac59cc09a768e60d0dada6549aa"
+    },
+    "quay.io/cilium/operator-generic:v1.20.4": {
+      "image": "quay.io/cilium/operator-generic:v1.20.4",
+      "digest": "sha256:7a7a3489dc66ad67e420d285c8a8d2e169b0957ad15e120f593d27081bf38d82",
+      "arm64Manifest": "sha256:f72cbe831147c52dd5fd3c8ec06fe3e913dfe32490113b9462480ccc21a02cdb",
+      "arm64Config": "sha256:ac0c9d9e1cb4758fdf18a188767acd729c1cf6d2fbddedf3db44fb762d0224df"
+    },
+    "docker.io/library/redis:8.10.3-alpine": {
+      "image": "docker.io/library/redis:8.10.3-alpine",
+      "digest": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+      "arm64Manifest": "sha256:b8d831cd7faefb56db98e77ad421379ec35f6b5342a8cff9c8cde2cfd02ec837",
+      "arm64Config": "sha256:3e56fb2dd578827a6a711af0459ce130c8d4ea9ab640f752ffa542ec57e8d89d"
+    },
+    "ecr-public.aws.com/docker/library/redis:8.10.3-alpine": {
+      "image": "ecr-public.aws.com/docker/library/redis:8.10.3-alpine",
+      "digest": "sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
+      "arm64Manifest": "sha256:b8d831cd7faefb56db98e77ad421379ec35f6b5342a8cff9c8cde2cfd02ec837",
+      "arm64Config": "sha256:3e56fb2dd578827a6a711af0459ce130c8d4ea9ab640f752ffa542ec57e8d89d"
+    },
+    "quay.io/jetstack/cert-manager-controller:v1.21.3": {
+      "image": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+      "digest": "sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc",
+      "arm64Manifest": "sha256:e396f69ba33cf623694dcfb1f7c637911b06d71984350fb44158e0f7938f5a80",
+      "arm64Config": "sha256:a2f17a3d6e91d1663481f74e0da778649b8e6ef02680fb0c984b1cdf8ddcb8a5"
+    },
+    "quay.io/jetstack/cert-manager-webhook:v1.21.3": {
+      "image": "quay.io/jetstack/cert-manager-webhook:v1.21.3",
+      "digest": "sha256:055ac8e9de6a0ba6763794838fe38944acc650f68ebe1b01dd8be079e580f458",
+      "arm64Manifest": "sha256:acef59f95954b7e94a7f8a3bcccd65608bec579db567ad5e2b5a1d38c4b75f62",
+      "arm64Config": "sha256:d9514b0194505f73305026683043e201a4ccfe7d38ba80847e5256523711ac75"
+    },
+    "quay.io/jetstack/cert-manager-cainjector:v1.21.3": {
+      "image": "quay.io/jetstack/cert-manager-cainjector:v1.21.3",
+      "digest": "sha256:083d0e906f8eb44e255fe4ff817ae54e49f9ed82e22f1011bb4e9e4f4b8a641f",
+      "arm64Manifest": "sha256:02d5ccb77275b12db6ab5a6275860be90d334be70def56e16b49e4eb7d96f142",
+      "arm64Config": "sha256:d00e4ec113b3afb21f41f3cf86631b91072e140ce37dc31ff17832559abc9160"
+    },
+    "quay.io/jetstack/cert-manager-acmesolver:v1.21.3": {
+      "image": "quay.io/jetstack/cert-manager-acmesolver:v1.21.3",
+      "digest": "sha256:c8c1225bb2fe8ab37a330b77f0d8c2ee6a41210fcb54fc07ca606ab9a022b8b7",
+      "arm64Manifest": "sha256:40e58d6cce5a382461f82b1049aa0ea325b4971cdbf426d1a984edf5491cd0e0",
+      "arm64Config": "sha256:d523b511e0426ff38f9c6efa9e629758e6c5f393f00559a24a1faee9da40d5e2"
+    },
+    "docker.io/envoyproxy/gateway:v1.9.3": {
+      "image": "docker.io/envoyproxy/gateway:v1.9.3",
+      "digest": "sha256:192fc9bdadb6d2462e8cf7bd702ce3dd9648f3310c6038787448a1f509b7cd9f",
+      "arm64Manifest": "sha256:d6fd7ef230dcdba48a2ed2c107e3be7d35077639fe8fe5603393caf6151ebefd",
+      "arm64Config": "sha256:9ebc7261ad6c42a871f76e76204364c9c76045b83a6f2cca30f67f1e6e156289"
+    },
+    "docker.io/envoyproxy/envoy:distroless-v1.39.6": {
+      "image": "docker.io/envoyproxy/envoy:distroless-v1.39.6",
+      "digest": "sha256:1cac8b3a2f72d5a0918f54d7b49e68aae0b0ba325c2d50c8a9a3fff7a4d1f994",
+      "arm64Manifest": "sha256:3dee4713fb8b040f6ca0075669919709ff7c58c8fcfc4d6e23f8e5c7bfaa211a",
+      "arm64Config": "sha256:58bf4112431629a589e7fb7ab6b0b7b8d12ab29da9c2bfda3fbe2aa277b1fd73"
+    },
+    "docker.io/bitnami/sealed-secrets-controller:0.41.2": {
+      "image": "docker.io/bitnami/sealed-secrets-controller:0.41.2",
+      "digest": "sha256:e63ec6ec2b12a471bf781081bd370a93ca7b7b3999e5b9243341379aeb801d0b",
+      "arm64Manifest": "sha256:1d6f74df5ed3a9e15eaba5f18ea4e67282b387d9d8924766fdbfa996829b0afd",
+      "arm64Config": "sha256:cec9a0ca26ae74380448675d0bfeda1f241e366690607ca9091dd90ae04c042c"
+    },
+    "docker.io/envoyproxy/ratelimit:5ae0682e": {
+      "image": "docker.io/envoyproxy/ratelimit:5ae0682e",
+      "digest": "sha256:b95206e32b1a5f824fb06062fbb85bbdfb7f5de54135e92afe8462f22c979681",
+      "arm64Manifest": "sha256:3e0a8da44215623d0f3d6c5f51f0b6758e1309f7e93ca888e8faf552db62c7f6",
+      "arm64Config": "sha256:6a1064a17c67f74026485e3b98e3a5e0426eef7b9957844706bf37f1e9a1512a"
+    },
+    "docker.io/chrislusf/seaweedfs:4.52": {
+      "image": "docker.io/chrislusf/seaweedfs:4.52",
+      "digest": "sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59",
+      "arm64Manifest": "sha256:18a805c81cd574a24571cfbc23ff1cb0bb2b875b1ac028a58c065c15f0c7b3ad",
+      "arm64Config": "sha256:f01d2260762bfe0a3b4780b561d716251a1dc3fd3d20dccfa8fde4d95c414104"
+    },
+    "quay.io/prometheus-operator/prometheus-operator:v0.94.2": {
+      "image": "quay.io/prometheus-operator/prometheus-operator:v0.94.2",
+      "digest": "sha256:c7edf0379b7271ef1705dce258d2bb73820e299cc95559369e9f6fc3321639ec",
+      "arm64Manifest": "sha256:7920559d2184e444ae90c3e616567f8d8c355b6704121c9da3bac7701ca27b7e",
+      "arm64Config": "sha256:040dd6e915a7b7fda4784c6057eba82ce7fc4f2b8251ef8dc5e58fe1fe983554"
+    },
+    "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.2": {
+      "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.2",
+      "digest": "sha256:a1897c67478bc23434534e91ad3855280771196b1daf17144db9dbcb655bef71",
+      "arm64Manifest": "sha256:c1009676d379f0036c61f4d942fd3a7154c54bcd0b3352482fe37e21d69b5f09",
+      "arm64Config": "sha256:9573fe4de354bd31b160e746ec468429dc4e6bd93419886630a9e758f8881708"
+    },
+    "quay.io/prometheus/prometheus:v3.15.1-distroless": {
+      "image": "quay.io/prometheus/prometheus:v3.15.1-distroless",
+      "digest": "sha256:451a845bae1d51622b41af1780eb2ad911bbb79a9855bc8e9bb67fabbc03f934",
+      "arm64Manifest": "sha256:301ceaae07c3eaa1748c0adfac7a86fb6b3da2c86e48bde16397ae184164b89d",
+      "arm64Config": "sha256:7fead31c863f3dfa52bab2277145b162d3c6d1cc09314ae5feb29edc422a0a35"
+    },
+    "docker.io/apache/flink-kubernetes-operator:1.16.1": {
+      "image": "docker.io/apache/flink-kubernetes-operator:1.16.1",
+      "digest": "sha256:94b91ea6e9d83996f12d7360ca74e49264057cf3ce697636d81677611651d142",
+      "arm64Manifest": "sha256:52b6a28c810d2efe5f45601fb4883c152eb19bc0503a12b71dde206944d546c7",
+      "arm64Config": "sha256:3237c83de8c30f94fb9ba9524ea8941300172154993dee5c45685fc62cbc6f34"
+    },
+    "quay.io/prometheus/alertmanager:v0.34.2": {
+      "image": "quay.io/prometheus/alertmanager:v0.34.2",
+      "digest": "sha256:39d8bb3966c694a124428a3a88fbcffd40bd069129ecd47c059f8a3f17c55f3b",
+      "arm64Manifest": "sha256:6d6e6783829a3bce34d010e71e752426bc9cf345726a7c48fa00dfb5e3292a68",
+      "arm64Config": "sha256:fe6f88e15243771d5094cd5ce2c5ccc3b095a28f52f7fbffd9e7c868ebde939a"
+    },
+    "docker.io/grafana/grafana:13.3.0-distroless": {
+      "image": "docker.io/grafana/grafana:13.3.0-distroless",
+      "digest": "sha256:540b8afb775bf34aefce417e4329039daa5d44b6f2fbda6881397b1b247ca7df",
+      "arm64Manifest": "sha256:e25001cb103b735275e69537ffb651b0195c5e972c2087c388cb05914b3e2440",
+      "arm64Config": "sha256:6d42465a7d36d533012aa778d649a1992e6bd3657abe6d24f073fb0c8eb81386"
+    },
+    "docker.io/grafana/alloy:v1.21.3": {
+      "image": "docker.io/grafana/alloy:v1.21.3",
+      "digest": "sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4",
+      "arm64Manifest": "sha256:c8dec1ae35cf39ffc2291611e8211c3a8c79d560e641b024ffcab9901e5215ff",
+      "arm64Config": "sha256:c4a1135ca4b2aba97742ce607e9793381c120f3cec4e81bd70c480239498fb75"
+    },
+    "docker.io/grafana/loki:3.7.9": {
+      "image": "docker.io/grafana/loki:3.7.9",
+      "digest": "sha256:0db216b630ae1f348a1584c67f3cead8b4c1fc839169a39501db664744158e28",
+      "arm64Manifest": "sha256:1a779c5f714e795ac698b125fc265ae97292f792a91535fa29726073d03d5580",
+      "arm64Config": "sha256:3f691db8cd2f3312fccbe58bfd8e90094d65e3ae13e565034051fb7abd333618"
+    },
+    "docker.io/envoyproxy/gateway-helm:v1.9.3": {
+      "image": "docker.io/envoyproxy/gateway-helm:v1.9.3",
+      "digest": "sha256:be1b8f163a338f94e7d6532336c08d6856fc70a0b790ac14a2826a54d23e0dd3",
+      "chartSHA256": "1a152513adbcdb0527d7bbe3ea9b090abeb87e4ec9f34b2c18ac8c37f3177541"
+    }
+  },
+  "yamlModule": {
+    "Path": "go.yaml.in/yaml/v3",
+    "Version": "v3.0.6",
+    "Sum": "h1:zcDfvjXEqTQmpjniUBLc91xYJMB2c4QOFxEF/LCEckM=",
+    "GoModSum": "h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=",
+    "Origin": {
+      "VCS": "git",
+      "URL": "https://github.com/yaml/go-yaml",
+      "Hash": "5a62aba63b773192cd10ab954e21e143d7b00c7a",
+      "Ref": "refs/tags/v3.0.6"
+    }
+  },
+  "renderDiff": [
+    {
+      "file": "gitops/platform/data/flink-operator/overlays/development/rendered.yaml",
+      "before": 13,
+      "after": 13,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/platform-flink-operator/flink-kubernetes-operator"
+      ]
+    },
+    {
+      "file": "gitops/platform/management/argocd-self/overlays/development/rendered.yaml",
+      "before": 44,
+      "after": 44,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-repo-server",
+        "batch/Job/platform-argocd/atlas-refactor-argocd-redis-secret-init",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-redis",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-server",
+        "apps/StatefulSet/platform-argocd/atlas-refactor-argocd-application-controller",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-applicationset-controller"
+      ]
+    },
+    {
+      "file": "gitops/platform/management/cert-manager/overlays/development/rendered.yaml",
+      "before": 46,
+      "after": 46,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/platform-cert-manager/cert-manager-cainjector",
+        "apps/Deployment/platform-cert-manager/cert-manager-webhook",
+        "apiextensions.k8s.io/CustomResourceDefinition//certificates.cert-manager.io",
+        "apps/Deployment/platform-cert-manager/cert-manager"
+      ]
+    },
+    {
+      "file": "gitops/platform/management/sealed-secrets/overlays/development/rendered.yaml",
+      "before": 16,
+      "after": 16,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/platform-sealed-secrets/sealed-secrets"
+      ]
+    },
+    {
+      "file": "gitops/platform/networking/cilium/overlays/development/rendered.yaml",
+      "before": 13,
+      "after": 13,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/kube-system/cilium-operator",
+        "apps/DaemonSet/kube-system/cilium"
+      ]
+    },
+    {
+      "file": "gitops/platform/networking/envoy-gateway/overlays/development/rendered.yaml",
+      "before": 14,
+      "after": 14,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "batch/Job/platform-gateway/eg-gateway-helm-certgen",
+        "apps/Deployment/platform-gateway/envoy-gateway"
+      ]
+    },
+    {
+      "file": "gitops/platform/observability/crds/overlays/development/rendered.yaml",
+      "before": 10,
+      "after": 10,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": []
+    },
+    {
+      "file": "gitops/platform/observability/operator/overlays/development/rendered.yaml",
+      "before": 11,
+      "after": 11,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [
+        {
+          "identity": "rbac.authorization.k8s.io/ClusterRole//atlas-monitoring-operator",
+          "fields": [
+            "rules"
+          ],
+          "before": {
+            "rules": [
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers",
+                  "prometheusagents",
+                  "prometheuses",
+                  "thanosrulers"
+                ],
+                "verbs": [
+                  "patch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers/status",
+                  "podmonitors/status",
+                  "probes/status",
+                  "prometheuses/status",
+                  "prometheusagents/status",
+                  "prometheusrules/status",
+                  "scrapeconfigs/status",
+                  "servicemonitors/status",
+                  "thanosrulers/status"
+                ],
+                "verbs": [
+                  "create",
+                  "update",
+                  "patch",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers/finalizers",
+                  "prometheusagents/finalizers",
+                  "prometheuses/finalizers",
+                  "thanosrulers/finalizers"
+                ],
+                "verbs": [
+                  "update"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers",
+                  "alertmanagerconfigs",
+                  "podmonitors",
+                  "probes",
+                  "prometheusagents",
+                  "prometheuses",
+                  "prometheusrules",
+                  "servicemonitors",
+                  "scrapeconfigs",
+                  "thanosrulers"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "apps"
+                ],
+                "resources": [
+                  "statefulsets"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch",
+                  "create",
+                  "update",
+                  "patch",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "configmaps",
+                  "secrets"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch",
+                  "create",
+                  "update",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "pods"
+                ],
+                "verbs": [
+                  "list",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "services",
+                  "services/finalizers",
+                  "endpoints"
+                ],
+                "verbs": [
+                  "get",
+                  "create",
+                  "update",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "nodes"
+                ],
+                "verbs": [
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "namespaces"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "",
+                  "events.k8s.io"
+                ],
+                "resources": [
+                  "events"
+                ],
+                "verbs": [
+                  "patch",
+                  "create"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "networking.k8s.io"
+                ],
+                "resources": [
+                  "ingresses"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "storage.k8s.io"
+                ],
+                "resources": [
+                  "storageclasses"
+                ],
+                "verbs": [
+                  "get"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "discovery.k8s.io"
+                ],
+                "resources": [
+                  "endpointslices"
+                ],
+                "verbs": [
+                  "get",
+                  "create",
+                  "list",
+                  "watch",
+                  "update",
+                  "delete"
+                ]
+              }
+            ]
+          },
+          "after": {
+            "rules": [
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers",
+                  "alertmanagers/finalizers",
+                  "prometheusagents",
+                  "prometheusagents/finalizers",
+                  "prometheuses",
+                  "prometheuses/finalizers",
+                  "thanosrulers",
+                  "thanosrulers/finalizers"
+                ],
+                "verbs": [
+                  "patch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers/status",
+                  "podmonitors/status",
+                  "probes/status",
+                  "prometheuses/status",
+                  "prometheusagents/status",
+                  "prometheusrules/status",
+                  "scrapeconfigs/status",
+                  "servicemonitors/status",
+                  "thanosrulers/status"
+                ],
+                "verbs": [
+                  "create",
+                  "update",
+                  "patch",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers/finalizers",
+                  "prometheusagents/finalizers",
+                  "prometheuses/finalizers",
+                  "thanosrulers/finalizers"
+                ],
+                "verbs": [
+                  "update"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "monitoring.coreos.com"
+                ],
+                "resources": [
+                  "alertmanagers",
+                  "alertmanagerconfigs",
+                  "podmonitors",
+                  "probes",
+                  "prometheusagents",
+                  "prometheuses",
+                  "prometheusrules",
+                  "servicemonitors",
+                  "scrapeconfigs",
+                  "thanosrulers"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "apps"
+                ],
+                "resources": [
+                  "statefulsets"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch",
+                  "create",
+                  "update",
+                  "patch",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "configmaps",
+                  "secrets"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch",
+                  "create",
+                  "update",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "pods"
+                ],
+                "verbs": [
+                  "list",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "services",
+                  "services/finalizers",
+                  "endpoints"
+                ],
+                "verbs": [
+                  "get",
+                  "create",
+                  "update",
+                  "delete"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "nodes"
+                ],
+                "verbs": [
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  ""
+                ],
+                "resources": [
+                  "namespaces"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "",
+                  "events.k8s.io"
+                ],
+                "resources": [
+                  "events"
+                ],
+                "verbs": [
+                  "patch",
+                  "create"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "networking.k8s.io"
+                ],
+                "resources": [
+                  "ingresses"
+                ],
+                "verbs": [
+                  "get",
+                  "list",
+                  "watch"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "storage.k8s.io"
+                ],
+                "resources": [
+                  "storageclasses"
+                ],
+                "verbs": [
+                  "get"
+                ]
+              },
+              {
+                "apiGroups": [
+                  "discovery.k8s.io"
+                ],
+                "resources": [
+                  "endpointslices"
+                ],
+                "verbs": [
+                  "get",
+                  "create",
+                  "list",
+                  "watch",
+                  "update",
+                  "delete"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "specChanges": [
+        "apps/Deployment/platform-monitoring/atlas-monitoring-operator"
+      ]
+    },
+    {
+      "file": "gitops/platform/observability/stack/overlays/development/rendered.yaml",
+      "before": 90,
+      "after": 90,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "monitoring.coreos.com/Prometheus/platform-monitoring/atlas-monitoring-prometheus",
+        "monitoring.coreos.com/Alertmanager/platform-monitoring/atlas-monitoring-alertmanager",
+        "monitoring.coreos.com/ServiceMonitor/platform-monitoring/atlas-monitoring-kubelet",
+        "apps/Deployment/platform-monitoring/atlas-monitoring-grafana"
+      ]
+    },
+    {
+      "file": "platform/development/bootstrap/argocd-self-seed.yaml",
+      "before": 44,
+      "after": 44,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-repo-server",
+        "batch/Job/platform-argocd/atlas-refactor-argocd-redis-secret-init",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-redis",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-server",
+        "apps/StatefulSet/platform-argocd/atlas-refactor-argocd-application-controller",
+        "apps/Deployment/platform-argocd/atlas-refactor-argocd-applicationset-controller"
+      ]
+    },
+    {
+      "file": "platform/development/bootstrap/cilium-seed.yaml",
+      "before": 13,
+      "after": 13,
+      "added": [],
+      "removed": [],
+      "rbacChanges": [],
+      "specChanges": [
+        "apps/Deployment/kube-system/cilium-operator",
+        "apps/DaemonSet/kube-system/cilium"
+      ]
+    }
+  ],
+  "flinkRBAC": {
+    "before": "275f0c722b035b1c2aecbd5387a85f13b1beca651ec48c2ad8729e86717dc3e6",
+    "after": "12aa7140fb737ad2d13146bda5db1b82e0cc55f2b9c37930c3bd72b7dba4e907",
+    "difference": "Version/chart labels only; no rules/subjects/roleRef/identity changes"
+  },
+  "runtimeAcceptance": "NOT RUN",
+  "releasePublication": "NOT RUN",
+  "validationResults": "See candidate-bound local quality report and PR; not predeclared in source evidence",
+  "frozenLegacyInputs": {
+    "sourceCommit": "8586a3efe4627144f4750e6e513ac6c9a2dbd973",
+    "layoutArchiveSHA256": "a8bd244b772119553196afda41521ac364c43817389f9680e807a8dcfb51b32a",
+    "vendorFiles": {
+      "vendor/platform/cilium-1.20.2.tgz": "b2afd87b7f75f875f92a14559f14f59b7babbb479d968e3fd625a20bf30ec20e",
+      "vendor/platform/cert-manager-v1.21.2.tgz": "73a56e1728edd6c99f1f31082618c3259d279a76b7ebd3d4bdc5475c2442d34a",
+      "vendor/platform/kind-storage.go": "a50b6d4360d96d90005e8ea76f0d5c5171fd51c1c33ecc7a8049dfa32f3d6803",
+      "vendor/platform/gateway-helm-v1.9.2.tgz": "1079cad009e0885f6e10e5f712257d8e5fdaf911d2ceb3fa1b78632c8f29bbf9",
+      "vendor/platform/envoy-gateway-v1.9.2-install.yaml": "0412a72907e57ff9b73c56a7bf6df5190bf0f6e4f8bb4bba34e38630bbab5778",
+      "vendor/platform/gateway-api-v1.6.3-standard.yaml": "356c2b8e286a964dc20995435659ad1095386329974793af10bbfe3eff977fe5",
+      "vendor/charts/argo-cd-10.10.2.tgz": "1f2bdb0e23b87fdac5222d99d1acf6964e670db9bf63912c58ab4677e505638b",
+      "vendor/platform/sealed-secrets-2.20.0.tgz": "6092d219c697f3c9ae3a386ba24bfdd86877c5e2fc8892e2af8a810145b990ef",
+      "vendor/platform/kube-prometheus-stack-92.3.0.tgz": "48399b911fa91b353e0c3d5e32c1cb7a67a168566549723553154ffd7be5d1fa",
+      "vendor/platform/cloudnative-pg-0.29.1.tgz": "b53d3991fe84bcf38767e7702cae78666265427a127a26fff168ab4207d2b1df",
+      "vendor/platform/strimzi-kafka-operator-helm-3-chart-1.3.0.tgz": "42677cec73d2122f4a395d9891bbccfae18ec16b3582174d49ca04695f351192",
+      "vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz": "8afdca38d3104f47a5c59f63886f9153d0f63fc0a0ce7979c79357f9571d4fe5"
+    },
+    "companionFiles": {
+      "internal/atlas/testdata/development-legacy-inputs/versions.lock.json": "c6083e75fe2110eeabc40f2be8314effbbd63256bf1961c571266d4ae2e5a948",
+      "internal/atlas/testdata/development-legacy-inputs/assets/argocd-cm.yaml": "c749c12529331af2dd24392d3948631804bb2acbcc5d62e777a58c22cfcf4024",
+      "internal/atlas/testdata/development-legacy-inputs/assets/argocd-values.yaml": "66b25e9dc81425a911acc2feb5a7d1c38034ae93a2bc83a0f2ce99d08c1eb4d6"
+    },
+    "note": "Retained test inputs only; excluded from current product locks"
+  }
+}

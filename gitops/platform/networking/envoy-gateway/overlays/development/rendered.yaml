@@ -7,8 +7,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "envoy-gateway",
     "namespace": "platform-gateway"
@@ -18,7 +18,7 @@
 {
   "apiVersion": "v1",
   "data": {
-    "envoy-gateway.yaml": "apiVersion: gateway.envoyproxy.io/v1alpha1\nkind: EnvoyGateway\nenvoyProxy:\n  provider:\n    kubernetes:\n      envoyDeployment:\n        container:\n          image: docker.io/envoyproxy/envoy:distroless-v1.39.3@sha256:7369b033550a14997e5d698677b7b51f0210a80754f5d084c5caa1a78268267b\n          imagePullPolicy: IfNotPresent\n    type: Kubernetes\nextensionApis: {}\ngateway:\n  controllerName: gateway.envoyproxy.io/gatewayclass-controller\nlogging:\n  level:\n    default: info\nprovider:\n  kubernetes:\n    rateLimitDeployment:\n      container:\n        image: docker.io/envoyproxy/ratelimit:0482748e@sha256:5fdd8e3ae335ab6d64316f8d2fd9a886830075cbbb40a1d8065c869275909162\n      patch:\n        type: StrategicMerge\n        value:\n          spec:\n            template:\n              spec:\n                containers:\n                - imagePullPolicy: IfNotPresent\n                  name: envoy-ratelimit\n    shutdownManager:\n      image: docker.io/envoyproxy/gateway:v1.9.2@sha256:9d67017c442a70e6ae9f1a358e6c80eb653c67c2e40823d9a991e0daf37ba926\n  type: Kubernetes\nproxyTopologyInjector:\n  disabled: true\n"
+    "envoy-gateway.yaml": "apiVersion: gateway.envoyproxy.io/v1alpha1\nkind: EnvoyGateway\nenvoyProxy:\n  provider:\n    kubernetes:\n      envoyDeployment:\n        container:\n          image: docker.io/envoyproxy/envoy:distroless-v1.39.6@sha256:1cac8b3a2f72d5a0918f54d7b49e68aae0b0ba325c2d50c8a9a3fff7a4d1f994\n          imagePullPolicy: IfNotPresent\n    type: Kubernetes\nextensionApis: {}\ngateway:\n  controllerName: gateway.envoyproxy.io/gatewayclass-controller\nlogging:\n  level:\n    default: info\nprovider:\n  kubernetes:\n    rateLimitDeployment:\n      container:\n        image: docker.io/envoyproxy/ratelimit:5ae0682e@sha256:b95206e32b1a5f824fb06062fbb85bbdfb7f5de54135e92afe8462f22c979681\n      patch:\n        type: StrategicMerge\n        value:\n          spec:\n            template:\n              spec:\n                containers:\n                - imagePullPolicy: IfNotPresent\n                  name: envoy-ratelimit\n    shutdownManager:\n      image: docker.io/envoyproxy/gateway:v1.9.3@sha256:192fc9bdadb6d2462e8cf7bd702ce3dd9648f3310c6038787448a1f509b7cd9f\n  type: Kubernetes\nproxyTopologyInjector:\n  disabled: true\n"
   },
   "kind": "ConfigMap",
   "metadata": {
@@ -26,8 +26,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "envoy-gateway-config",
     "namespace": "platform-gateway"
@@ -43,8 +43,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-envoy-gateway-role"
   },
@@ -231,8 +231,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-envoy-gateway-rolebinding"
   },
@@ -258,8 +258,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-infra-manager",
     "namespace": "platform-gateway"
@@ -360,8 +360,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-leader-election-role",
     "namespace": "platform-gateway"
@@ -424,8 +424,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-infra-manager",
     "namespace": "platform-gateway"
@@ -452,8 +452,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-leader-election-rolebinding",
     "namespace": "platform-gateway"
@@ -480,9 +480,9 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
+      "app.kubernetes.io/version": "v1.9.3",
       "control-plane": "envoy-gateway",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "envoy-gateway",
     "namespace": "platform-gateway"
@@ -527,9 +527,9 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
+      "app.kubernetes.io/version": "v1.9.3",
       "control-plane": "envoy-gateway",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "envoy-gateway",
     "namespace": "platform-gateway"
@@ -591,7 +591,7 @@
                 "value": "cluster.local"
               }
             ],
-            "image": "docker.io/envoyproxy/gateway:v1.9.2@sha256:9d67017c442a70e6ae9f1a358e6c80eb653c67c2e40823d9a991e0daf37ba926",
+            "image": "docker.io/envoyproxy/gateway:v1.9.3@sha256:192fc9bdadb6d2462e8cf7bd702ce3dd9648f3310c6038787448a1f509b7cd9f",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "httpGet": {
@@ -736,8 +736,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-certgen",
     "namespace": "platform-gateway"
@@ -756,8 +756,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-certgen",
     "namespace": "platform-gateway"
@@ -791,8 +791,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-certgen",
     "namespace": "platform-gateway"
@@ -822,8 +822,8 @@
       "app.kubernetes.io/instance": "eg",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "gateway-helm",
-      "app.kubernetes.io/version": "v1.9.2",
-      "helm.sh/chart": "gateway-helm-v1.9.2"
+      "app.kubernetes.io/version": "v1.9.3",
+      "helm.sh/chart": "gateway-helm-v1.9.3"
     },
     "name": "eg-gateway-helm-certgen",
     "namespace": "platform-gateway"
@@ -864,7 +864,7 @@
                 "value": "cluster.local"
               }
             ],
-            "image": "docker.io/envoyproxy/gateway:v1.9.2@sha256:9d67017c442a70e6ae9f1a358e6c80eb653c67c2e40823d9a991e0daf37ba926",
+            "image": "docker.io/envoyproxy/gateway:v1.9.3@sha256:192fc9bdadb6d2462e8cf7bd702ce3dd9648f3310c6038787448a1f509b7cd9f",
             "imagePullPolicy": "IfNotPresent",
             "name": "envoy-gateway-certgen",
             "securityContext": {

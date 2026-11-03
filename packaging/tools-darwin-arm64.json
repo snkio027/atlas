@@ -1,11 +1,11 @@
 [
   {
     "name": "helm",
-    "version": "4.3.0",
-    "url": "https://get.helm.sh/helm-v4.3.0-darwin-arm64.tar.gz",
-    "sha256": "d3870437e1e95b67f8edbde964156c84a26503f560821d40c542441658934fba",
+    "version": "4.3.1",
+    "url": "https://get.helm.sh/helm-v4.3.1-darwin-arm64.tar.gz",
+    "sha256": "6b4e61c8cd27d99e5a801e63ff25dd5c70b36875c2cd659d3e9ce6b76fc23198",
     "member": "darwin-arm64/helm",
-    "binarySHA256": "ed7defb5950888de567b2ba32f6795efbba172227aba7dfd2ee110549194f5c4"
+    "binarySHA256": "c62da98a8e5728f5acc08b66bbe5c3ad1cb6b71d3d31b7bf939d9f4b6628c96d"
   },
   {
     "name": "kind",
@@ -17,18 +17,18 @@
   },
   {
     "name": "kubectl",
-    "version": "1.37.1",
-    "url": "https://dl.k8s.io/release/v1.37.1/bin/darwin/arm64/kubectl",
-    "sha256": "fd65982c97ddad3106754b69ffa196d0e543aa591930ae52aed1adfb92f8c77f",
+    "version": "1.37.2",
+    "url": "https://dl.k8s.io/release/v1.37.2/bin/darwin/arm64/kubectl",
+    "sha256": "55701af0d51815ee335f240e48acf0959c3c23017ed3fa816e880c4a92bae581",
     "member": "",
-    "binarySHA256": "fd65982c97ddad3106754b69ffa196d0e543aa591930ae52aed1adfb92f8c77f"
+    "binarySHA256": "55701af0d51815ee335f240e48acf0959c3c23017ed3fa816e880c4a92bae581"
   },
   {
     "name": "kubeseal",
-    "version": "0.40.0",
-    "url": "https://github.com/bitnami/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-darwin-arm64.tar.gz",
-    "sha256": "ec8a34b19ff8f1c1dee6fa09e13111b3007aa9ad08de1da28bd65cdc1eaecf93",
+    "version": "0.41.2",
+    "url": "https://github.com/bitnami/sealed-secrets/releases/download/v0.41.2/kubeseal-0.41.2-darwin-arm64.tar.gz",
+    "sha256": "4f9ce57bb69c419f1a94e88e0d2d5755b395f7926e34d99bf91bc8e084e27ae4",
     "member": "kubeseal",
-    "binarySHA256": "0e02a514835e24d5330b7625b1ebada878945d266207790e779482ae52b42631"
+    "binarySHA256": "24b3aab32fd0a1aa678b39457fb95b3e214a4ee264743a405a2e4aa59f8343f7"
   }
 ]

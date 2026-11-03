@@ -17,7 +17,7 @@ GitHub 迁移、候选验证及合并后 main 验证各自留证，不能用设�
 | `task quality:full` / `task quality` | Fast覆盖 + race测试 + 真实Helm/Kustomize与平台校验 + OT-1契约 + 实验入口 + 数据契约 + 包装检查 + Web OCI一致性 |
 
 本地证据位于 `.state/quality/<run>/`；不会访问运行集群、准备凭据或下载依赖。
-Go1.27.2、macOS arm64及锁定工具沿用仓库要求。CI准备工具与运行时下载严格分开；
+Go1.27.3、macOS arm64及锁定工具沿用仓库要求。CI准备工具与运行时下载严格分开；
 Draft准备器仅下载并校验Task与actionlint，Full准备器校验完整工具集。每个检查保存日志与耗时。单个命令预算40分钟，CI验证作业总预算45分钟；
 Go测试仍保留每包25分钟限制。预算包含冷编译与包调度，不能用较短的全局预算误截正常Full。
 

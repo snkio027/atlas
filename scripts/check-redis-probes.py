@@ -16,9 +16,18 @@ import time
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--docker-context", default="orbstack")
 parser.add_argument("--openssl", default="openssl")
+parser.add_argument("--yq", help="Path to the locked local yq executable")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-objects = json.loads((root / "platform/development/capabilities/resources/redis.json").read_text())["items"]
+source = root / "platform/development/capabilities"
+lock = json.loads((source / "versions.lock.json").read_text())
+yq = args.yq or str(root / ".state/tools/yq")
+version = subprocess.check_output([yq, "--version"], text=True).strip()
+if version != "yq (https://github.com/mikefarah/yq/) version v" + lock["yq"]:
+    raise ValueError("yq version differs from capability lock")
+objects = json.loads(subprocess.check_output([
+    yq, "-o=json", ".", str(source / "resources/redis.yaml"),
+]))["items"]
 config = next(o["data"] for o in objects if o["kind"] == "ConfigMap")
 container = next(o for o in objects if o["kind"] == "StatefulSet")["spec"]["template"]["spec"]["containers"][0]
 assert "@sha256:" in container["image"]

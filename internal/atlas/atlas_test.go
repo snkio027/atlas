@@ -266,10 +266,29 @@ func (s *simulator) seedObjects() []Object {
 }
 func fixture(t *testing.T) (*App, *simulator) {
 	t.Helper()
+	return fixtureFrom(t, filepath.Join("..", ".."))
+}
+
+func fixtureFrom(t *testing.T, source string) (*App, *simulator) {
+	t.Helper()
 	root := t.TempDir()
-	source := filepath.Join("..", "..")
-	for _, p := range []string{"versions.lock.json", "assets/argocd-values.yaml", "assets/argocd-cm.yaml", "vendor/charts/argo-cd-10.10.2.tgz"} {
-		b, e := os.ReadFile(filepath.Join(source, p))
+	b, e := os.ReadFile(filepath.Join(source, "versions.lock.json"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	var l Lock
+	if e := strictJSON(b, &l); e != nil {
+		t.Fatal(e)
+	}
+	if e := l.Validate(); e != nil {
+		t.Fatal(e)
+	}
+	for _, p := range []string{"versions.lock.json", "assets/argocd-values.yaml", "assets/argocd-cm.yaml", l.Chart} {
+		input := filepath.Join(source, p)
+		if p == l.Chart {
+			input = filepath.Join("..", "..", p)
+		}
+		b, e := os.ReadFile(input)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -282,11 +301,6 @@ func fixture(t *testing.T) (*App, *simulator) {
 		}
 	}
 	c := Config{1, "atlas-refactor-test", "https://example.com/owner/atlas-refactor.git", "main", "gitops/test", "orbstack", 30}
-	b, _ := os.ReadFile(filepath.Join(root, "versions.lock.json"))
-	var l Lock
-	if e := strictJSON(b, &l); e != nil {
-		t.Fatal(e)
-	}
 	a := &App{Root: root, Config: c, Lock: l}
 	s := &simulator{app: a, converge: true, objects: map[string]Object{}}
 	a.Runner = s

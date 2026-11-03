@@ -121,7 +121,7 @@ chart/values/release、镜像、配置和所有调用方。不能把单节点 Go
 
 ### G3：Go 的供应链准入
 
-当前 `go.mod` 固定 Go 1.27.2，ADR-0023 引入唯一的 YAML 解析模块并绑定 vendor/许可证/摘要；
+当前 `go.mod` 固定 Go 1.27.3，ADR-0023 引入唯一的 YAML 解析模块并绑定 vendor/许可证/摘要；
 Task 禁用自动工具链和模块获取，
 使用 `GOTOOLCHAIN=local`、`GOPROXY=off`、`GOSUMDB=off`、`-mod=vendor`。
 这是可复核输入约束，不能替代以下发布 Gate：

@@ -40,7 +40,7 @@ cert-manager、本地存储和受限业务 namespace。清单、本地验证和 
 
 ## 构建与检查
 
-需要 Go **1.27.2**。人工配置解析使用锁定的 YAML 模块，其余模块边界见 ADR-0023；源码内 vendor 支持离线构建。
+需要 Go **1.27.3**。人工配置解析使用锁定的 YAML 模块，其余模块边界见 ADR-0023；源码内 vendor 支持离线构建。
 
 ```sh
 task quality
@@ -49,7 +49,7 @@ task build
 ```
 
 `task quality` 检查格式、运行 `go vet`、race-enabled 契约测试、Lua 健康检查和开发清单校验，并编译/vet 三个冻结的 OT-1 专用入口；不访问集群。
-现在还需本地 Helm 4.3.0、kubectl 1.37.1、yq 4.54.1、Lua 5.5.1、kubeseal 0.40.0（当前 checksum lock 为 darwin/arm64）；
+现在还需本地 Helm 4.3.1、kubectl 1.37.2、yq 4.54.1、Lua 5.5.1、kubeseal 0.41.2（当前 checksum lock 为 darwin/arm64）；
 Task 优先使用现有 `.state/tools/{helm,kubectl,yq,kubeseal}`，缺少时使用 PATH；
 显式 `PLATFORM_HELM`、`PLATFORM_KUBECTL`、`PLATFORM_YQ`、`KUBESEAL` 参数优先，Lua 使用 `PLATFORM_LUA` 或 PATH。不会自动安装工具。
 工具路径参数与清单渲染命令见[开发平台说明](development-platform.md#文件与复现)。
@@ -64,7 +64,7 @@ GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=vendor go vet ./...
 GOTOOLCHAIN=local CGO_ENABLED=0 go build -trimpath -o bin/atlas ./cmd/atlas
 ```
 
-真实 Helm 渲染校验使用预装的 **4.3.0** 可执行文件：
+真实 Helm 渲染校验使用预装的 **4.3.1** 可执行文件：
 
 ```sh
 task quality PLATFORM_HELM=/absolute/path/to/helm

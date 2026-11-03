@@ -1,6 +1,6 @@
 lua: 5.5.1
 egctl:
-  version: 1.9.2
-  archive: https://github.com/envoyproxy/gateway/releases/download/v1.9.2/egctl_v1.9.2_darwin_arm64.tar.gz
-  archiveSHA256: 1ced0512cc6c51048ff8e0f08e59b1f03e4a0ff80c674814136fd6bdb08728e3
-  binarySHA256: e1700b8712ac2dbdf1deaeb431deee8156227ccfa8fc02df0a938f58cc28dfb3
+  version: 1.9.3
+  archive: https://github.com/envoyproxy/gateway/releases/download/v1.9.3/egctl_v1.9.3_darwin_arm64.tar.gz
+  archiveSHA256: 276a8b0cb060f0e915d83ca4b399373675c8d296cb82eef283ec5510caf75626
+  binarySHA256: c5d05a85637638b8b2a94e1891a325ad4ad12dc496f7907d3b84c0c197cfffe0
