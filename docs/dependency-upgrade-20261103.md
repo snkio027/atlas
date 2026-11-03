@@ -4,7 +4,7 @@ This candidate upgrades current product inputs from main
 `8586a3efe4627144f4750e6e513ac6c9a2dbd973`. It does not upgrade the running
 installation. Source integration, release publication and instance acceptance
 remain distinct. The new permission/configuration differences are reviewed in
-[Proposed ADR-0026](adr/0026-dependency-upgrade-20261103.md).
+[Accepted ADR-0026](adr/0026-dependency-upgrade-20261103.md).
 
 ## Selected versions
 

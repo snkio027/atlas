@@ -1,7 +1,13 @@
 # ADR-0026：2026-11-03 依赖升级的权限与配置差异
 
-Status: Proposed。用户已授权按依赖检查实施源码升级；本文列出的新权限及配置差异
-作为具体候选提交所有者审查。尚无现有实例升级、部署、恢复或合并批准。
+Status: Accepted（2026-11-03）。所有者明确确认：「确认接受 ADR-0026，合并 PR #21。」
+本决定接受本文的权限与配置差异并批准源码合并；现有实例升级、部署和恢复仍须单独授权。
+
+接受记录绑定已审查的 head `8975f521e5cb0504d89c942324a40cf75a5dbb56`、
+base `8586a3efe4627144f4750e6e513ac6c9a2dbd973`，以及
+[权限审查记录](https://github.com/snkio027/atlas/pull/21#pullrequestreview-5748931226) 和
+[远端 Full / 准入 PASS](https://github.com/snkio027/atlas/actions/runs/41597010873)（attempt 1）。
+记录本决定的文档提交仍按仓库契约验证当前候选后合并，不复用旧候选的通过结果。
 
 ## 范围
 
@@ -23,6 +29,8 @@ kube-prometheus-stack 92.17.1 的 `atlas-monitoring-operator` ClusterRole
 命名空间、通配权限或 Secret 权限。它沿用上游 chart 的
 [finalizer 权限修正](https://github.com/prometheus-community/helm-charts/commit/0eeacf55499960aac1ff6cc766dba53cd0a19933)。
 最终渲染权限差异保存在 [机器可读清单](../evidence/dependency-upgrade-20261103.json)。
+沿用的 ClusterRoleBinding 将这四项权限授予现有监控 Operator ServiceAccount，
+覆盖集群内对应资源的所有名称；RBAC 不按对象所有者或单一命名空间限制。
 
 选择保留这个明确增量并单独审查，不通过修改上游归档、关闭权限检查或任意扩大规则来通过升级。
 它允许既有 Operator 维护自己管理的监控 CR finalizer；不是 Atlas 恢复、清理或重新获得 Seed
