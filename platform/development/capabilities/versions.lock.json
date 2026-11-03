@@ -1,29 +1,29 @@
 {
   "schema": 1,
-  "helm": "4.3.0",
-  "kubectl": "1.37.1",
+  "helm": "4.3.1",
+  "kubectl": "1.37.2",
   "yq": "4.54.1",
   "kubernetes": "1.37.0",
   "images": {
-    "docker.io/bitnami/sealed-secrets-controller:0.40.0": "docker.io/bitnami/sealed-secrets-controller:0.40.0@sha256:b1ff382e9300dc9e74991f3177b18cafc06ce43b5c21349c86adbdd1d1c177d3",
-    "docker.io/chrislusf/seaweedfs:4.48": "docker.io/chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d",
-    "docker.io/grafana/grafana:13.2.3-distroless": "docker.io/grafana/grafana:13.2.3-distroless@sha256:202e5d5b3f8499e70ccac7991eea6d7da72d2790eb2e0597e7987acf724e7180",
+    "docker.io/bitnami/sealed-secrets-controller:0.41.2": "docker.io/bitnami/sealed-secrets-controller:0.41.2@sha256:e63ec6ec2b12a471bf781081bd370a93ca7b7b3999e5b9243341379aeb801d0b",
+    "docker.io/chrislusf/seaweedfs:4.52": "docker.io/chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59",
+    "docker.io/grafana/grafana:13.3.0-distroless": "docker.io/grafana/grafana:13.3.0-distroless@sha256:540b8afb775bf34aefce417e4329039daa5d44b6f2fbda6881397b1b247ca7df",
     "quay.io/kiwigrid/k8s-sidecar:2.14.1": "quay.io/kiwigrid/k8s-sidecar:2.14.1@sha256:092dbe0c335fba9af414a27630ca68f34df6185784fa847d9954187e69dbfdd7",
-    "quay.io/prometheus-operator/prometheus-operator:v0.94.1": "quay.io/prometheus-operator/prometheus-operator:v0.94.1@sha256:7c88d4e7bae63bd8d0f8da986054337c23b4472fa8d3c6817f5bc4b8407a2d6a",
-    "quay.io/prometheus/alertmanager:v0.34.1": "quay.io/prometheus/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a",
+    "quay.io/prometheus-operator/prometheus-operator:v0.94.2": "quay.io/prometheus-operator/prometheus-operator:v0.94.2@sha256:c7edf0379b7271ef1705dce258d2bb73820e299cc95559369e9f6fc3321639ec",
+    "quay.io/prometheus/alertmanager:v0.34.2": "quay.io/prometheus/alertmanager:v0.34.2@sha256:39d8bb3966c694a124428a3a88fbcffd40bd069129ecd47c059f8a3f17c55f3b",
     "quay.io/prometheus/node-exporter:v1.12.1-distroless": "quay.io/prometheus/node-exporter:v1.12.1-distroless@sha256:8c9bac11973b94b59be88d6e11fee4429aa743c8846cdc75d65b18db33f6a106",
-    "quay.io/prometheus/prometheus:v3.15.0-distroless": "quay.io/prometheus/prometheus:v3.15.0-distroless@sha256:b2a413d5a03ea6a76782a508d1c7947440bba3b973931a25676e278431891b01",
+    "quay.io/prometheus/prometheus:v3.15.1-distroless": "quay.io/prometheus/prometheus:v3.15.1-distroless@sha256:451a845bae1d51622b41af1780eb2ad911bbb79a9855bc8e9bb67fabbc03f934",
     "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0": "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0@sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b",
-    "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1": "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.1@sha256:06b52bd4dbe3ed6dd5905aadaf8b9987d9da4c31d37bb86deaadae68cee2d26b",
-    "docker.io/library/redis:8.10.2-alpine": "docker.io/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+    "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.2": "quay.io/prometheus-operator/prometheus-config-reloader:v0.94.2@sha256:a1897c67478bc23434534e91ad3855280771196b1daf17144db9dbcb655bef71",
+    "docker.io/library/redis:8.10.3-alpine": "docker.io/library/redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
     "docker.io/library/flink:2.3.0-scala_2.12-java17": "docker.io/library/flink:2.3.0-scala_2.12-java17@sha256:df6b153c93d3e60f4b96b323979bf0305861949a600fcee287214609d325037e",
-    "docker.io/grafana/loki:3.7.8": "docker.io/grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193",
-    "docker.io/grafana/alloy:v1.20.1": "docker.io/grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f",
+    "docker.io/grafana/loki:3.7.9": "docker.io/grafana/loki:3.7.9@sha256:0db216b630ae1f348a1584c67f3cead8b4c1fc839169a39501db664744158e28",
+    "docker.io/grafana/alloy:v1.21.3": "docker.io/grafana/alloy:v1.21.3@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4",
     "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1": "ghcr.io/cloudnative-pg/cloudnative-pg:1.30.1@sha256:923c267ec29636db3bee20f993d0ec4973fa22998e1adad37da79e4d32b5bc07",
     "ghcr.io/cloudnative-pg/postgresql:18.6": "ghcr.io/cloudnative-pg/postgresql:18.6@sha256:899d3ed526b659d77935dde0e6bf2d69dbbf17d3d8c6486ca8cfd04bd3c18533",
     "quay.io/strimzi/operator:1.3.0": "quay.io/strimzi/operator:1.3.0@sha256:4deb564fa329afa4046c550a6f8f1a6d00be3b9297e556969acabe6647b6676f",
     "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.1@sha256:1f189b1f0f32684302d8b018b1d21b411e2469a9c465fbdc18fa3599cb5bbdad",
-    "docker.io/apache/flink-kubernetes-operator:1.16.0": "docker.io/apache/flink-kubernetes-operator:1.16.0@sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
+    "docker.io/apache/flink-kubernetes-operator:1.16.1": "docker.io/apache/flink-kubernetes-operator:1.16.1@sha256:94b91ea6e9d83996f12d7360ca74e49264057cf3ce697636d81677611651d142",
     "quay.io/strimzi/kafka-bridge:1.2.0": "quay.io/strimzi/kafka-bridge:1.2.0@sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6",
     "quay.io/strimzi/buildah:1.3.0": "quay.io/strimzi/buildah:1.3.0@sha256:3ac4d8fde6eca2ad837dc5258390f5ea704949b0539c77a394eb33a63c806b97",
     "quay.io/strimzi/maven-builder:1.3.0": "quay.io/strimzi/maven-builder:1.3.0@sha256:146af4aa18fafddbd7606b9d92be395850c833c19b2a51a853b845edd5b930ba",
@@ -33,15 +33,15 @@
     "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0": "quay.io/strimzi/kafka:1.3.0-kafka-4.3.0@sha256:941622ab991b155571631018294636f1f3450163719cc6052441b7d3a49ce0d4"
   },
   "artifacts": {
-    "vendor/platform/sealed-secrets-2.20.0.tgz": {
-      "sha256": "6092d219c697f3c9ae3a386ba24bfdd86877c5e2fc8892e2af8a810145b990ef",
-      "source": "https://github.com/bitnami/sealed-secrets/releases/download/helm-v2.20.0/sealed-secrets-2.20.0.tgz",
-      "verification": "GitHub release asset sha256 digest"
+    "vendor/platform/sealed-secrets-2.22.0.tgz": {
+      "source": "https://github.com/bitnami/sealed-secrets/releases/download/helm-v2.22.0/sealed-secrets-2.22.0.tgz",
+      "sha256": "1ed23bb224652aa6c8477979d4bddccd207205b27b12b120f62f360890c80606",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
     },
-    "vendor/platform/kube-prometheus-stack-92.3.0.tgz": {
-      "sha256": "48399b911fa91b353e0c3d5e32c1cb7a67a168566549723553154ffd7be5d1fa",
-      "source": "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-92.3.0/kube-prometheus-stack-92.3.0.tgz",
-      "verification": "GitHub release asset digest"
+    "vendor/platform/kube-prometheus-stack-92.17.1.tgz": {
+      "source": "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-92.17.1/kube-prometheus-stack-92.17.1.tgz",
+      "sha256": "fc8fe107f94a3009c04af63a03fb811393970db0eb973a9c513941acfce565c1",
+      "verification": "Publisher Helm index digest; rechecked from reviewed download"
     },
     "vendor/platform/cloudnative-pg-0.29.1.tgz": {
       "sha256": "b53d3991fe84bcf38767e7702cae78666265427a127a26fff168ab4207d2b1df",
@@ -53,9 +53,9 @@
       "source": "https://github.com/strimzi/strimzi-kafka-operator/releases/download/1.3.0/strimzi-kafka-operator-helm-3-chart-1.3.0.tgz",
       "verification": "GitHub release asset SHA-256"
     },
-    "vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz": {
-      "sha256": "8afdca38d3104f47a5c59f63886f9153d0f63fc0a0ce7979c79357f9571d4fe5",
-      "source": "https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.16.0/flink-kubernetes-operator-1.16.0-helm.tgz",
+    "vendor/platform/flink-kubernetes-operator-1.16.1-helm.tgz": {
+      "source": "https://archive.apache.org/dist/flink/flink-kubernetes-operator-1.16.1/flink-kubernetes-operator-1.16.1-helm.tgz",
+      "sha256": "e3e107e7bf0a9e9762d699f81d782991a974d3193532e4953a4d4a8e3e9d8579",
       "verification": "Apache release SHA-512"
     }
   }

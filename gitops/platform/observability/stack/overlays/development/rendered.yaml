@@ -6,8 +6,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -26,7 +26,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
@@ -46,7 +46,7 @@
       "app.kubernetes.io/name": "prometheus-node-exporter",
       "app.kubernetes.io/part-of": "prometheus-node-exporter",
       "app.kubernetes.io/version": "1.12.1",
-      "helm.sh/chart": "prometheus-node-exporter-4.59.0",
+      "helm.sh/chart": "prometheus-node-exporter-4.60.1",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
@@ -66,8 +66,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "kube-prometheus-stack-alertmanager",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -88,8 +88,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "kube-prometheus-stack-prometheus",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -108,8 +108,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana-config-dashboards",
     "namespace": "platform-monitoring"
@@ -126,8 +126,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -146,8 +146,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_datasource": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -170,8 +170,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -194,8 +194,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -218,8 +218,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -242,8 +242,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -266,8 +266,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -290,8 +290,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -314,8 +314,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -338,8 +338,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -362,8 +362,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -386,8 +386,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -410,8 +410,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -434,8 +434,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -458,8 +458,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -482,8 +482,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -506,8 +506,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -530,8 +530,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -554,8 +554,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -578,8 +578,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -602,8 +602,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -626,8 +626,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -650,8 +650,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -674,8 +674,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -698,8 +698,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -722,8 +722,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -746,8 +746,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "grafana_dashboard": "1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
@@ -770,8 +770,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -800,7 +800,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics"
@@ -1154,8 +1154,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -1228,7 +1228,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics"
@@ -1256,8 +1256,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -1284,8 +1284,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -1315,8 +1315,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -1342,8 +1342,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -1377,7 +1377,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
@@ -1411,7 +1411,7 @@
       "app.kubernetes.io/name": "prometheus-node-exporter",
       "app.kubernetes.io/part-of": "prometheus-node-exporter",
       "app.kubernetes.io/version": "1.12.1",
-      "helm.sh/chart": "prometheus-node-exporter-4.59.0",
+      "helm.sh/chart": "prometheus-node-exporter-4.60.1",
       "jobLabel": "node-exporter",
       "release": "atlas-monitoring"
     },
@@ -1444,8 +1444,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring",
       "self-monitor": "true"
@@ -1486,8 +1486,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "jobLabel": "coredns",
       "release": "atlas-monitoring"
@@ -1520,8 +1520,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring",
       "self-monitor": "true"
@@ -1564,7 +1564,7 @@
       "app.kubernetes.io/name": "prometheus-node-exporter",
       "app.kubernetes.io/part-of": "prometheus-node-exporter",
       "app.kubernetes.io/version": "1.12.1",
-      "helm.sh/chart": "prometheus-node-exporter-4.59.0",
+      "helm.sh/chart": "prometheus-node-exporter-4.60.1",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
@@ -1763,8 +1763,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0"
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1"
     },
     "name": "atlas-monitoring-grafana",
     "namespace": "platform-monitoring"
@@ -1791,8 +1791,8 @@
         "labels": {
           "app.kubernetes.io/instance": "atlas-monitoring",
           "app.kubernetes.io/name": "grafana",
-          "app.kubernetes.io/version": "13.2.3",
-          "helm.sh/chart": "grafana-13.5.0"
+          "app.kubernetes.io/version": "13.3.0",
+          "helm.sh/chart": "grafana-14.3.1"
         }
       },
       "spec": {
@@ -2019,7 +2019,7 @@
                 "value": "460MiB"
               }
             ],
-            "image": "docker.io/grafana/grafana:13.2.3-distroless@sha256:202e5d5b3f8499e70ccac7991eea6d7da72d2790eb2e0597e7987acf724e7180",
+            "image": "docker.io/grafana/grafana:13.3.0-distroless@sha256:540b8afb775bf34aefce417e4329039daa5d44b6f2fbda6881397b1b247ca7df",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 10,
@@ -2188,7 +2188,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
@@ -2313,8 +2313,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2359,7 +2359,7 @@
     },
     "automountServiceAccountToken": true,
     "externalUrl": "http://atlas-monitoring-alertmanager.platform-monitoring:9093",
-    "image": "quay.io/prometheus/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a",
+    "image": "quay.io/prometheus/alertmanager:v0.34.2@sha256:39d8bb3966c694a124428a3a88fbcffd40bd069129ecd47c059f8a3f17c55f3b",
     "imagePullPolicy": "IfNotPresent",
     "listenLocal": false,
     "logFormat": "logfmt",
@@ -2420,7 +2420,7 @@
         "value": "true"
       }
     ],
-    "version": "v0.34.1"
+    "version": "v0.34.2"
   }
 }
 ---
@@ -2433,8 +2433,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2489,7 +2489,7 @@
     "evaluationInterval": "30s",
     "externalUrl": "http://atlas-monitoring-prometheus.platform-monitoring:9090",
     "hostNetwork": false,
-    "image": "quay.io/prometheus/prometheus:v3.15.0-distroless@sha256:b2a413d5a03ea6a76782a508d1c7947440bba3b973931a25676e278431891b01",
+    "image": "quay.io/prometheus/prometheus:v3.15.1-distroless@sha256:451a845bae1d51622b41af1780eb2ad911bbb79a9855bc8e9bb67fabbc03f934",
     "imagePullPolicy": "IfNotPresent",
     "listenLocal": false,
     "logFormat": "logfmt",
@@ -2625,7 +2625,7 @@
     "tsdb": {
       "outOfOrderTimeWindow": "0s"
     },
-    "version": "v3.15.0-distroless",
+    "version": "v3.15.1-distroless",
     "walCompression": true
   }
 }
@@ -2639,8 +2639,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2784,8 +2784,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2825,8 +2825,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2890,8 +2890,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2926,8 +2926,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2958,8 +2958,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -2990,8 +2990,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3022,8 +3022,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3054,8 +3054,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3114,8 +3114,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3195,8 +3195,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3309,8 +3309,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3433,8 +3433,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3477,8 +3477,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3565,8 +3565,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3601,8 +3601,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3653,8 +3653,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3733,8 +3733,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -3782,8 +3782,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4030,8 +4030,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4162,8 +4162,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4255,8 +4255,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4374,8 +4374,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4606,8 +4606,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4660,8 +4660,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -4748,8 +4748,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5111,8 +5111,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5152,8 +5152,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5200,8 +5200,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5332,8 +5332,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5657,8 +5657,8 @@
     "labels": {
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/name": "grafana",
-      "app.kubernetes.io/version": "13.2.3",
-      "helm.sh/chart": "grafana-13.5.0",
+      "app.kubernetes.io/version": "13.3.0",
+      "helm.sh/chart": "grafana-14.3.1",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-grafana",
@@ -5699,7 +5699,7 @@
       "app.kubernetes.io/name": "kube-state-metrics",
       "app.kubernetes.io/part-of": "kube-state-metrics",
       "app.kubernetes.io/version": "2.20.0",
-      "helm.sh/chart": "kube-state-metrics-8.6.0",
+      "helm.sh/chart": "kube-state-metrics-8.8.0",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-kube-state-metrics",
@@ -5733,7 +5733,7 @@
       "app.kubernetes.io/name": "prometheus-node-exporter",
       "app.kubernetes.io/part-of": "prometheus-node-exporter",
       "app.kubernetes.io/version": "1.12.1",
-      "helm.sh/chart": "prometheus-node-exporter-4.59.0",
+      "helm.sh/chart": "prometheus-node-exporter-4.60.1",
       "release": "atlas-monitoring"
     },
     "name": "atlas-monitoring-prometheus-node-exporter",
@@ -5768,8 +5768,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5812,8 +5812,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5850,8 +5850,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5910,8 +5910,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -5980,7 +5980,7 @@
           },
           {
             "action": "drop",
-            "regex": "container_memory_(mapped_file|swap)",
+            "regex": "container_memory_mapped_file",
             "sourceLabels": [
               "__name__"
             ]
@@ -6100,8 +6100,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "kube-prometheus-stack-prometheus-operator",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },
@@ -6149,8 +6149,8 @@
       "app.kubernetes.io/instance": "atlas-monitoring",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/part-of": "kube-prometheus-stack",
-      "app.kubernetes.io/version": "92.3.0",
-      "chart": "kube-prometheus-stack-92.3.0",
+      "app.kubernetes.io/version": "92.17.1",
+      "chart": "kube-prometheus-stack-92.17.1",
       "heritage": "Helm",
       "release": "atlas-monitoring"
     },

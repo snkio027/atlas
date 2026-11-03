@@ -321,7 +321,7 @@ components:
     permissionDomain: data
 jobs:
   - release: sealed-secrets
-    chart: vendor/platform/sealed-secrets-2.20.0.tgz
+    chart: vendor/platform/sealed-secrets-2.22.0.tgz
     namespace: platform-sealed-secrets
     values:
       - platform/development/capabilities/values/sealed-secrets.json
@@ -344,7 +344,7 @@ jobs:
       platform-strimzi-operator: kafka-operator-foundation
       platform-flink-operator: flink-operator-foundation
   - release: atlas-monitoring
-    chart: vendor/platform/kube-prometheus-stack-92.3.0.tgz
+    chart: vendor/platform/kube-prometheus-stack-92.17.1.tgz
     namespace: platform-monitoring
     values:
       - platform/development/capabilities/values/monitoring.json
@@ -357,7 +357,7 @@ jobs:
       - component: monitoring-operator
         kinds: []
   - release: atlas-monitoring
-    chart: vendor/platform/kube-prometheus-stack-92.3.0.tgz
+    chart: vendor/platform/kube-prometheus-stack-92.17.1.tgz
     namespace: platform-monitoring
     values:
       - platform/development/capabilities/values/monitoring.json
@@ -395,7 +395,7 @@ jobs:
       - component: kafka-operator
         kinds: []
   - release: flink-operator
-    chart: vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz
+    chart: vendor/platform/flink-kubernetes-operator-1.16.1-helm.tgz
     namespace: platform-flink-operator
     values:
       - platform/development/capabilities/values/flink-operator.json

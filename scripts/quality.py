@@ -81,7 +81,7 @@ def policy():
     require(type(p["schema"]) is int and p["schema"] == 1 and p["profile"] == "pr-full" and p["assurance"] == "standard" and p["epoch"] == "v1", "unknown policy")
     require(p["context"] == "Delivery / Quality / pr-full-standard-v1" and p["base_branch"] == "main", "unknown admission identity")
     require(p["fast"] == FAST and p["full"] == FULL, "required check coverage changed")
-    require(p["environment"] == {"system": "Darwin", "machine": "arm64", "go": "go1.27.2", "runner": "macos-26"}, "unsupported environment contract")
+    require(p["environment"] == {"system": "Darwin", "machine": "arm64", "go": "go1.27.3", "runner": "macos-26"}, "unsupported environment contract")
     require(p["standard_reference"] == {"version": "1.1", "sha256": "de77bfd55da3811ed553985db8d61938467a2a3b2c0215e225b607428b667a86"}, "unknown standard reference")
     return p
 

@@ -2,7 +2,8 @@
 
 能力默认未启用。PR #11/#12 组合候选已完成[本地运行验收 PASS](namespace-layout-runtime-validation.md)，
 包括协议、权限负例、持久化及 D1 不回归；原 STOP 和各阶段提交绑定保留。参见 [ADR-0021](adr/0021-local-data-platform.md)
-与 [本地验证](data-platform-validation.md)。当前新安装采用 [role-scoped-v1](namespace-layout-contract.md)。
+与 [本地验证](data-platform-validation.md)。这些运行结论绑定原提交；下列依赖升级版本的
+运行验收尚未执行，见 [升级记录](dependency-upgrade-20261103.md)。当前新安装采用 [role-scoped-v1](namespace-layout-contract.md)。
 
 Strimzi 1.3.0 的启动配置必须保留官方支持的 4.2.0、4.2.1、4.2.2、4.3.0、4.3.1
 完整镜像目录，分别固定真实 digest。当前 Kafka CR 仍明确选择 4.3.1；目录完整性不等于
@@ -12,11 +13,11 @@ Strimzi 1.3.0 的启动配置必须保留官方支持的 4.2.0、4.2.1、4.2.2�
 | 能力 | 管理方式 / 版本 | 内部地址 | 数据 |
 | --- | --- | --- | --- |
 | PostgreSQL | CloudNativePG 1.30.1 / PostgreSQL 18.6 | postgresql-rw.service-postgresql.svc.cluster.local:5432 | 8Gi，TLS/SCRAM |
-| Redis | StatefulSet / 8.10.2 | redis.service-redis.svc.cluster.local:6379 | 2Gi，TLS/ACL/AOF |
+| Redis | StatefulSet / 8.10.3 | redis.service-redis.svc.cluster.local:6379 | 2Gi，TLS/ACL/AOF |
 | Kafka | Strimzi 1.3.0 / Kafka 4.3.1 | kafka-kafka-bootstrap.service-kafka.svc.cluster.local:9093 | 8Gi，KRaft/mTLS/ACL |
-| Flink | Operator 1.16.0 / Flink 2.3.0 | flink-session-rest.service-flink-session.svc.cluster.local:8081 | 4Gi，1 JM + 1 TM/2 slots |
-| Loki | StatefulSet / 3.7.8 | loki.platform-logging.svc.cluster.local:3100 | 8Gi filesystem，72h |
-| Alloy | Deployment / 1.20.1 | alloy.platform-logging.svc.cluster.local:12345 | API allowlist 日志采集 |
+| Flink | Operator 1.16.1 / Flink 2.3.0 | flink-session-rest.service-flink-session.svc.cluster.local:8081 | 4Gi，1 JM + 1 TM/2 slots |
+| Loki | StatefulSet / 3.7.9 | loki.platform-logging.svc.cluster.local:3100 | 8Gi filesystem，72h |
+| Alloy | Deployment / 1.21.3 | alloy.platform-logging.svc.cluster.local:12345 | API allowlist 日志采集 |
 
 三个 Operator 分别安装在 platform-cnpg-operator、platform-strimzi-operator、platform-flink-operator；
 只 watch 各自 service-postgresql、service-kafka、service-flink-session。CRD、控制器和领域 CR 分开拥有；Argo 不管理

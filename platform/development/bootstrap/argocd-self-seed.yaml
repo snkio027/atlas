@@ -8,8 +8,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -51,8 +51,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -128,8 +128,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -160,8 +160,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -226,8 +226,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-application-controller",
     "namespace": "platform-argocd"
@@ -245,8 +245,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -264,8 +264,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -283,8 +283,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-server",
     "namespace": "platform-argocd"
@@ -322,8 +322,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-cmd-params-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-cmd-params-cm",
     "namespace": "platform-argocd"
@@ -339,8 +339,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-gpg-keys-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-gpg-keys-cm",
     "namespace": "platform-argocd"
@@ -363,8 +363,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-rbac-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-rbac-cm",
     "namespace": "platform-argocd"
@@ -374,7 +374,7 @@
 {
   "apiVersion": "v1",
   "data": {
-    "ssh_known_hosts": "[ssh.github.com]:443 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n[ssh.github.com]:443 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n[ssh.github.com]:443 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\nbitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nbitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nbitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\ngitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=\ngitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf\ngitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9\nssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\nvs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\n"
+    "ssh_known_hosts": "[ssh.github.com]:443 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n[ssh.github.com]:443 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n[ssh.github.com]:443 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\nbitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nbitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nbitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\ngitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=\ngitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf\ngitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9\nssh.bitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nssh.bitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nssh.bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\nssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\nvs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\n"
   },
   "kind": "ConfigMap",
   "metadata": {
@@ -383,8 +383,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-ssh-known-hosts-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-ssh-known-hosts-cm",
     "namespace": "platform-argocd"
@@ -400,8 +400,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-tls-certs-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-tls-certs-cm",
     "namespace": "platform-argocd"
@@ -422,8 +422,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-health-configmap",
     "namespace": "platform-argocd"
@@ -44483,8 +44483,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller"
   },
@@ -44521,8 +44521,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server"
   },
@@ -44614,8 +44614,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller"
   },
@@ -44643,8 +44643,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server"
   },
@@ -44672,8 +44672,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -44750,8 +44750,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -44901,8 +44901,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -44920,8 +44920,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -44989,8 +44989,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -45019,8 +45019,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45049,8 +45049,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45079,8 +45079,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -45109,8 +45109,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45141,8 +45141,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45173,8 +45173,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -45213,8 +45213,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -45244,8 +45244,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45270,8 +45270,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -45591,7 +45591,7 @@
                 }
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "applicationset-controller",
             "ports": [
@@ -45742,8 +45742,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45768,8 +45768,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -46246,7 +46246,7 @@
                 "value": "/helm-working-dir"
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,
@@ -46352,7 +46352,7 @@
               "sh",
               "-c"
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "copyutil",
             "resources": {
@@ -46469,8 +46469,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -46495,8 +46495,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47051,7 +47051,7 @@
                 }
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,
@@ -47250,8 +47250,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -47272,8 +47272,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47315,7 +47315,7 @@
                 }
               }
             ],
-            "image": "ecr-public.aws.com/docker/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+            "image": "ecr-public.aws.com/docker/library/redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
             "imagePullPolicy": "IfNotPresent",
             "name": "redis",
             "ports": [
@@ -47390,8 +47390,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -47417,8 +47417,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47930,7 +47930,7 @@
                 "value": "/tmp/kubecache"
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "application-controller",
             "ports": [
@@ -48066,8 +48066,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48088,8 +48088,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48137,8 +48137,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48171,8 +48171,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48186,8 +48186,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-redis-secret-init",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -48215,7 +48215,7 @@
               "admin",
               "redis-initial-password"
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "secret-init",
             "resources": {},

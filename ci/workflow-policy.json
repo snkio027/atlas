@@ -5,7 +5,7 @@
   "epoch": "v1",
   "context": "Delivery / Quality / pr-full-standard-v1",
   "base_branch": "main",
-  "environment": {"system": "Darwin", "machine": "arm64", "go": "go1.27.2", "runner": "macos-26"},
+  "environment": {"system": "Darwin", "machine": "arm64", "go": "go1.27.3", "runner": "macos-26"},
   "fast": ["source", "workflow"],
   "full": ["source", "workflow", "race", "render", "ot1", "experiments", "data", "packaging", "web-oci"],
   "standard_reference": {

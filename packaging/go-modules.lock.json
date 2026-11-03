@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "module": "go.yaml.in/yaml/v3",
-  "version": "v3.0.5",
-  "sum": "h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=",
+  "version": "v3.0.6",
+  "sum": "h1:zcDfvjXEqTQmpjniUBLc91xYJMB2c4QOFxEF/LCEckM=",
   "goModSum": "h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=",
   "files": {
     "vendor/go.yaml.in/yaml/v3/LICENSE": "d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b",
@@ -14,13 +14,13 @@
     "vendor/go.yaml.in/yaml/v3/encode.go": "be13ba7293fb7a39157b58e304de89d81c46c0332b97bbc4152273515b61ee86",
     "vendor/go.yaml.in/yaml/v3/parserc.go": "28591b9b10ab4326bccb7f16a0d440d639514f90cd7fdea899ea9f66cdac347b",
     "vendor/go.yaml.in/yaml/v3/readerc.go": "ad43815c77785337e2f980aa8e28d1ac89a25d1642187039aa1f451328a58527",
-    "vendor/go.yaml.in/yaml/v3/resolve.go": "69b6069012fef0a518e379222007f6ea7622cb1c235a35b1355bb5641ab16d26",
+    "vendor/go.yaml.in/yaml/v3/resolve.go": "134b7ca3fac40ead9f8e1dd44e55abb720d5aff98a1ba0ca0fe275f7063d23e6",
     "vendor/go.yaml.in/yaml/v3/scannerc.go": "a850fdd79a89f1475c7db3b685af057001ad871390770bf1c90aa808955df084",
     "vendor/go.yaml.in/yaml/v3/sorter.go": "111f911a8095798fda2a7c708e20a931d2c228e637ff82de3ff44794d2d0ae92",
     "vendor/go.yaml.in/yaml/v3/writerc.go": "60fd0364b5b62b66a9f6a62bc56220b3ebc1de0b6a93901989b529e826e7e2af",
     "vendor/go.yaml.in/yaml/v3/yaml.go": "a82503abcfb6f4c1200231d1affdba7f4fcaffed6448d59ea7ffcf189e764628",
     "vendor/go.yaml.in/yaml/v3/yamlh.go": "26fd53137ef7a1365eb7ca405a9e3eec2fb0e845c7dfde94fe9f8c4f153fad49",
     "vendor/go.yaml.in/yaml/v3/yamlprivateh.go": "4e2195c00895d14965430b8326595e287ed23a7923ea3a7d43cfa95d0d359958",
-    "vendor/modules.txt": "ab58016735fc47ac7762f9b47fe08b667dd13e18908309f9b61f9efa59051b05"
+    "vendor/modules.txt": "227ebb426412f48bc1ee39b14a802a9d6d9ab35195626147ccfade5ec02bd58c"
   }
 }

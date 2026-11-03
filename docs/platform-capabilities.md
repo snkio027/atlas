@@ -54,11 +54,11 @@ Application 和精确 AppProject 类型/namespace 增量由目录生成，需在
 
 | 能力 | 实现及用途 | 调度 / 持久化 |
 | --- | --- | --- |
-| 指标 | kube-prometheus-stack 92.3.0；Prometheus、kube-state-metrics、node-exporter；节点、Pod、kubelet/cAdvisor、API Server、CoreDNS 指标 | Operator/KSM 在 compute；exporter 覆盖 4 节点；Prometheus 在 data，8Gi PVC，24h / 4GB retention |
+| 指标 | kube-prometheus-stack 92.17.1；Prometheus、kube-state-metrics、node-exporter；节点、Pod、kubelet/cAdvisor、API Server、CoreDNS 指标 | Operator/KSM 在 compute；exporter 覆盖 4 节点；Prometheus 在 data，8Gi PVC，24h / 4GB retention |
 | 告警 | 上游 Kubernetes/Prometheus 规则、Alertmanager、S3 指标端点缺失与卷可用空间规则 | Alertmanager 在 data，1Gi PVC；当前 receiver 为 local-only，尚无外部通知渠道 |
 | 看板 | Grafana 及上游 Kubernetes 看板；Atlas 节点、Pod、PVC、S3 抓取状态看板 | data，2Gi PVC；登录使用 SealedSecret 引用；禁用匿名登录和在线插件安装 |
-| 对象存储 | SeaweedFS 4.48 mini，S3 path-style API，预建 uploads 桶；上传、下载、附件、预签名和分段上传 | data，16Gi Retain PVC；单副本；bucket 范围 Read/Write/List/Tagging 权限 |
-| 凭据物化 | Sealed Secrets 0.40.0 / chart 2.20.0；基础范围为 sealed-secrets、monitoring、object-storage、workload-web；业务 Project 另经受限发布授权 | compute；不授予 argocd / kube-system Secret 写权限；自动 key renewal 关闭，变更另行审核 |
+| 对象存储 | SeaweedFS 4.52 mini，S3 path-style API，预建 uploads 桶；上传、下载、附件、预签名和分段上传 | data，16Gi Retain PVC；单副本；bucket 范围 Read/Write/List/Tagging 权限 |
+| 凭据物化 | Sealed Secrets 0.41.2 / chart 2.22.0；基础范围为 sealed-secrets、monitoring、object-storage、workload-web；业务 Project 另经受限发布授权 | compute；不授予 argocd / kube-system Secret 写权限；自动 key renewal 关闭，变更另行审核 |
 
 此 profile 没有 Loki、Tempo、HPA、数据库、HA、远端备份或生产发布承诺。
 Kind 的 etcd、scheduler、controller-manager、kube-proxy 私有指标端点未启用抓取，避免把不可达目标
@@ -142,7 +142,7 @@ HA、离线恢复或生产就绪证明。后续基础能力优先级见 [组件�
 
 ## 上游依据
 
-- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-92.3.0/charts/kube-prometheus-stack)
+- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-92.17.1/charts/kube-prometheus-stack)
 - [Prometheus Operator compatibility](https://prometheus-operator.dev/docs/getting-started/compatibility/)
 - [SeaweedFS 4.47](https://github.com/seaweedfs/seaweedfs/releases/tag/4.47)
-- [Sealed Secrets 0.40.0](https://github.com/bitnami/sealed-secrets/releases/tag/v0.40.0)
+- [Sealed Secrets 0.41.2](https://github.com/bitnami/sealed-secrets/releases/tag/v0.41.2)

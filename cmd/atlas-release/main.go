@@ -51,8 +51,8 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" || runtime.Version() != "go1.27.2" {
-		return errors.New("release build requires locked go1.27.2 on darwin/arm64")
+	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" || runtime.Version() != "go1.27.3" {
+		return errors.New("release build requires locked go1.27.3 on darwin/arm64")
 	}
 	if *prepareOnly {
 		b, e := os.ReadFile(filepath.Join(abs, "packaging/tools-darwin-arm64.json"))

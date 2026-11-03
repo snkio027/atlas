@@ -35,8 +35,8 @@ func (p *Project) projectOperatorLayout(j CapabilityJob, objects []Object) ([]Ob
 		watch = "STRIMZI_NAMESPACE"
 		oldWatch = operator + "," + runtime
 	case "flink-operator":
-		chart = "vendor/platform/flink-kubernetes-operator-1.16.0-helm.tgz"
-		digest = "8afdca38d3104f47a5c59f63886f9153d0f63fc0a0ce7979c79357f9571d4fe5"
+		chart = "vendor/platform/flink-kubernetes-operator-1.16.1-helm.tgz"
+		digest = "e3e107e7bf0a9e9762d699f81d782991a974d3193532e4953a4d4a8e3e9d8579"
 		operator = platformnames.FlinkOperator
 		runtime = platformnames.Flink
 		deploy = "flink-kubernetes-operator"
@@ -47,7 +47,9 @@ func (p *Project) projectOperatorLayout(j CapabilityJob, objects []Object) ([]Ob
 		return nil, errors.New("operator layout requires its exact reviewed chart and namespace")
 	}
 	// Hash the entire upstream RBAC/SA set, including all additive bindings.
-	pins := map[string]string{"cnpg": "72ce1d84f7e6ddbeef45f4f841cd764aef25fcf0852ce6838ca7eb0fc77596a5", "strimzi": "25ea755276fa58c9d2dc9e13235ea29e425939dbdd2ec8f6edf3ee7f395c8b9c", "flink-operator": "275f0c722b035b1c2aecbd5387a85f13b1beca651ec48c2ad8729e86717dc3e6"}
+	// Flink 1.16.1 changes only version/chart labels in this complete RBAC set.
+	// Rules, subjects, role refs, identities and watch boundaries stay unchanged.
+	pins := map[string]string{"cnpg": "72ce1d84f7e6ddbeef45f4f841cd764aef25fcf0852ce6838ca7eb0fc77596a5", "strimzi": "25ea755276fa58c9d2dc9e13235ea29e425939dbdd2ec8f6edf3ee7f395c8b9c", "flink-operator": "12aa7140fb737ad2d13146bda5db1b82e0cc55f2b9c37930c3bd72b7dba4e907"}
 	rb := []Object{}
 	for _, o := range objects {
 		switch o["kind"] {

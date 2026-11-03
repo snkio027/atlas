@@ -205,7 +205,7 @@ grafana:
     plugins:
       plugin_admin_enabled: false
   image:
-    tag: 13.2.3-distroless
+    tag: 13.3.0-distroless
 kube-state-metrics:
   nodeSelector:
     kubernetes.io/os: linux

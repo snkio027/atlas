@@ -23,7 +23,7 @@ Runtime tools and OCI images are downloaded separately from their locked upstrea
 sources; they are not relicensed by Atlas. Image and tool references/digests are
 included in runtime.json. Review upstream notices for those separate artifacts.
 
-The strict authored YAML parser vendors `go.yaml.in/yaml/v3 v3.0.5`.
+The strict authored YAML parser vendors `go.yaml.in/yaml/v3 v3.0.6`.
 Its MIT and Apache-2.0 license notices are in `vendor/go.yaml.in/yaml/v3/`.
 `go.sum` records module provenance; `packaging/go-modules.lock.json` records the
 vendored file digests. Quality and release builds use the offline vendor tree.

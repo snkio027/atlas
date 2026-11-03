@@ -67,7 +67,7 @@ schema 新增 consumer 默认值、源码与产品 schema 不一致，以及预�
 以及相同实例的有效 sealing certificate 和已有备份 receipt。不会导出或轮换 controller 私钥。
 
 ```sh
-# 在产品源码根目录；依赖 Go 1.27.2，使用已校验 vendor，无需获取网络构建依赖。
+# 在产品源码根目录；依赖 Go 1.27.3，使用已校验 vendor，无需获取网络构建依赖。
 mkdir -p .state/s2/artifacts
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false \
   -ldflags=-buildid= -o .state/s2/artifacts/atlas-web ./cmd/atlas-web

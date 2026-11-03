@@ -8,8 +8,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink",
     "namespace": "service-flink-session"
@@ -23,8 +23,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator",
     "namespace": "platform-flink-operator"
@@ -45,8 +45,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator-config",
     "namespace": "platform-flink-operator"
@@ -60,8 +60,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator",
     "namespace": "service-flink-session"
@@ -223,8 +223,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator",
     "namespace": "platform-flink-operator"
@@ -268,8 +268,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator-role-binding",
     "namespace": "service-flink-session"
@@ -295,8 +295,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-operator-role-binding",
     "namespace": "platform-flink-operator"
@@ -342,8 +342,8 @@
     "labels": {
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "flink-kubernetes-operator",
-      "app.kubernetes.io/version": "1.16.0",
-      "helm.sh/chart": "flink-kubernetes-operator-1.16.0"
+      "app.kubernetes.io/version": "1.16.1",
+      "helm.sh/chart": "flink-kubernetes-operator-1.16.1"
     },
     "name": "flink-kubernetes-operator",
     "namespace": "platform-flink-operator"
@@ -432,7 +432,7 @@
                 "value": "-Xms128m -Xmx256m -Djava.io.tmpdir=/opt/flink/artifacts"
               }
             ],
-            "image": "docker.io/apache/flink-kubernetes-operator:1.16.0@sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
+            "image": "docker.io/apache/flink-kubernetes-operator:1.16.1@sha256:94b91ea6e9d83996f12d7360ca74e49264057cf3ce697636d81677611651d142",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "httpGet": {
@@ -555,7 +555,7 @@
                 }
               }
             ],
-            "image": "docker.io/apache/flink-kubernetes-operator:1.16.0@sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
+            "image": "docker.io/apache/flink-kubernetes-operator:1.16.1@sha256:94b91ea6e9d83996f12d7360ca74e49264057cf3ce697636d81677611651d142",
             "imagePullPolicy": "IfNotPresent",
             "name": "flink-webhook",
             "resources": {

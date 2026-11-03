@@ -117,55 +117,6 @@
         }
       }
     },
-    "docker.io/apache/flink-kubernetes-operator:1.16.0": {
-      "digest": "sha256:c072e3389989760034f2eef47fcd1dc987a539a83f4d448ef5c0608524447925",
-      "platforms": {
-        "amd64": {
-          "digest": "sha256:b94c49e3fdfa0917c818f6cfdef8bcdbae783dfed4896c0371661579600c572b",
-          "user": "flink",
-          "entrypoint": [
-            "/docker-entrypoint.sh"
-          ],
-          "env": [
-            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "JAVA_HOME=/opt/java/openjdk",
-            "LANG=en_US.UTF-8",
-            "LANGUAGE=en_US:en",
-            "LC_ALL=en_US.UTF-8",
-            "JAVA_VERSION=jdk-17.0.20+8",
-            "FLINK_HOME=/opt/flink",
-            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
-            "OPERATOR_VERSION=1.16.0",
-            "OPERATOR_JAR=flink-kubernetes-operator-1.16.0-shaded.jar",
-            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.0-shaded.jar",
-            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.0.jar",
-            "OPERATOR_LIB=/opt/flink/operator-lib"
-          ]
-        },
-        "arm64": {
-          "digest": "sha256:ba395d28affa7ec457335de1409ce17dcd0796a995b4dbafae653042a4e0dfdc",
-          "user": "flink",
-          "entrypoint": [
-            "/docker-entrypoint.sh"
-          ],
-          "env": [
-            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "JAVA_HOME=/opt/java/openjdk",
-            "LANG=en_US.UTF-8",
-            "LANGUAGE=en_US:en",
-            "LC_ALL=en_US.UTF-8",
-            "JAVA_VERSION=jdk-17.0.20+8",
-            "FLINK_HOME=/opt/flink",
-            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
-            "OPERATOR_VERSION=1.16.0",
-            "OPERATOR_JAR=flink-kubernetes-operator-1.16.0-shaded.jar",
-            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.0-shaded.jar",
-            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.0.jar",
-            "OPERATOR_LIB=/opt/flink/operator-lib"
-          ]
-        }
-      }
-    },
     "quay.io/strimzi/kafka-bridge:1.2.0": {
       "digest": "sha256:65b8e957487e35414041c1ef54ae03d1c2a736fce39c5d921bbccadfca282ee6",
       "platforms": {
@@ -446,6 +397,64 @@
           ]
         }
       }
+    },
+    "docker.io/apache/flink-kubernetes-operator:1.16.1": {
+      "digest": "sha256:94b91ea6e9d83996f12d7360ca74e49264057cf3ce697636d81677611651d142",
+      "platforms": {
+        "amd64": {
+          "digest": "sha256:91250bb08c4f1ea358b201680e355139a530cb7318439926d62c6387d7c1369d",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "help"
+          ],
+          "env": [
+            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20+8",
+            "FLINK_HOME=/opt/flink",
+            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
+            "OPERATOR_VERSION=1.16.1",
+            "OPERATOR_JAR=flink-kubernetes-operator-1.16.1-shaded.jar",
+            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.1-shaded.jar",
+            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.1.jar",
+            "OPERATOR_LIB=/opt/flink/operator-lib"
+          ]
+        },
+        "arm64": {
+          "digest": "sha256:52b6a28c810d2efe5f45601fb4883c152eb19bc0503a12b71dde206944d546c7",
+          "user": "flink",
+          "entrypoint": [
+            "/docker-entrypoint.sh"
+          ],
+          "cmd": [
+            "help"
+          ],
+          "env": [
+            "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "JAVA_HOME=/opt/java/openjdk",
+            "LANG=en_US.UTF-8",
+            "LANGUAGE=en_US:en",
+            "LC_ALL=en_US.UTF-8",
+            "JAVA_VERSION=jdk-17.0.20+8",
+            "FLINK_HOME=/opt/flink",
+            "FLINK_PLUGINS_DIR=/opt/flink/plugins",
+            "OPERATOR_VERSION=1.16.1",
+            "OPERATOR_JAR=flink-kubernetes-operator-1.16.1-shaded.jar",
+            "WEBHOOK_JAR=flink-kubernetes-webhook-1.16.1-shaded.jar",
+            "KUBERNETES_STANDALONE_JAR=flink-kubernetes-standalone-1.16.1.jar",
+            "OPERATOR_LIB=/opt/flink/operator-lib"
+          ]
+        }
+      }
     }
+  },
+  "updatedImagesOn": {
+    "docker.io/apache/flink-kubernetes-operator:1.16.1": "2026-11-03"
   }
 }
