@@ -16,7 +16,9 @@ import (
 
 func developmentFixture(t *testing.T) (*App, *simulator) {
 	t.Helper()
-	a, s := fixture(t)
+	// The legacy layout archive also binds historical chart/assets. Keep its
+	// companion Bootstrap inputs separate from the current product fixture.
+	a, s := fixtureFrom(t, "testdata/development-legacy-inputs")
 	for _, dir := range []string{"platform/development", "gitops/root", "gitops/platform", "gitops/workloads", "vendor/platform"} {
 		source := filepath.Join("../..", dir)
 		e := filepath.WalkDir(source, func(path string, entry os.DirEntry, e error) error {

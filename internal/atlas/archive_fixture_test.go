@@ -52,8 +52,8 @@ func prepareFixtureArchives(t *testing.T, a *App) {
 	if e = os.WriteFile(path, jsonBytes(lock), 0600); e != nil {
 		t.Fatal(e)
 	}
-	// This simulator uses current candidate dependencies and synthetic OCI
-	// archives. Bind its temporary snapshot to those inputs; never rewrite the
+	// This simulator uses frozen dependencies and synthetic OCI archives.
+	// Bind only its temporary snapshot to those synthetic inputs; never rewrite the
 	// repository's historical snapshot or expose a runtime override.
 	snapshotPath := filepath.Join(a.Root, "platform/development/bootstrap/baseline-v3.json")
 	snapshotBytes, e := os.ReadFile(snapshotPath)

@@ -47,3 +47,9 @@ Exact source URLs, SHA-256 and verification methods are in
 licenses remain in the archives. Helm renders offline. Finite permission/image
 projections are in `internal/platform/data_operators.go`; namespaces and values are
 reviewable catalog inputs. No live Helm releases are created.
+
+Historical archives referenced by `internal/atlas/testdata/development-legacy.zip`
+remain available byte-for-byte for frozen simulation tests. Their original
+checksums live in that immutable fixture; current product locks select only the
+new versions. The companion Bootstrap lock/assets are under
+`internal/atlas/testdata/development-legacy-inputs/`, copied from the upgrade base.

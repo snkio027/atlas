@@ -60,6 +60,10 @@ unchanged runtime images; Windows exporter remains disabled.
 Host Docker/OrbStack, Git, gh, Python and global tool installations are outside
 this change. Frozen OT-1 uses its original Helm 4.2.3, kubectl 1.36.3 and yq 4.53.6.
 Its source snapshots, old STOP records and original evidence are not regenerated.
+The frozen legacy Bootstrap layout also retains its original chart/CRD archives
+and companion root lock/assets, copied byte-for-byte from the base commit.
+Only current product locks select the new archives; historical inputs are not
+packaged as current dependencies.
 
 ## Preparation and verification
 
@@ -78,6 +82,12 @@ and the new finite monitoring-finalizer regression cover these boundaries.
 The subsequent platform check rejected the old ACME solver digest embedded in
 cert-manager arguments; all four explicit cert-manager image values were then
 updated together. The unlocked-image rejection remains enabled.
+The first Full attempt found that the current Bootstrap fixture hardcoded the
+old Argo archive while the legacy layout fixture shared current root inputs.
+The run was interrupted after this failure; it is not counted as a PASS. Current
+fixtures now select the validated lock path, and legacy fixtures use separate
+frozen root inputs plus checksum-verified original archives. Neither historical
+layout snapshots nor runtime authority checks were rewritten.
 YAML merge/alias rejection remains covered by the strict parser tests.
 
 Logging and Redis isolated validators now read the current authored YAML through
