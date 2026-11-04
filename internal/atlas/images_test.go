@@ -3,6 +3,7 @@ package atlas
 import (
 	"context"
 	"errors"
+	"github.com/snkio027/atlas/internal/oci"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,9 +47,13 @@ func TestOfflineImageImportStreamsOnlyNodePlatform(t *testing.T) {
 }
 
 func TestImageImportFailureCannotInstallSeed(t *testing.T) {
-	for _, failure := range []string{"missing-platform", "import-fails", "digest-absent"} {
+	for _, failure := range []string{"missing-platform", "import-fails", "digest-absent", "alias-conflict", "alias-not-retained", "cri-unavailable", "cri-malformed", "cri-wrong-digest"} {
 		t.Run(failure, func(t *testing.T) {
 			a, sim := fixture(t)
+			_, canonical, _, e := oci.Reference(a.Lock.ArgoImage)
+			if e != nil {
+				t.Fatal(e)
+			}
 			a.Runner = runnerFunc(func(ctx context.Context, q Request) ([]byte, error) {
 				joined := strings.Join(q.Args, " ")
 				if q.Tool == "docker" {
@@ -59,6 +64,22 @@ func TestImageImportFailureCannotInstallSeed(t *testing.T) {
 						return nil, errors.New("incomplete archive")
 					case failure == "digest-absent" && strings.Contains(joined, "images list"):
 						return nil, nil
+					case (failure == "alias-conflict" || failure == "alias-not-retained") && strings.Contains(joined, "images list"):
+						return []byte(a.Lock.ArgoImage), nil
+					case (failure == "alias-conflict" || failure == "alias-not-retained") && strings.Contains(joined, "images tag"):
+						if q.Args[len(q.Args)-1] != canonical || strings.Contains(joined, "--force") {
+							t.Fatal("canonical alias must be registered without overwriting another digest")
+						}
+						if failure == "alias-conflict" {
+							return nil, errors.New("image already exists with another target")
+						}
+						return nil, nil
+					case failure == "cri-unavailable" && strings.Contains(joined, "crictl inspecti"):
+						return nil, errors.New("CRI unavailable")
+					case failure == "cri-malformed" && strings.Contains(joined, "crictl inspecti"):
+						return []byte("not JSON"), nil
+					case failure == "cri-wrong-digest" && strings.Contains(joined, "crictl inspecti"):
+						return jsonBytes(Object{"status": Object{"repoDigests": []string{"wrong.example/image@sha256:" + strings.Repeat("0", 64)}}}), nil
 					}
 				}
 				return sim.Run(ctx, q)
@@ -80,38 +101,74 @@ func TestImageImportFailureCannotInstallSeed(t *testing.T) {
 }
 
 func TestNodeImageReferenceMustBeBoundToLockedDigest(t *testing.T) {
-	a, sim := fixture(t)
-	if e := os.MkdirAll(filepath.Join(a.Root, ".state"), 0700); e != nil {
-		t.Fatal(e)
+	for _, existingAuthoredAlias := range []bool{false, true} {
+		name := "missing-authored-alias"
+		if existingAuthoredAlias {
+			name = "authored-alias-present-but-cri-cannot-resolve"
+		}
+		t.Run(name, func(t *testing.T) {
+			a, sim := fixture(t)
+			if e := os.MkdirAll(filepath.Join(a.Root, ".state"), 0700); e != nil {
+				t.Fatal(e)
+			}
+			_, canonical, digest, e := oci.Reference(a.Lock.ArgoImage)
+			if e != nil {
+				t.Fatal(e)
+			}
+			source := "imported.example/argocd@sha256:" + digest
+			aliases := map[string]bool{source: true}
+			if existingAuthoredAlias {
+				aliases[a.Lock.ArgoImage] = true
+			}
+			inspected := false
+			a.Runner = runnerFunc(func(ctx context.Context, q Request) ([]byte, error) {
+				joined := strings.Join(q.Args, " ")
+				if q.Tool == "docker" && strings.Contains(joined, "images list") {
+					if !strings.HasSuffix(joined, "target.digest==sha256:"+digest) {
+						t.Fatal("digest filter missing")
+					}
+					refs := []string{source}
+					for _, alias := range []string{a.Lock.ArgoImage, canonical} {
+						if aliases[alias] {
+							refs = append(refs, alias)
+						}
+					}
+					return []byte(strings.Join(refs, "\n")), nil
+				}
+				if q.Tool == "docker" && strings.Contains(joined, "images tag") {
+					dest := q.Args[len(q.Args)-1]
+					if q.Args[len(q.Args)-2] != source || (dest != a.Lock.ArgoImage && dest != canonical) || strings.Contains(joined, "--force") || aliases[dest] {
+						t.Fatal("unbound or conflicting image tag")
+					}
+					aliases[dest] = true
+					return nil, nil
+				}
+				if q.Tool == "docker" && strings.Contains(joined, "crictl inspecti") {
+					if q.Args[len(q.Args)-1] != a.Lock.ArgoImage || !aliases[canonical] {
+						return nil, errors.New("authored image not resolvable through CRI")
+					}
+					inspected = true
+				}
+				return sim.Run(ctx, q)
+			})
+			if e := a.loadNodeImage(context.Background(), a.Lock.ArgoImage); e != nil {
+				t.Fatal(e)
+			}
+			if !aliases[a.Lock.ArgoImage] || !aliases[canonical] || !inspected {
+				t.Fatal("both locked aliases and successful authored-reference CRI lookup are required")
+			}
+		})
 	}
-	_, digest, _ := strings.Cut(a.Lock.ArgoImage, "@")
-	source := "imported.example/argocd@" + digest
-	tagged := false
-	a.Runner = runnerFunc(func(ctx context.Context, q Request) ([]byte, error) {
-		joined := strings.Join(q.Args, " ")
-		if q.Tool == "docker" && strings.Contains(joined, "images list") {
-			if !strings.HasSuffix(joined, "target.digest=="+digest) {
-				t.Fatal("digest filter missing")
-			}
-			if tagged {
-				return []byte(a.Lock.ArgoImage), nil
-			}
-			return []byte(source), nil
-		}
-		if q.Tool == "docker" && strings.Contains(joined, "images tag") {
-			if q.Args[len(q.Args)-2] != source || q.Args[len(q.Args)-1] != a.Lock.ArgoImage || strings.Contains(joined, "--force") {
-				t.Fatal("unbound image tag")
-			}
-			tagged = true
-			return nil, nil
-		}
-		return sim.Run(ctx, q)
+}
+
+func TestNodeImageInvalidReferenceCannotImport(t *testing.T) {
+	a, _ := fixture(t)
+	a.Runner = runnerFunc(func(context.Context, Request) ([]byte, error) {
+		t.Fatal("invalid reference reached node import")
+		return nil, nil
 	})
-	if e := a.loadNodeImage(context.Background(), a.Lock.ArgoImage); e != nil {
-		t.Fatal(e)
-	}
-	if !tagged {
-		t.Fatal("exact locked reference not restored")
+	if e := a.importNodeImage(context.Background(), "registry.example/image:latest", filepath.Join(a.Root, ".state/image.tar"), "node"); e == nil {
+		t.Fatal("unlocked image reference accepted")
 	}
 }
 

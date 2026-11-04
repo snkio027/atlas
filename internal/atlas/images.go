@@ -2,10 +2,12 @@ package atlas
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/snkio027/atlas/internal/oci"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -54,6 +56,10 @@ func (a *App) loadNodeImage(ctx context.Context, image string) error {
 }
 
 func (a *App) importNodeImage(ctx context.Context, image, path, node string) error {
+	_, canonical, digest, e := oci.Reference(image)
+	if e != nil {
+		return e
+	}
 	args := []string{"exec", "--privileged", "--interactive", node, "ctr", "--namespace", "k8s.io", "images", "import", "--platform", "linux/arm64", "--digests", "--snapshotter", "overlayfs", "-"}
 	input, e := filepath.Rel(a.Root, path)
 	if e != nil {
@@ -62,10 +68,7 @@ func (a *App) importNodeImage(ctx context.Context, image, path, node string) err
 	if _, e = a.Runner.Run(ctx, Request{Tool: "docker", Args: args, InputPath: input}); e != nil {
 		return e
 	}
-	_, wantDigest, ok := strings.Cut(image, "@")
-	if !ok {
-		return errors.New("node import requires a digest-pinned image")
-	}
+	wantDigest := "sha256:" + digest
 	prefix := []string{"exec", node, "ctr", "--namespace", "k8s.io", "images"}
 	listArgs := append(append([]string{}, prefix...), "list", "--quiet", "target.digest=="+wantDigest)
 	refs, e := a.run(ctx, "docker", listArgs...)
@@ -76,22 +79,39 @@ func (a *App) importNodeImage(ctx context.Context, image, path, node string) err
 	if len(sources) == 0 || strings.HasPrefix(sources[0], "-") {
 		return errors.New("locked image digest absent after offline node import")
 	}
-	for _, ref := range sources {
-		if ref == image {
-			return nil
+	// CRI strips the tag from repo:tag@digest. The authored alias alone is not
+	// sufficient for kubelet to find an offline image, even when ctr lists it.
+	for _, ref := range []string{image, canonical} {
+		if !slices.Contains(sources, ref) {
+			// Never replace a conflicting alias with --force.
+			if _, e = a.run(ctx, "docker", append(prefix, "tag", sources[0], ref)...); e != nil {
+				return e
+			}
+			sources = append(sources, ref)
 		}
-	}
-	if _, e = a.run(ctx, "docker", append(prefix, "tag", sources[0], image)...); e != nil {
-		return e
 	}
 	refs, e = a.run(ctx, "docker", listArgs...)
 	if e != nil {
 		return e
 	}
-	for _, ref := range strings.Fields(string(refs)) {
-		if ref == image {
-			return nil
-		}
+	registered := strings.Fields(string(refs))
+	if !slices.Contains(registered, image) || !slices.Contains(registered, canonical) {
+		return errors.New("locked image aliases absent after offline node import")
 	}
-	return errors.New("exact locked image reference absent after offline node import")
+	raw, e := a.run(ctx, "docker", "exec", node, "crictl", "inspecti", image)
+	if e != nil {
+		return e
+	}
+	var info struct {
+		Status struct {
+			RepoDigests []string `json:"repoDigests"`
+		} `json:"status"`
+	}
+	if e = json.Unmarshal(raw, &info); e != nil {
+		return errors.New("invalid CRI image inspection response")
+	}
+	if !slices.Contains(info.Status.RepoDigests, canonical) {
+		return errors.New("canonical CRI image identity not proven after offline import")
+	}
+	return nil
 }

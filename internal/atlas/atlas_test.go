@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/snkio027/atlas/internal/oci"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -85,12 +86,25 @@ func (s *simulator) Run(ctx context.Context, q Request) ([]byte, error) {
 				return nil, nil
 			}
 			if strings.Contains(joined, "images list") {
+				var refs []string
 				for _, image := range a.lockedImages() {
 					_, digest, _ := strings.Cut(image, "@")
 					if strings.Contains(joined, "target.digest=="+digest) {
-						return []byte(strings.Join(a.lockedImages(), "\n")), nil
+						_, canonical, _, e := oci.Reference(image)
+						if e != nil {
+							return nil, e
+						}
+						refs = append(refs, image, canonical)
 					}
 				}
+				return []byte(strings.Join(refs, "\n")), nil
+			}
+			if strings.Contains(joined, "crictl inspecti") {
+				_, canonical, _, e := oci.Reference(q.Args[len(q.Args)-1])
+				if e != nil {
+					return nil, e
+				}
+				return jsonBytes(Object{"status": Object{"repoDigests": []string{canonical}}}), nil
 			}
 		}
 	case "kind":
