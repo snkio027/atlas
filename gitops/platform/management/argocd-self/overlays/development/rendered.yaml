@@ -8,8 +8,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -51,8 +51,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -128,8 +128,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -160,8 +160,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -226,8 +226,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-application-controller",
     "namespace": "platform-argocd"
@@ -245,8 +245,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -264,8 +264,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -283,8 +283,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-server",
     "namespace": "platform-argocd"
@@ -322,8 +322,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-cmd-params-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-cmd-params-cm",
     "namespace": "platform-argocd"
@@ -339,8 +339,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-gpg-keys-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-gpg-keys-cm",
     "namespace": "platform-argocd"
@@ -363,8 +363,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-rbac-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-rbac-cm",
     "namespace": "platform-argocd"
@@ -374,7 +374,7 @@
 {
   "apiVersion": "v1",
   "data": {
-    "ssh_known_hosts": "[ssh.github.com]:443 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n[ssh.github.com]:443 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n[ssh.github.com]:443 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\nbitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nbitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nbitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\ngitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=\ngitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf\ngitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9\nssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\nvs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\n"
+    "ssh_known_hosts": "[ssh.github.com]:443 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n[ssh.github.com]:443 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n[ssh.github.com]:443 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\nbitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nbitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nbitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=\ngitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=\ngitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf\ngitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9\nssh.bitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=\nssh.bitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO\nssh.bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=\nssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\nvs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H\n"
   },
   "kind": "ConfigMap",
   "metadata": {
@@ -383,8 +383,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-ssh-known-hosts-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-ssh-known-hosts-cm",
     "namespace": "platform-argocd"
@@ -400,8 +400,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-tls-certs-cm",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "argocd-tls-certs-cm",
     "namespace": "platform-argocd"
@@ -411,7 +411,7 @@
 {
   "apiVersion": "v1",
   "data": {
-    "redis_liveness.sh": "response=$(\n  redis-cli \\\n    -a \"${REDIS_PASSWORD}\" --no-auth-warning \\\n    -h localhost \\\n    -p 6379 \\\n    ping\n)\nif [ \"$response\" != \"PONG\" ] \u0026\u0026 [ \"${response:0:7}\" != \"LOADING\" ] ; then\n  echo \"$response\"\n  exit 1\nfi\necho \"response=$response\"\n",
+    "redis_liveness.sh": "response=$(\n  redis-cli \\\n    -a \"${REDIS_PASSWORD}\" --no-auth-warning \\\n    -h localhost \\\n    -p 6379 \\\n    ping\n)\nif [ \"$response\" != \"PONG\" ] && [ \"${response:0:7}\" != \"LOADING\" ] ; then\n  echo \"$response\"\n  exit 1\nfi\necho \"response=$response\"\n",
     "redis_readiness.sh": "response=$(\n  redis-cli \\\n    -a \"${REDIS_PASSWORD}\" --no-auth-warning \\\n    -h localhost \\\n    -p 6379 \\\n    ping\n)\nif [ \"$response\" != \"PONG\" ] ; then\n  echo \"$response\"\n  exit 1\nfi\necho \"response=$response\"\n"
   },
   "kind": "ConfigMap",
@@ -422,8 +422,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-health-configmap",
     "namespace": "platform-argocd"
@@ -868,7 +868,7 @@
                               "images": {
                                 "description": "Images is a list of Kustomize image override specifications",
                                 "items": {
-                                  "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                  "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                   "type": "string"
                                 },
                                 "type": "array"
@@ -1312,7 +1312,7 @@
                                 "images": {
                                   "description": "Images is a list of Kustomize image override specifications",
                                   "items": {
-                                    "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                    "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                     "type": "string"
                                   },
                                   "type": "array"
@@ -1888,7 +1888,7 @@
                           "images": {
                             "description": "Images is a list of Kustomize image override specifications",
                             "items": {
-                              "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                              "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                               "type": "string"
                             },
                             "type": "array"
@@ -2329,7 +2329,7 @@
                               "images": {
                                 "description": "Images is a list of Kustomize image override specifications",
                                 "items": {
-                                  "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                  "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                   "type": "string"
                                 },
                                 "type": "array"
@@ -2807,7 +2807,7 @@
                             "images": {
                               "description": "Images is a list of Kustomize image override specifications",
                               "items": {
-                                "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                 "type": "string"
                               },
                               "type": "array"
@@ -3443,7 +3443,7 @@
                                 "images": {
                                   "description": "Images is a list of Kustomize image override specifications",
                                   "items": {
-                                    "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                    "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                     "type": "string"
                                   },
                                   "type": "array"
@@ -3887,7 +3887,7 @@
                                   "images": {
                                     "description": "Images is a list of Kustomize image override specifications",
                                     "items": {
-                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                       "type": "string"
                                     },
                                     "type": "array"
@@ -4487,7 +4487,7 @@
                                       "images": {
                                         "description": "Images is a list of Kustomize image override specifications",
                                         "items": {
-                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                           "type": "string"
                                         },
                                         "type": "array"
@@ -4931,7 +4931,7 @@
                                         "images": {
                                           "description": "Images is a list of Kustomize image override specifications",
                                           "items": {
-                                            "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                            "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                             "type": "string"
                                           },
                                           "type": "array"
@@ -5524,7 +5524,7 @@
                                   "images": {
                                     "description": "Images is a list of Kustomize image override specifications",
                                     "items": {
-                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                       "type": "string"
                                     },
                                     "type": "array"
@@ -5968,7 +5968,7 @@
                                     "images": {
                                       "description": "Images is a list of Kustomize image override specifications",
                                       "items": {
-                                        "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                        "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                         "type": "string"
                                       },
                                       "type": "array"
@@ -6536,7 +6536,7 @@
                                       "images": {
                                         "description": "Images is a list of Kustomize image override specifications",
                                         "items": {
-                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                           "type": "string"
                                         },
                                         "type": "array"
@@ -7038,7 +7038,7 @@
                                       "images": {
                                         "description": "Images is a list of Kustomize image override specifications",
                                         "items": {
-                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                          "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                           "type": "string"
                                         },
                                         "type": "array"
@@ -7624,7 +7624,7 @@
                                   "images": {
                                     "description": "Images is a list of Kustomize image override specifications",
                                     "items": {
-                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                      "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                       "type": "string"
                                     },
                                     "type": "array"
@@ -8068,7 +8068,7 @@
                                     "images": {
                                       "description": "Images is a list of Kustomize image override specifications",
                                       "items": {
-                                        "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]\u003cimage_name\u003e:\u003cimage_tag\u003e",
+                                        "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
                                         "type": "string"
                                       },
                                       "type": "array"
@@ -44483,8 +44483,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller"
   },
@@ -44521,8 +44521,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server"
   },
@@ -44614,8 +44614,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller"
   },
@@ -44643,8 +44643,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server"
   },
@@ -44672,8 +44672,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -44750,8 +44750,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -44901,8 +44901,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -44920,8 +44920,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -44989,8 +44989,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -45019,8 +45019,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45049,8 +45049,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45079,8 +45079,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -45109,8 +45109,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45141,8 +45141,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45173,8 +45173,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -45213,8 +45213,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -45244,8 +45244,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-applicationset-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-applicationset-controller",
     "namespace": "platform-argocd"
@@ -45270,8 +45270,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -45591,7 +45591,7 @@
                 }
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "applicationset-controller",
             "ports": [
@@ -45742,8 +45742,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-repo-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-repo-server",
     "namespace": "platform-argocd"
@@ -45768,8 +45768,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -46246,7 +46246,7 @@
                 "value": "/helm-working-dir"
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,
@@ -46346,13 +46346,13 @@
         "initContainers": [
           {
             "args": [
-              "/bin/cp --update=none /usr/local/bin/argocd /var/run/argocd/argocd \u0026\u0026 /bin/ln -sf /var/run/argocd/argocd /var/run/argocd/argocd-cmp-server"
+              "/bin/cp --update=none /usr/local/bin/argocd /var/run/argocd/argocd && /bin/ln -sf /var/run/argocd/argocd /var/run/argocd/argocd-cmp-server"
             ],
             "command": [
               "sh",
               "-c"
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "copyutil",
             "resources": {
@@ -46469,8 +46469,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-server",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-server",
     "namespace": "platform-argocd"
@@ -46495,8 +46495,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47051,7 +47051,7 @@
                 }
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,
@@ -47250,8 +47250,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis",
     "namespace": "platform-argocd"
@@ -47272,8 +47272,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47315,7 +47315,7 @@
                 }
               }
             ],
-            "image": "ecr-public.aws.com/docker/library/redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
+            "image": "ecr-public.aws.com/docker/library/redis:8.10.3-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537",
             "imagePullPolicy": "IfNotPresent",
             "name": "redis",
             "ports": [
@@ -47390,8 +47390,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-application-controller",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-application-controller",
     "namespace": "platform-argocd"
@@ -47417,8 +47417,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -47930,7 +47930,7 @@
                 "value": "/tmp/kubecache"
               }
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "application-controller",
             "ports": [
@@ -48066,8 +48066,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48088,8 +48088,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48137,8 +48137,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48171,8 +48171,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "argocd-redis-secret-init",
       "app.kubernetes.io/part-of": "argocd",
-      "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-      "helm.sh/chart": "argo-cd-10.10.2"
+      "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+      "helm.sh/chart": "argo-cd-10.11.6"
     },
     "name": "atlas-refactor-argocd-redis-secret-init",
     "namespace": "platform-argocd"
@@ -48186,8 +48186,8 @@
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "argocd-redis-secret-init",
           "app.kubernetes.io/part-of": "argocd",
-          "app.kubernetes.io/version": "v3.5.4-sha256-49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6",
-          "helm.sh/chart": "argo-cd-10.10.2"
+          "app.kubernetes.io/version": "v3.5.7-sha256-16df57da6f223808d204cd94c67c929b931fa01670b91b0b3",
+          "helm.sh/chart": "argo-cd-10.11.6"
         }
       },
       "spec": {
@@ -48215,7 +48215,7 @@
               "admin",
               "redis-initial-password"
             ],
-            "image": "quay.io/argoproj/argocd:v3.5.4@sha256:49dff79439bb38b1b942b19a113fe1fec7e6b6c671ddf9fe6a4a7c46bde0b77b",
+            "image": "quay.io/argoproj/argocd:v3.5.7@sha256:16df57da6f223808d204cd94c67c929b931fa01670b91b0b3a2298c4647de0db",
             "imagePullPolicy": "IfNotPresent",
             "name": "secret-init",
             "resources": {},
@@ -48271,14 +48271,14 @@
     "resource.customizations.health.argoproj.io_Application": "local health = {\n  status = \"Progressing\",\n  message = \"Waiting for child Application to become idle, Synced, and Healthy\"\n}\n\nlocal sync_status = nil\nif obj.status ~= nil and obj.status.sync ~= nil then\n  sync_status = obj.status.sync.status\nend\n\nlocal operation_active = obj.operation ~= nil\nif obj.status ~= nil and obj.status.operationState ~= nil then\n  local phase = obj.status.operationState.phase\n  operation_active = operation_active or phase == \"Running\" or phase == \"Terminating\"\nend\n\nif sync_status == \"Synced\" and not operation_active and\n   obj.status ~= nil and obj.status.health ~= nil then\n  health.status = obj.status.health.status or health.status\n  health.message = obj.status.health.message or health.message\nend\n\nreturn health\n",
     "resource.customizations.health.cert-manager.io_Certificate": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
     "resource.customizations.health.cert-manager.io_Issuer": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
-    "resource.customizations.health.flink.apache.org_FlinkDeployment": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances \u003e 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
+    "resource.customizations.health.flink.apache.org_FlinkDeployment": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances > 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
     "resource.customizations.health.gateway.envoyproxy.io_BackendTrafficPolicy": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
     "resource.customizations.health.gateway.networking.k8s.io_Gateway": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
     "resource.customizations.health.gateway.networking.k8s.io_GatewayClass": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
     "resource.customizations.health.gateway.networking.k8s.io_HTTPRoute": "-- A condition from an older generation is never evidence for the current spec.\nif obj.metadata == nil or obj.metadata.generation == nil then\n  return {status = \"Progressing\", message = \"Resource generation is unavailable\"}\nend\nlocal function conditions(cs, required)\n  for _, wanted in ipairs(required) do\n    local found = false\n    for _, c in ipairs(cs or {}) do\n      if c.type == wanted and c.observedGeneration == obj.metadata.generation then\n        if c.status == \"False\" then\n          return {status = \"Degraded\", message = c.message or c.reason or wanted}\n        end\n        found = c.status == \"True\"\n      end\n    end\n    if not found then\n      return {status = \"Progressing\", message = \"Waiting for current \" .. wanted}\n    end\n  end\n  return {status = \"Healthy\", message = \"Current conditions satisfied\"}\nend\n\nlocal function sameRef(actual, expected)\n  return actual.name == expected.name and\n    (actual.namespace or obj.metadata.namespace) == (expected.namespace or obj.metadata.namespace) and\n    (actual.group or \"gateway.networking.k8s.io\") == (expected.group or \"gateway.networking.k8s.io\") and\n    (actual.kind or \"Gateway\") == (expected.kind or \"Gateway\") and\n    actual.sectionName == expected.sectionName and actual.port == expected.port\nend\n\nlocal status = obj.status or {}\nif obj.kind == \"HTTPRoute\" or obj.kind == \"BackendTrafficPolicy\" then\n  local refs = obj.spec.parentRefs or obj.spec.targetRefs or {}\n  local entries = status.parents or status.ancestors or {}\n  if #refs == 0 then return {status = \"Progressing\", message = \"No target references\"} end\n  for _, ref in ipairs(refs) do\n    local matched = nil\n    for _, entry in ipairs(entries) do\n      if entry.controllerName == \"gateway.envoyproxy.io/gatewayclass-controller\" and\n        sameRef(entry.parentRef or entry.ancestorRef or {}, ref) then\n        matched = entry\n      end\n    end\n    if matched == nil then return {status = \"Progressing\", message = \"Waiting for target status\"} end\n    local required = {\"Accepted\", \"ResolvedRefs\"}\n    if obj.kind == \"BackendTrafficPolicy\" then required = {\"Accepted\"} end\n    local h = conditions(matched.conditions, required)\n    if h.status ~= \"Healthy\" then return h end\n  end\n  return {status = \"Healthy\", message = \"Every target accepted current configuration\"}\nend\n\nlocal required = {\"Ready\"}\nif obj.kind == \"GatewayClass\" then required = {\"Accepted\"} end\nif obj.kind == \"Gateway\" then required = {\"Accepted\", \"Programmed\"} end\nlocal h = conditions(status.conditions, required)\nif h.status ~= \"Healthy\" or obj.kind ~= \"Gateway\" then return h end\nfor _, listener in ipairs(obj.spec.listeners or {}) do\n  local matched = nil\n  for _, entry in ipairs(status.listeners or {}) do\n    if entry.name == listener.name then matched = entry end\n  end\n  if matched == nil then return {status = \"Progressing\", message = \"Waiting for listener \" .. listener.name} end\n  h = conditions(matched.conditions, {\"Accepted\", \"Programmed\", \"ResolvedRefs\"})\n  if h.status ~= \"Healthy\" then return h end\nend\nreturn {status = \"Healthy\", message = \"Gateway and all listeners are ready\"}\n",
-    "resource.customizations.health.kafka.strimzi.io_Kafka": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances \u003e 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
-    "resource.customizations.health.kafka.strimzi.io_KafkaUser": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances \u003e 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
-    "resource.customizations.health.postgresql.cnpg.io_Cluster": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances \u003e 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
+    "resource.customizations.health.kafka.strimzi.io_Kafka": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances > 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
+    "resource.customizations.health.kafka.strimzi.io_KafkaUser": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances > 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
+    "resource.customizations.health.postgresql.cnpg.io_Cluster": "-- Readiness of desired CRs, never authorization to mutate their children.\nlocal s = obj.status or {}\nlocal generation = (obj.metadata or {}).generation\nif generation == nil then\n  return {status = \"Progressing\", message = \"Missing generation\"}\nend\nif obj.kind == \"FlinkDeployment\" then\n  if s.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Waiting for current Flink generation\"}\n  end\n  if s.lifecycleState == \"FAILED\" or s.lifecycleState == \"ROLLED_BACK\" then\n    return {status = \"Degraded\", message = s.error or s.lifecycleState}\n  end\n  if s.lifecycleState == \"STABLE\" and s.jobManagerDeploymentStatus == \"READY\" then\n    return {status = \"Healthy\", message = \"Current Flink session is stable\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for stable Flink session\"}\nend\n-- CNPG 1.30.1 does not populate observedGeneration on Ready. Match the\n-- readiness fields this release actually publishes; this is not proof that\n-- every spec field has rolled out. Runtime verification must inspect children.\nif obj.apiVersion == \"postgresql.cnpg.io/v1\" and obj.kind == \"Cluster\" then\n  local ready = nil\n  for _, c in ipairs(s.conditions or {}) do\n    if c.type == \"Ready\" then\n      if ready ~= nil then\n        return {status = \"Progressing\", message = \"Ambiguous CNPG Ready conditions\"}\n      end\n      ready = c\n    end\n  end\n  if ready == nil then\n    return {status = \"Progressing\", message = \"Waiting for CNPG Ready condition\"}\n  end\n  if ready.observedGeneration ~= nil and ready.observedGeneration ~= 0 and\n    ready.observedGeneration ~= generation then\n    return {status = \"Progressing\", message = \"Stale CNPG Ready condition\"}\n  end\n  if ready.status == \"False\" then\n    -- CNPG sets ClusterIsNotReady for every non-healthy phase, including\n    -- normal first-primary setup. Only these known startup phases may wait;\n    -- a negative condition is never sufficient evidence of readiness.\n    if ready.reason == \"ClusterIsNotReady\" and\n       (s.phase == \"Setting up primary\" or s.phase == \"Waiting for the instances to become active\") then\n      return {status = \"Progressing\", message = s.phase}\n    end\n    return {status = \"Degraded\", message = ready.message or ready.reason or \"CNPG not ready\"}\n  end\n  local spec = obj.spec or {}\n  if ready.status == \"True\" and s.phase == \"Cluster in healthy state\" and\n    type(spec.instances) == \"number\" and spec.instances > 0 and\n    s.instances == spec.instances and s.readyInstances == spec.instances and\n    spec.imageName ~= nil and s.image == spec.imageName and\n    s.currentPrimary ~= nil and s.currentPrimary ~= \"\" and s.currentPrimary == s.targetPrimary then\n    return {status = \"Healthy\", message = \"CNPG ready; child rollout requires runtime verification\"}\n  end\n  return {status = \"Progressing\", message = \"Waiting for CNPG instances, image and primary readiness\"}\nend\n-- Strimzi records generation on status.\nif obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration ~= generation then\n  return {status = \"Progressing\", message = \"Waiting for current Kafka generation\"}\nend\nlocal ready = false\nfor _, c in ipairs(s.conditions or {}) do\n  local current = c.observedGeneration == generation or\n    (obj.apiVersion == \"kafka.strimzi.io/v1\" and s.observedGeneration == generation)\n  if current and ((c.type == \"NotReady\" and c.status == \"True\") or\n    (c.type == \"Ready\" and c.status == \"False\")) then\n    return {status = \"Degraded\", message = c.message or c.reason or \"Not ready\"}\n  end\n  if current and c.type == \"Ready\" and c.status == \"True\" then ready = true end\nend\nif ready then return {status = \"Healthy\", message = \"Current operator condition is ready\"} end\nreturn {status = \"Progressing\", message = \"Waiting for current Ready condition\"}\n",
     "resource.ignoreResourceUpdatesEnabled": "false"
   },
   "kind": "ConfigMap",
