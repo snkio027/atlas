@@ -7,8 +7,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "platform-sealed-secrets"
@@ -25,8 +25,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets-key-admin",
     "namespace": "platform-sealed-secrets"
@@ -70,8 +70,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets-service-proxier",
     "namespace": "platform-sealed-secrets"
@@ -120,8 +120,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "secrets-unsealer",
     "namespace": "platform-sealed-secrets"
@@ -402,8 +402,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "secrets-unsealer",
     "namespace": "platform-monitoring"
@@ -590,8 +590,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "secrets-unsealer",
     "namespace": "project-platform-smoke"
@@ -778,8 +778,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "secrets-unsealer",
     "namespace": "service-object-storage"
@@ -1061,8 +1061,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets-key-admin",
     "namespace": "platform-sealed-secrets"
@@ -1092,8 +1092,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets-service-proxier",
     "namespace": "platform-sealed-secrets"
@@ -1122,8 +1122,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "platform-sealed-secrets"
@@ -1215,8 +1215,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "platform-monitoring"
@@ -1277,8 +1277,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "project-platform-smoke"
@@ -1339,8 +1339,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "service-object-storage"
@@ -1431,8 +1431,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "platform-sealed-secrets"
@@ -1465,8 +1465,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets-metrics",
     "namespace": "platform-sealed-secrets"
@@ -1499,8 +1499,8 @@
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "sealed-secrets",
       "app.kubernetes.io/part-of": "sealed-secrets",
-      "app.kubernetes.io/version": "0.40.0",
-      "helm.sh/chart": "sealed-secrets-2.20.0"
+      "app.kubernetes.io/version": "0.41.2",
+      "helm.sh/chart": "sealed-secrets-2.22.0"
     },
     "name": "sealed-secrets",
     "namespace": "platform-sealed-secrets"
@@ -1550,7 +1550,7 @@
                 }
               }
             ],
-            "image": "docker.io/bitnami/sealed-secrets-controller:0.40.0@sha256:b1ff382e9300dc9e74991f3177b18cafc06ce43b5c21349c86adbdd1d1c177d3",
+            "image": "docker.io/bitnami/sealed-secrets-controller:0.41.2@sha256:e63ec6ec2b12a471bf781081bd370a93ca7b7b3999e5b9243341379aeb801d0b",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,

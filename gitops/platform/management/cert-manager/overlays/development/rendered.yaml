@@ -9,8 +9,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector",
     "namespace": "platform-cert-manager"
@@ -28,8 +28,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager",
     "namespace": "platform-cert-manager"
@@ -47,8 +47,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook",
     "namespace": "platform-cert-manager"
@@ -68,8 +68,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "challenges.acme.cert-manager.io"
   },
@@ -160,7 +160,7 @@
                     "type": "object"
                   },
                   "key": {
-                    "description": "The ACME challenge key for this challenge\nFor HTTP01 challenges, this is the value that must be responded with to\ncomplete the HTTP01 challenge in the format:\n`\u003cprivate key JWK thumbprint\u003e.\u003ckey from acme server for challenge\u003e`.\nFor DNS01 challenges, this is the base64 encoded SHA256 sum of the\n`\u003cprivate key JWK thumbprint\u003e.\u003ckey from acme server for challenge\u003e`\ntext that must be set as the TXT record content.",
+                    "description": "The ACME challenge key for this challenge\nFor HTTP01 challenges, this is the value that must be responded with to\ncomplete the HTTP01 challenge in the format:\n`<private key JWK thumbprint>.<key from acme server for challenge>`.\nFor DNS01 challenges, this is the base64 encoded SHA256 sum of the\n`<private key JWK thumbprint>.<key from acme server for challenge>`\ntext that must be set as the TXT record content.",
                     "type": "string"
                   },
                   "solver": {
@@ -665,14 +665,14 @@
                                       "type": "string"
                                     },
                                     "namespace": {
-                                      "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n\u003cgateway:experimental:description\u003e\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n\u003c/gateway:experimental:description\u003e\n\nSupport: Core",
+                                      "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n<gateway:experimental:description>\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n</gateway:experimental:description>\n\nSupport: Core",
                                       "maxLength": 63,
                                       "minLength": 1,
                                       "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
                                       "type": "string"
                                     },
                                     "port": {
-                                      "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n\u003cgateway:experimental:description\u003e\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n\u003c/gateway:experimental:description\u003e\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
+                                      "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n<gateway:experimental:description>\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n</gateway:experimental:description>\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
                                       "format": "int32",
                                       "maximum": 65535,
                                       "minimum": 1,
@@ -1055,7 +1055,7 @@
                                               "requiredDuringSchedulingIgnoredDuringExecution": {
                                                 "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                 "items": {
-                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                   "properties": {
                                                     "labelSelector": {
                                                       "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -1340,7 +1340,7 @@
                                               "requiredDuringSchedulingIgnoredDuringExecution": {
                                                 "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                 "items": {
-                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                   "properties": {
                                                     "labelSelector": {
                                                       "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -1651,7 +1651,7 @@
                                       "tolerations": {
                                         "description": "If specified, the pod's tolerations.",
                                         "items": {
-                                          "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                          "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                           "properties": {
                                             "effect": {
                                               "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -2095,7 +2095,7 @@
                                               "requiredDuringSchedulingIgnoredDuringExecution": {
                                                 "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                 "items": {
-                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                   "properties": {
                                                     "labelSelector": {
                                                       "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -2380,7 +2380,7 @@
                                               "requiredDuringSchedulingIgnoredDuringExecution": {
                                                 "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                 "items": {
-                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                  "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                   "properties": {
                                                     "labelSelector": {
                                                       "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -2691,7 +2691,7 @@
                                       "tolerations": {
                                         "description": "If specified, the pod's tolerations.",
                                         "items": {
-                                          "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                          "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                           "properties": {
                                             "effect": {
                                               "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -2882,8 +2882,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "orders.acme.cert-manager.io"
   },
@@ -2995,7 +2995,7 @@
                     "type": "string"
                   },
                   "replaces": {
-                    "description": "Replaces is the ARI CertID (RFC 9773 §4.1) of the certificate that this\nOrder is intended to replace. When set, cert-manager will include the\n\"replaces\" field on the newOrder request to the ACME server if and only\nif the server advertises ARI support in its directory. The CertID has\nthe form \"base64url(AKI).base64url(serial)\" and is derived locally from\nthe currently issued leaf certificate.",
+                    "description": "Replaces is the ARI CertID (RFC 9773 \u00a74.1) of the certificate that this\nOrder is intended to replace. When set, cert-manager will include the\n\"replaces\" field on the newOrder request to the ACME server if and only\nif the server advertises ARI support in its directory. The CertID has\nthe form \"base64url(AKI).base64url(serial)\" and is derived locally from\nthe currently issued leaf certificate.",
                     "type": "string"
                   },
                   "request": {
@@ -3159,8 +3159,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "certificaterequests.cert-manager.io"
   },
@@ -3444,8 +3444,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "certificates.cert-manager.io"
   },
@@ -3816,7 +3816,7 @@
                         "type": "string"
                       },
                       "rotationPolicy": {
-                        "description": "RotationPolicy controls how private keys should be regenerated when a\nre-issuance is being processed.\n\nIf set to `Never`, a private key will only be generated if one does not\nalready exist in the target `spec.secretName`. If one does exist but it\ndoes not have the correct algorithm or size, a warning will be raised\nto await user intervention.\nIf set to `Always`, a private key matching the specified requirements\nwill be generated whenever a re-issuance occurs.\nDefault is `Always`.\nThe default was changed from `Never` to `Always` in cert-manager \u003e=v1.18.0.",
+                        "description": "RotationPolicy controls how private keys should be regenerated when a\nre-issuance is being processed.\n\nIf set to `Never`, a private key will only be generated if one does not\nalready exist in the target `spec.secretName`. If one does exist but it\ndoes not have the correct algorithm or size, a warning will be raised\nto await user intervention.\nIf set to `Always`, a private key matching the specified requirements\nwill be generated whenever a re-issuance occurs.\nDefault is `Always`.\nThe default was changed from `Never` to `Always` in cert-manager >=v1.18.0.",
                         "enum": [
                           "Never",
                           "Always"
@@ -3856,7 +3856,7 @@
                           "description": "CertificateRenewalWindows is the definition for renewal windows",
                           "properties": {
                             "cron": {
-                              "description": "`cron` is a cron compliant string to allow when the renewal should be allowed. Format is as shown below:\n* * * * *\n| | | | |\n| | | | day of the week (0–6) (Sunday to Saturday;\n| | | month (1–12)             7 is also Sunday on some systems)\n| | day of the month (1–31)\n| hour (0–23)\nminute (0–59)",
+                              "description": "`cron` is a cron compliant string to allow when the renewal should be allowed. Format is as shown below:\n* * * * *\n| | | | |\n| | | | day of the week (0\u20136) (Sunday to Saturday;\n| | | month (1\u201312)             7 is also Sunday on some systems)\n| | day of the month (1\u201331)\n| hour (0\u201323)\nminute (0\u201359)",
                               "minLength": 1,
                               "type": "string"
                             },
@@ -4049,6 +4049,10 @@
                       "ari": {
                         "description": "ARI stores the ACME Renewal Information that is fetched from the ACME server\nin accordance with RFC 9773. This is only populated if the ARI feature gate is enabled.",
                         "properties": {
+                          "certID": {
+                            "description": "CertID is the ARI CertID (RFC 9773) of the certificate this renewal information was\nfetched for. This is used to determine if we need to re-fetch the renewal information\nas changed cert id means that ARI fetched before is stale.",
+                            "type": "string"
+                          },
                           "explanationURL": {
                             "description": "ExplanationURL is a human-readable URL that may explain why the suggested window\nhas its current value.",
                             "type": "string"
@@ -4215,8 +4219,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "clusterissuers.cert-manager.io"
   },
@@ -4873,14 +4877,14 @@
                                             "type": "string"
                                           },
                                           "namespace": {
-                                            "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n\u003cgateway:experimental:description\u003e\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n\u003c/gateway:experimental:description\u003e\n\nSupport: Core",
+                                            "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n<gateway:experimental:description>\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n</gateway:experimental:description>\n\nSupport: Core",
                                             "maxLength": 63,
                                             "minLength": 1,
                                             "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
                                             "type": "string"
                                           },
                                           "port": {
-                                            "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n\u003cgateway:experimental:description\u003e\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n\u003c/gateway:experimental:description\u003e\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
+                                            "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n<gateway:experimental:description>\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n</gateway:experimental:description>\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
                                             "format": "int32",
                                             "maximum": 65535,
                                             "minimum": 1,
@@ -5263,7 +5267,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -5548,7 +5552,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -5859,7 +5863,7 @@
                                             "tolerations": {
                                               "description": "If specified, the pod's tolerations.",
                                               "items": {
-                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                                 "properties": {
                                                   "effect": {
                                                     "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -6303,7 +6307,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -6588,7 +6592,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -6899,7 +6903,7 @@
                                             "tolerations": {
                                               "description": "If specified, the pod's tolerations.",
                                               "items": {
-                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                                 "properties": {
                                                   "effect": {
                                                     "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -7546,8 +7550,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "issuers.cert-manager.io"
   },
@@ -8204,14 +8208,14 @@
                                             "type": "string"
                                           },
                                           "namespace": {
-                                            "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n\u003cgateway:experimental:description\u003e\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n\u003c/gateway:experimental:description\u003e\n\nSupport: Core",
+                                            "description": "Namespace is the namespace of the referent. When unspecified, this refers\nto the local namespace of the Route.\n\nNote that there are specific rules for ParentRefs which cross namespace\nboundaries. Cross-namespace references are only valid if they are explicitly\nallowed by something in the namespace they are referring to. For example:\nGateway has the AllowedRoutes field, and ReferenceGrant provides a\ngeneric way to enable any other kind of cross-namespace reference.\n\n<gateway:experimental:description>\nParentRefs from a Route to a Service in the same namespace are \"producer\"\nroutes, which apply default routing rules to inbound connections from\nany namespace to the Service.\n\nParentRefs from a Route to a Service in a different namespace are\n\"consumer\" routes, and these routing rules are only applied to outbound\nconnections originating from the same namespace as the Route, for which\nthe intended destination of the connections are a Service targeted as a\nParentRef of the Route.\n</gateway:experimental:description>\n\nSupport: Core",
                                             "maxLength": 63,
                                             "minLength": 1,
                                             "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
                                             "type": "string"
                                           },
                                           "port": {
-                                            "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n\u003cgateway:experimental:description\u003e\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n\u003c/gateway:experimental:description\u003e\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
+                                            "description": "Port is the network port this Route targets. It can be interpreted\ndifferently based on the type of parent resource.\n\nWhen the parent resource is a Gateway, this targets all listeners\nlistening on the specified port that also support this kind of Route(and\nselect this Route). It's not recommended to set `Port` unless the\nnetworking behaviors specified in a Route must apply to a specific port\nas opposed to a listener(s) whose port(s) may be changed. When both Port\nand SectionName are specified, the name and port of the selected listener\nmust match both specified values.\n\n<gateway:experimental:description>\nWhen the parent resource is a Service, this targets a specific port in the\nService spec. When both Port (experimental) and SectionName are specified,\nthe name and port of the selected port must match both specified values.\n</gateway:experimental:description>\n\nImplementations MAY choose to support other parent resources.\nImplementations supporting other types of parent resources MUST clearly\ndocument how/if Port is interpreted.\n\nFor the purpose of status, an attachment is considered successful as\nlong as the parent resource accepts it partially. For example, Gateway\nlisteners can restrict which Routes can attach to them by Route kind,\nnamespace, or hostname. If 1 of 2 Gateway listeners accept attachment\nfrom the referencing Route, the Route MUST be considered successfully\nattached. If no Gateway listeners accept attachment from this Route,\nthe Route MUST be considered detached from the Gateway.\n\nSupport: Extended",
                                             "format": "int32",
                                             "maximum": 65535,
                                             "minimum": 1,
@@ -8594,7 +8598,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -8879,7 +8883,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -9190,7 +9194,7 @@
                                             "tolerations": {
                                               "description": "If specified, the pod's tolerations.",
                                               "items": {
-                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                                 "properties": {
                                                   "effect": {
                                                     "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -9634,7 +9638,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -9919,7 +9923,7 @@
                                                     "requiredDuringSchedulingIgnoredDuringExecution": {
                                                       "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.",
                                                       "items": {
-                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key \u003ctopologyKey\u003e matches that of any node on which\na pod of the set of pods is running",
+                                                        "description": "Defines a set of pods (namely those matching the labelSelector\nrelative to the given namespace(s)) that this pod should be\nco-located (affinity) or not co-located (anti-affinity) with,\nwhere co-located is defined as running on a node whose value of\nthe label with key <topologyKey> matches that of any node on which\na pod of the set of pods is running",
                                                         "properties": {
                                                           "labelSelector": {
                                                             "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.",
@@ -10230,7 +10234,7 @@
                                             "tolerations": {
                                               "description": "If specified, the pod's tolerations.",
                                               "items": {
-                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+                                                "description": "The pod this Toleration is attached to tolerates any taint that matches\nthe triple <key,value,effect> using the matching operator <operator>.",
                                                 "properties": {
                                                   "effect": {
                                                     "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.",
@@ -10874,8 +10878,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector"
   },
@@ -10979,8 +10983,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-issuers"
   },
@@ -11052,8 +11056,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-clusterissuers"
   },
@@ -11125,8 +11129,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-certificates"
   },
@@ -11231,8 +11235,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-orders"
   },
@@ -11351,8 +11355,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-challenges"
   },
@@ -11518,8 +11522,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-ingress-shim"
   },
@@ -11631,8 +11635,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2",
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3",
       "rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true"
     },
     "name": "cert-manager-cluster-view"
@@ -11664,8 +11668,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2",
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3",
       "rbac.authorization.k8s.io/aggregate-to-admin": "true",
       "rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true",
       "rbac.authorization.k8s.io/aggregate-to-edit": "true",
@@ -11716,8 +11720,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2",
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3",
       "rbac.authorization.k8s.io/aggregate-to-admin": "true",
       "rbac.authorization.k8s.io/aggregate-to-edit": "true"
     },
@@ -11791,8 +11795,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-approve:cert-manager-io"
   },
@@ -11825,8 +11829,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-certificatesigningrequests"
   },
@@ -11896,8 +11900,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook:subjectaccessreviews"
   },
@@ -11926,8 +11930,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector"
   },
@@ -11955,8 +11959,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-issuers"
   },
@@ -11984,8 +11988,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-clusterissuers"
   },
@@ -12013,8 +12017,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-certificates"
   },
@@ -12042,8 +12046,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-orders"
   },
@@ -12071,8 +12075,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-challenges"
   },
@@ -12100,8 +12104,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-ingress-shim"
   },
@@ -12129,8 +12133,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-approve:cert-manager-io"
   },
@@ -12158,8 +12162,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-controller-certificatesigningrequests"
   },
@@ -12187,8 +12191,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook:subjectaccessreviews"
   },
@@ -12216,8 +12220,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector:leaderelection",
     "namespace": "kube-system"
@@ -12264,8 +12268,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager:leaderelection",
     "namespace": "kube-system"
@@ -12311,8 +12315,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook:dynamic-serving",
     "namespace": "platform-cert-manager"
@@ -12359,8 +12363,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector:leaderelection",
     "namespace": "kube-system"
@@ -12389,8 +12393,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager:leaderelection",
     "namespace": "kube-system"
@@ -12419,8 +12423,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook:dynamic-serving",
     "namespace": "platform-cert-manager"
@@ -12449,8 +12453,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector",
     "namespace": "platform-cert-manager"
@@ -12482,8 +12486,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager",
     "namespace": "platform-cert-manager"
@@ -12515,8 +12519,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook",
     "namespace": "platform-cert-manager"
@@ -12555,8 +12559,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cainjector",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-cainjector",
     "namespace": "platform-cert-manager"
@@ -12583,8 +12587,8 @@
           "app.kubernetes.io/instance": "cert-manager",
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "cainjector",
-          "app.kubernetes.io/version": "v1.21.2",
-          "helm.sh/chart": "cert-manager-v1.21.2"
+          "app.kubernetes.io/version": "v1.21.3",
+          "helm.sh/chart": "cert-manager-v1.21.3"
         }
       },
       "spec": {
@@ -12604,7 +12608,7 @@
                 }
               }
             ],
-            "image": "quay.io/jetstack/cert-manager-cainjector:v1.21.2@sha256:c85268c64f2e0e76684bf5fe8906caff34b82523561c6affe0fae3546bd87562",
+            "image": "quay.io/jetstack/cert-manager-cainjector:v1.21.3@sha256:083d0e906f8eb44e255fe4ff817ae54e49f9ed82e22f1011bb4e9e4f4b8a641f",
             "imagePullPolicy": "IfNotPresent",
             "name": "cert-manager-cainjector",
             "ports": [
@@ -12652,8 +12656,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "cert-manager",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager",
     "namespace": "platform-cert-manager"
@@ -12680,8 +12684,8 @@
           "app.kubernetes.io/instance": "cert-manager",
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "cert-manager",
-          "app.kubernetes.io/version": "v1.21.2",
-          "helm.sh/chart": "cert-manager-v1.21.2"
+          "app.kubernetes.io/version": "v1.21.3",
+          "helm.sh/chart": "cert-manager-v1.21.3"
         }
       },
       "spec": {
@@ -12691,7 +12695,7 @@
               "--v=2",
               "--cluster-resource-namespace=$(POD_NAMESPACE)",
               "--leader-election-namespace=kube-system",
-              "--acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.21.2@sha256:699b40d622211ab7accad8a21b04c5fbaa1841ef7a12621e8de492dbe27b2503",
+              "--acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.21.3@sha256:c8c1225bb2fe8ab37a330b77f0d8c2ee6a41210fcb54fc07ca606ab9a022b8b7",
               "--max-concurrent-challenges=60"
             ],
             "env": [
@@ -12704,7 +12708,7 @@
                 }
               }
             ],
-            "image": "quay.io/jetstack/cert-manager-controller:v1.21.2@sha256:70f532fd9cfde0b09d55687200942399d89838bc2d5d5b45152eb799a15912b8",
+            "image": "quay.io/jetstack/cert-manager-controller:v1.21.3@sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 8,
@@ -12769,8 +12773,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook",
     "namespace": "platform-cert-manager"
@@ -12797,8 +12801,8 @@
           "app.kubernetes.io/instance": "cert-manager",
           "app.kubernetes.io/managed-by": "Helm",
           "app.kubernetes.io/name": "webhook",
-          "app.kubernetes.io/version": "v1.21.2",
-          "helm.sh/chart": "cert-manager-v1.21.2"
+          "app.kubernetes.io/version": "v1.21.3",
+          "helm.sh/chart": "cert-manager-v1.21.3"
         }
       },
       "spec": {
@@ -12823,7 +12827,7 @@
                 }
               }
             ],
-            "image": "quay.io/jetstack/cert-manager-webhook:v1.21.2@sha256:a60e2dac46dbb8a7f3df95c54ce941012f54c2fe022f0ee55aaa1ab40ed957ae",
+            "image": "quay.io/jetstack/cert-manager-webhook:v1.21.3@sha256:055ac8e9de6a0ba6763794838fe38944acc650f68ebe1b01dd8be079e580f458",
             "imagePullPolicy": "IfNotPresent",
             "livenessProbe": {
               "failureThreshold": 3,
@@ -12908,8 +12912,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook"
   },
@@ -12963,8 +12967,8 @@
       "app.kubernetes.io/instance": "cert-manager",
       "app.kubernetes.io/managed-by": "Helm",
       "app.kubernetes.io/name": "webhook",
-      "app.kubernetes.io/version": "v1.21.2",
-      "helm.sh/chart": "cert-manager-v1.21.2"
+      "app.kubernetes.io/version": "v1.21.3",
+      "helm.sh/chart": "cert-manager-v1.21.3"
     },
     "name": "cert-manager-webhook"
   },
