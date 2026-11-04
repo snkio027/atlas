@@ -86,6 +86,7 @@ func (s *simulator) Run(ctx context.Context, q Request) ([]byte, error) {
 				return nil, nil
 			}
 			if strings.Contains(joined, "images list") {
+				var refs []string
 				for _, image := range a.lockedImages() {
 					_, digest, _ := strings.Cut(image, "@")
 					if strings.Contains(joined, "target.digest=="+digest) {
@@ -93,9 +94,10 @@ func (s *simulator) Run(ctx context.Context, q Request) ([]byte, error) {
 						if e != nil {
 							return nil, e
 						}
-						return []byte(image + "\n" + canonical), nil
+						refs = append(refs, image, canonical)
 					}
 				}
+				return []byte(strings.Join(refs, "\n")), nil
 			}
 			if strings.Contains(joined, "crictl inspecti") {
 				_, canonical, _, e := oci.Reference(q.Args[len(q.Args)-1])
